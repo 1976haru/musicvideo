@@ -114,7 +114,7 @@ def test_schema_07_roundtrip_and_06_backward_compatibility(tmp_path):
     path = project / "session file.json"
     session.export(path)
     restored = LyricsWorldSession.import_file(path)
-    assert restored.to_dict()["schema_version"] == "0.8"
+    assert restored.to_dict()["schema_version"] == "0.9"
     assert restored.generation_takes[0].rating == 5
     assert resolve_take_path(restored.generation_takes[0], restored.project_dir) == source.resolve()
     old = LyricsWorldSession.from_dict({"schema_version": "0.6", "lyrics_text": "old"})

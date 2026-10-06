@@ -49,7 +49,7 @@ def test_traceability_world_refs_subset_duration_and_roundtrip(tmp_path):
     session.export(path)
     restored = LyricsWorldSession.import_file(path)
     assert restored.shots[0].world_rule_refs == ["reality_rules:0"]
-    assert restored.to_dict()["schema_version"] == "0.8"
+    assert restored.to_dict()["schema_version"] == "0.9"
 
 
 def test_reference_scope_policy_uses_beat_as_g3_scene():

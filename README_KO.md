@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 약 87% (G5A Technical / Temporal QC)
+## 현재 전체 진행률: 약 92% (G5B MEGAGATE)
 
 ```text
 MUSIC FILE
@@ -115,7 +115,19 @@ G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP genera
 - 초보자 화면은 “이 영상은 사용해도 될까요?”와 쉬운 이유·추천 행동을 먼저 표시
 - 기술 수치는 기본 화면에서 숨기고 “전문가 정보 보기”에 표시
 
-G5B Visual / Semantic QC와 G6 Editor / Render는 시작하지 않았습니다.
+## G5B MEGAGATE
+
+- Prompt Pack과 영상의 의미 비교를 위한 optional OpenCLIP adapter
+- Shot scope에 맞는 레퍼런스만 사용하는 시각 유사도 비교
+- palette drift, accepted Take 경계 continuity, 인접 Shot redundancy 경고
+- API 없이 외부 AI와 교환하는 Director Intelligence JSON proposal workflow
+- lyric line ID, Beat ID, 시간 범위, enum과 evidence 검증
+- Interpretation / World Concept / Story Beat 제안의 명시적 선택 반영
+- LIBROSA_BASIC fallback과 optional Beat/Functional Structure backend 계층
+- 반복 Chorus를 setup → transformation → payoff로 발전시키는 timeline fusion
+- schema 0.9 및 기존 0.8 이하 하위호환
+
+Provider API, 브라우저 자동화, 자동 ACCEPT/REJECT, Editor / Render는 구현하지 않았습니다.
 
 ## Codex / Claude 전환
 

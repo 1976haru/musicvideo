@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 약 87% · G5A\nTechnical / Temporal QC", "muted"))
+        side.addWidget(_label("전체 약 92% · G5B\nQC + Director / Music Intelligence", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())

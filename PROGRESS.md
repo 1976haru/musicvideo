@@ -1,8 +1,16 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 약 87% (G5A PASS · G5B MEGAGATE 준비)
+## 전체 진행률: 약 92% (G5B MEGAGATE 완료)
 
 ### 완료
+
+- **G5B MEGAGATE**
+  - optional OpenCLIP 의미/레퍼런스 유사도 adapter와 graceful N/A
+  - OpenCV palette drift, accepted Take continuity, adjacent Shot redundancy 경고
+  - API 없는 Director Intelligence prompt → JSON proposal → 검증 → 선택 반영
+  - LIBROSA_BASIC + optional BEAT_THIS / FUNCTIONAL_STRUCTURE backend 계층
+  - 기능 구간 + audio transition + lyric return Director timeline fusion
+  - schema 0.9 proposal / structure / semantic QC 저장·복원
 
 - **G5A Technical / Temporal QC + Beginner UI**
   - read-only 영상 읽기·duration·resolution·fps 검사
@@ -73,7 +81,7 @@
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
 - G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
-- G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **87→92%**
+- G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **약 92% / 완료**
 - G6 Editor/Render: **92→98%**
 - G7 Packaging/Recovery/Release: **98→100%**
 
