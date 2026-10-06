@@ -45,8 +45,12 @@ CONTINUITY SUPERVISOR
    ↓
 PROMPT COMPILER
    ↓
-PROVIDER ADAPTER
-   ├─ Manual Website Pack
+MANUAL GENERATION STUDIO (G4 FIRST)
+   ├─ Generic Website Pack
+   ├─ Higgsfield Manual Profile
+   └─ Future Manual Profiles
+   ↓
+OPTIONAL PROVIDER ADAPTERS (LATER)
    ├─ Runway
    ├─ Veo
    ├─ Luma
@@ -314,8 +318,9 @@ G3에서 Beat는 `lyric_line_ids`와 `music_cue_ids`를 함께 보존하며, 반
 각 Shot은 상위 `beat_id`와 가사·음악 근거 ID를 이어받고, continuity in/out 비교 경고를 제공한다.
 
 ### ⑥ GENERATE
-모델별 예상 비용/길이/기능 확인.
-API 또는 “사이트 수동 입력 Pack” 출력.
+G4 초기 기본은 API가 아니라 “사이트 수동 입력 Pack”이다.
+Shot별 Main / Motion / Camera / Negative / Reference / First-Last frame / Duration / Aspect 지시를 만들고 복사한다.
+Higgsfield 같은 웹사이트에서 사용자가 직접 생성한 뒤 결과를 다시 등록한다.
 
 ### ⑦ QC / EDIT
 A/B 결과 비교, Reject reason, Re-render, Final lock.
@@ -346,11 +351,12 @@ A/B 결과 비교, Reject reason, Re-render, Final lock.
 - OpenCV temporal metrics
 
 ### AI Video
-- Runway API
-- Google Veo
-- Luma
-- Kling via fal
-- ComfyUI local
+- G4 first: Manual Website Pack (Generic / Higgsfield)
+- Later optional: Runway API
+- Later optional: Google Veo
+- Later optional: Luma
+- Later optional: Kling via fal
+- Later optional: ComfyUI local
 
 ### Packaging
 - PyInstaller
