@@ -21,6 +21,7 @@ except ImportError as exc:
 from .music_engine import format_timeline_text
 from .models import ReferenceRole
 from .g3_ui import ShotBoardPage, StoryRoomPage
+from .g4_ui import ManualGenerationStudioPage
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -148,7 +149,7 @@ class MainWindow(QMainWindow):
         self.autosave_timer.setInterval(1000)
         self.autosave_timer.timeout.connect(self._autosave)
         self.concept_cards = {}
-        self.setWindowTitle("MV Director Studio — G2 World Bible + Reference Vault")
+        self.setWindowTitle("MV Director Studio — G4A Manual Generation Studio")
         self.resize(1420, 900)
         self.setMinimumSize(1100, 720)
         self.setStyleSheet(APP_STYLE)
@@ -189,7 +190,7 @@ class MainWindow(QMainWindow):
             ("05  REFERENCE VAULT", True),
             ("06  STORY ROOM", True),
             ("07  SHOT BOARD", True),
-            ("08  GENERATE", False),
+            ("08  GENERATE", True),
             ("09  QC / EDIT", False),
         ]
         for i, (txt, enabled) in enumerate(steps):
@@ -205,7 +206,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 약 65% · G3 1차 구현\nStory Room + Shot Board", "muted"))
+        side.addWidget(_label("전체 78% · G4A FINAL\nManual Generation Studio", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -217,8 +218,11 @@ class MainWindow(QMainWindow):
         self.shot_board_page = ShotBoardPage(lambda: self.session, self._schedule_autosave)
         self.pages.addWidget(self.story_room_page)
         self.pages.addWidget(self.shot_board_page)
+        self.manual_generation_page = ManualGenerationStudioPage(lambda: self.session, self._schedule_autosave)
+        self.pages.addWidget(self.manual_generation_page)
         self.nav_buttons[5].clicked.connect(lambda: self._switch(5))
         self.nav_buttons[6].clicked.connect(lambda: self._switch(6))
+        self.nav_buttons[7].clicked.connect(lambda: self._switch(7))
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
@@ -643,6 +647,7 @@ class MainWindow(QMainWindow):
         self._render_references()
         self.story_room_page.refresh()
         self.shot_board_page.refresh()
+        self.manual_generation_page.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(

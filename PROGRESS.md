@@ -1,8 +1,15 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 72% (G3 FINAL PASS)
+## 전체 진행률: 78% (G4A FINAL PASS)
 
 ### 완료
+
+- **G4A Manual Generation Studio (FINAL PASS)**
+  - GENERIC_MANUAL / HIGGSFIELD data-driven profiles
+  - LyricsWorldSession + ShotSpec manual pack compiler
+  - Main / Motion / Camera / Negative / Reference instructions
+  - Readiness, camera preset recommendation, TXT/JSON export
+  - Pack snapshot session save/open/autosave
 
 - G0 제품/창작 아키텍처
 - G0.5 Lyrics → Meaning → World
@@ -40,7 +47,7 @@
 
 ### 남은 단계
 
-- G4A Manual Generation Studio: **72→78%**
+- G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **78→83%**
 - G5 Automated QC: **83→91%**
 - G6 Editor/Render: **91→97%**
