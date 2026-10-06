@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 92% (G5 FINAL PASS · G6 Editor/Render 준비)
+## 전체 진행률: 98% (G6 FINAL PASS · G7 FINAL RELEASE 준비)
 
 ### 완료
 
@@ -86,14 +86,26 @@
 - 초보자용 "자동 편집 만들기 → 미리보기 → 최종 영상 내보내기" 흐름
 - 원본 미디어 read-only / 최종 출력 atomic
 
+### G7 최종 목표
+
+- Windows 패키징 및 packaged smoke test
+- FFmpeg/ffprobe 탐지와 첫 실행 환경 진단
+- 세션 백업·crash recovery·로그·진단 보고서
+- 안전한 cache 정리와 프로젝트 무결성 검사
+- 전체 초보자 workflow 최종 마감
+- synthetic end-to-end release smoke
+- GitHub Actions Windows build artifact
+- MV Director Studio 1.0 release 문서 및 manifest
+- 패키징 검증 실패 시 100%를 선언하지 않고 99% RELEASE BLOCKED로 보고
+
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
 - G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
 - G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **92% / FINAL PASS**
-- G6 Editor/Render MEGAGATE: **92→98% / 진행 예정**
-- G7 Packaging/Recovery/Release: **98→100%**
+- G6 Editor/Render MEGAGATE: **98% / FINAL PASS**
+- G7 Packaging/Recovery/Release FINAL: **98→100% / 진행 예정**
 
 ## 지금이 Codex 1차 병행 시점
 
