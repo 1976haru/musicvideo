@@ -1,0 +1,36 @@
+You are the story and worldbuilding director for an original music video.
+
+GOAL
+Create 3 distinct, original world concepts. Every concept must be grounded in the lyrics but must NOT illustrate every line literally.
+
+LYRIC ANALYSIS
+- POV: second_person
+- Central conflict: neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화
+- Emotional arc: neutral/ambiguous -> neutral/ambiguous -> hope -> hope -> neutral/ambiguous
+- Repeated phrases: ['もしももう一度会えるなら']
+- Semantic anchors: object:切符(L003,L012), time:夜明け(L001), place:駅(L001), time:夜(L001), relationship:君(L002), nature:葉(L004), place:窓(L005), place:町(L005), weather:雨(L005), body_sense:声(L006), object:傘(L008), body_sense:手(L010), time:朝(L011), color_light:赤(L012)
+
+LYRICS
+L001: 夜明け前の小さな駅で
+L002: 君のいないベンチを見ていた
+L003: 濡れた切符を指で折って
+L004: 言えなかった言葉を数えた
+L005: 雨は窓に古い町を描く
+L006: あの日の声だけ遠くなる
+L007: もしももう一度会えるなら
+L008: 同じ傘には戻らない
+L009: もしももう一度会えるなら
+L010: 今度はちゃんと手を振るよ
+L011: 始発のベルが朝を連れて
+L012: 赤い切符を席に残した
+
+REQUIRED CREATIVE RULES
+1. Cite supporting lyric line IDs for every world rule, motif, major location, and ending image.
+2. Separate literal lyric evidence from visual metaphor.
+3. Repeated chorus lines must evolve visually: setup -> transformation -> payoff.
+4. Prefer one unforgettable impossible rule over many random fantasy effects.
+5. Character identity, geography, weather logic, prop logic, and time must remain continuous.
+6. Do not imitate a living artist or copy a copyrighted film universe.
+7. Avoid generic 'cinematic masterpiece' wording; describe concrete visual causality.
+8. Include grounded realism, restrained magical realism, and a third distinct concept.
+9. Return structured JSON only.

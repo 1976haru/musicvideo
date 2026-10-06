@@ -1,0 +1,76 @@
+[
+  {
+    "cue_id": "MV01",
+    "time_sec": 0.0,
+    "priority": 0.72,
+    "cue_type": "lyric_entry",
+    "reasons": [
+      "narrative_boundary"
+    ],
+    "lyric_line_ids": [
+      "L001"
+    ],
+    "recommended_visual_action": "첫 가사 진입: 세계/주인공/핵심 질문을 명료하게 제시할 후보"
+  },
+  {
+    "cue_id": "MV02",
+    "time_sec": 5.573,
+    "priority": 0.69,
+    "cue_type": "music_transition",
+    "reasons": [
+      "energy_rise",
+      "audio_novelty_peak",
+      "rms_delta=0.0342"
+    ],
+    "lyric_line_ids": [
+      "L004",
+      "L005"
+    ],
+    "recommended_visual_action": "카메라 이동/공간 확장/행동 강도를 한 단계 올릴 후보"
+  },
+  {
+    "cue_id": "MV03",
+    "time_sec": 9.75,
+    "priority": 0.8,
+    "cue_type": "lyric_return",
+    "reasons": [
+      "repeated_lyric_occurrence=1",
+      "motif_phase=setup"
+    ],
+    "lyric_line_ids": [
+      "L007"
+    ],
+    "recommended_visual_action": "같은 가사를 같은 그림으로 반복하지 말고 motif의 setup 단계로 의미를 발전시킬 후보"
+  },
+  {
+    "cue_id": "MV04",
+    "time_sec": 12.005,
+    "priority": 0.92,
+    "cue_type": "music+lyrics",
+    "reasons": [
+      "energy_drop",
+      "audio_novelty_peak",
+      "rms_delta=0.0301",
+      "repeated_lyric_occurrence=2",
+      "motif_phase=transformation"
+    ],
+    "lyric_line_ids": [
+      "L008",
+      "L009"
+    ],
+    "recommended_visual_action": "컷을 비우거나 정지·클로즈업·여운으로 전환할 후보 / 같은 가사를 같은 그림으로 반복하지 말고 motif의 transformation 단계로 의미를 발전시킬 후보"
+  },
+  {
+    "cue_id": "MV05",
+    "time_sec": 18.0,
+    "priority": 0.82,
+    "cue_type": "lyric_exit",
+    "reasons": [
+      "narrative_boundary"
+    ],
+    "lyric_line_ids": [
+      "L012"
+    ],
+    "recommended_visual_action": "마지막 가사: 초반 motif를 회수하거나 결말 이미지를 잠글 후보"
+  }
+]

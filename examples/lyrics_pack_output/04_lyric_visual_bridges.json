@@ -1,0 +1,206 @@
+[
+  {
+    "bridge_id": "LB001",
+    "beat_id": null,
+    "source_line_ids": [
+      "L001"
+    ],
+    "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+    "visual_strategy": "literal",
+    "literalness": 0.6,
+    "must_preserve": [
+      "夜明け前の小さな駅で"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB002",
+    "beat_id": null,
+    "source_line_ids": [
+      "L002"
+    ],
+    "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+    "visual_strategy": "metaphor",
+    "literalness": 0.2,
+    "must_preserve": [
+      "君のいないベンチを見ていた"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB003",
+    "beat_id": null,
+    "source_line_ids": [
+      "L003"
+    ],
+    "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+    "visual_strategy": "literal",
+    "literalness": 0.6,
+    "must_preserve": [
+      "濡れた切符を指で折って"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB004",
+    "beat_id": null,
+    "source_line_ids": [
+      "L004"
+    ],
+    "lyric_intent": "자연/빛 이미지를 감정 변화의 시각 은유로 번역. 감정=neutral/ambiguous",
+    "visual_strategy": "metaphor",
+    "literalness": 0.35,
+    "must_preserve": [
+      "言えなかった言葉を数えた"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB005",
+    "beat_id": null,
+    "source_line_ids": [
+      "L005"
+    ],
+    "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+    "visual_strategy": "literal",
+    "literalness": 0.6,
+    "must_preserve": [
+      "雨は窓に古い町を描く"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB006",
+    "beat_id": null,
+    "source_line_ids": [
+      "L006"
+    ],
+    "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+    "visual_strategy": "metaphor",
+    "literalness": 0.2,
+    "must_preserve": [
+      "あの日の声だけ遠くなる"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB007",
+    "beat_id": null,
+    "source_line_ids": [
+      "L007"
+    ],
+    "lyric_intent": "반복 구절을 같은 장면 반복이 아니라 점진적으로 의미가 변하는 모티프로 사용. 감정=hope",
+    "visual_strategy": "motif",
+    "literalness": 0.25,
+    "must_preserve": [
+      "もしももう一度会えるなら"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB008",
+    "beat_id": null,
+    "source_line_ids": [
+      "L008"
+    ],
+    "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+    "visual_strategy": "literal",
+    "literalness": 0.6,
+    "must_preserve": [
+      "同じ傘には戻らない"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB009",
+    "beat_id": null,
+    "source_line_ids": [
+      "L009"
+    ],
+    "lyric_intent": "반복 구절을 같은 장면 반복이 아니라 점진적으로 의미가 변하는 모티프로 사용. 감정=hope",
+    "visual_strategy": "motif",
+    "literalness": 0.25,
+    "must_preserve": [
+      "もしももう一度会えるなら"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB010",
+    "beat_id": null,
+    "source_line_ids": [
+      "L010"
+    ],
+    "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+    "visual_strategy": "metaphor",
+    "literalness": 0.2,
+    "must_preserve": [
+      "今度はちゃんと手を振るよ"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB011",
+    "beat_id": null,
+    "source_line_ids": [
+      "L011"
+    ],
+    "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+    "visual_strategy": "metaphor",
+    "literalness": 0.2,
+    "must_preserve": [
+      "始発のベルが朝を連れて"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  },
+  {
+    "bridge_id": "LB012",
+    "beat_id": null,
+    "source_line_ids": [
+      "L012"
+    ],
+    "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+    "visual_strategy": "literal",
+    "literalness": 0.6,
+    "must_preserve": [
+      "赤い切符を席に残した"
+    ],
+    "avoid": [
+      "가사 문장을 그대로 설명하는 삽화식 연출",
+      "근거 없는 새 상징 추가"
+    ]
+  }
+]

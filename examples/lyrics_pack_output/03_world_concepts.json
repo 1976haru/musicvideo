@@ -1,0 +1,89 @@
+[
+  {
+    "concept_id": "WC03",
+    "title": "현실 80% + 시적 비현실 20%",
+    "interpretation_mode": "hybrid",
+    "one_line": "현실적인 駅에서 시작하지만 특정 가사 구절이 반복될 때만 雨, 切符, 葉가 미세하게 불가능한 방식으로 반응한다.",
+    "world_rule": "대부분은 현실 물리를 따른다. 단 하나의 반복 모티프만 감정의 문턱에서 비현실적으로 변한다.",
+    "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+    "recurring_motifs": [
+      "切符",
+      "雨",
+      "葉",
+      "赤"
+    ],
+    "visual_language": [
+      "grounded cinematic realism",
+      "subtle magical event",
+      "motif payoff",
+      "visual restraint"
+    ],
+    "ending_image": "마지막에는 현실만 남고 切符의 작은 변화로 서사를 회수한다.",
+    "lyric_evidence": [
+      "L001",
+      "L005",
+      "L003",
+      "L012",
+      "L008",
+      "L004"
+    ],
+    "lyric_relevance_score": 97
+  },
+  {
+    "concept_id": "WC01",
+    "title": "가사에 가장 가까운 현실 세계",
+    "interpretation_mode": "literal",
+    "one_line": "駅을 중심으로 雨와 切符가 실제 사건의 흔적이 되는 현실적 세계.",
+    "world_rule": "가사에 나온 장소·사물은 실제로 존재하지만 감정은 표정 설명보다 행동과 거리 변화로 보여준다.",
+    "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+    "recurring_motifs": [
+      "切符",
+      "雨",
+      "赤"
+    ],
+    "visual_language": [
+      "observational realism",
+      "restrained camera",
+      "lyric-grounded props"
+    ],
+    "ending_image": "처음과 같은 駅이지만 切符의 위치 또는 의미가 달라져 인물의 변화를 보여준다.",
+    "lyric_evidence": [
+      "L001",
+      "L005",
+      "L003",
+      "L012",
+      "L008",
+      "L004"
+    ],
+    "lyric_relevance_score": 94
+  },
+  {
+    "concept_id": "WC02",
+    "title": "가사의 감정을 물리 법칙으로 만든 세계",
+    "interpretation_mode": "metaphoric",
+    "one_line": "切符와 雨가 인물의 기억 상태에 반응하며 공간 자체가 감정을 보존하는 세계.",
+    "world_rule": "감정이 강해질수록 雨 또는 빛의 물성이 변하고 切符는 기억의 상태를 기록한다. 인물은 현상을 완전히 통제할 수 없다.",
+    "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+    "recurring_motifs": [
+      "切符",
+      "葉",
+      "赤"
+    ],
+    "visual_language": [
+      "poetic realism",
+      "one impossible rule only",
+      "motif transformation",
+      "negative space"
+    ],
+    "ending_image": "切符는 남아 있지만 더 이상 비현실적 현상을 일으키지 않는다. 감정이 받아들여졌음을 암시한다.",
+    "lyric_evidence": [
+      "L001",
+      "L005",
+      "L003",
+      "L012",
+      "L008",
+      "L004"
+    ],
+    "lyric_relevance_score": 90
+  }
+]

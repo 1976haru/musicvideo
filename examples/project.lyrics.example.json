@@ -1,0 +1,879 @@
+{
+  "schema_version": "0.2",
+  "title": "비가 기억을 비추는 역",
+  "song_path": "music/song.wav",
+  "lyrics_path": "examples/lyrics_original_ja.txt",
+  "creative_thesis": "헤어진 사람을 잊으려는 여자가 마지막 열차역에서 기억을 피하지 않고 받아들이는 이야기.",
+  "world_bible": {
+    "premise": "비가 내리는 동안 유리 표면에는 장소가 기억한 과거가 잠깐 비친다.",
+    "emotional_thesis": "이별을 지우는 것이 아니라 견딜 수 있는 기억으로 바꾸는 과정.",
+    "reality_rules": [
+      "기억은 오직 젖은 유리나 얕은 물 표면에만 나타난다.",
+      "인물은 기억 속 자신과 직접 접촉할 수 없다."
+    ],
+    "time_period": "contemporary, timeless small Japanese coastal town",
+    "visual_language": [
+      "quiet realism",
+      "restrained magical element",
+      "negative space",
+      "weather as emotion"
+    ],
+    "palette": [
+      "wet slate blue",
+      "aged cream",
+      "muted red accent"
+    ],
+    "material_language": [
+      "wet glass",
+      "painted iron",
+      "old wood",
+      "paper ticket"
+    ],
+    "weather_rules": [
+      "rain begins lightly and peaks before final chorus"
+    ],
+    "lighting_rules": [
+      "soft overcast exterior",
+      "warm tungsten inside station",
+      "no neon cyberpunk"
+    ],
+    "camera_rules": [
+      "camera movement motivated by emotion",
+      "avoid constant orbit shots",
+      "close-ups reserved for emotional turns"
+    ],
+    "recurring_motifs": [
+      "red paper ticket",
+      "rain on glass",
+      "empty opposite seat"
+    ],
+    "forbidden_elements": [
+      "random wardrobe changes",
+      "extra fingers",
+      "text artifacts",
+      "modern LED signage",
+      "oversaturated colors"
+    ],
+    "lyric_foundation": [
+      "L001-L002: 새벽 전의 작은 역과 빈 벤치가 현재의 고독을 설정",
+      "L003-L004: 젖은 승차권과 말하지 못한 말이 핵심 물건/갈등",
+      "L005-L006: 비와 창문이 기억의 시각적 문턱",
+      "L007-L010: 반복되는 '다시 만난다면'을 setup→transformation→payoff로 사용",
+      "L011-L012: 첫차와 남겨진 승차권으로 수용의 결말"
+    ]
+  },
+  "references": [
+    {
+      "reference_id": "REF_CHAR_01",
+      "role": "character_master",
+      "path": "references/character_master.png",
+      "lock_strength": 1.0,
+      "notes": "Main woman identity + cream coat",
+      "provider_asset_ids": {}
+    },
+    {
+      "reference_id": "REF_LOC_01",
+      "role": "location_master",
+      "path": "references/station_master.png",
+      "lock_strength": 0.95,
+      "notes": "Small coastal station waiting room",
+      "provider_asset_ids": {}
+    },
+    {
+      "reference_id": "REF_PROP_01",
+      "role": "prop_master",
+      "path": "references/red_ticket.png",
+      "lock_strength": 0.9,
+      "notes": "Muted red paper ticket",
+      "provider_asset_ids": {}
+    }
+  ],
+  "characters": [
+    {
+      "character_id": "C01",
+      "name": "Mio",
+      "identity_anchor": "Japanese woman in her late 20s, calm face, shoulder-length dark hair",
+      "silhouette": "cream coat over charcoal dress",
+      "appearance_locks": [
+        "same face",
+        "same hair length and part",
+        "natural makeup"
+      ],
+      "wardrobe_locks": [
+        "same cream coat throughout station sequence"
+      ],
+      "motion_signature": [
+        "small delayed gestures",
+        "looks before moving"
+      ],
+      "emotional_range": [
+        "guarded",
+        "nostalgic",
+        "quietly accepting"
+      ],
+      "forbidden_variations": [
+        "no hairstyle change",
+        "no jewelry change"
+      ],
+      "master_reference_ids": [
+        "REF_CHAR_01"
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": "L01",
+      "name": "Coastal station waiting room",
+      "architectural_grammar": "old local station, painted steel window frames, worn wood bench, large rain-streaked window",
+      "spatial_anchors": [
+        "bench under window",
+        "clock above doorway",
+        "platform visible through glass"
+      ],
+      "lighting_rules": [
+        "warm tungsten interior against cool rainy exterior"
+      ],
+      "signature_objects": [
+        "paper timetable",
+        "red ticket",
+        "old wall clock"
+      ],
+      "master_reference_ids": [
+        "REF_LOC_01"
+      ]
+    }
+  ],
+  "story_beats": [
+    {
+      "beat_id": "B01",
+      "start_sec": 0.0,
+      "end_sec": 18.0,
+      "dramatic_question": "왜 그녀는 마지막 역에 혼자 와 있는가?",
+      "change": "회피 상태에서 기억의 첫 흔적을 본다.",
+      "visual_event": "빗물 흐르는 창에 과거의 두 사람이 희미하게 겹친다.",
+      "motif": "rain_on_glass",
+      "setup_or_payoff": "setup",
+      "lyric_line_ids": [
+        "L001",
+        "L002",
+        "L005",
+        "L006"
+      ],
+      "lyric_intent": "현재의 빈자리와 기억의 첫 출현"
+    },
+    {
+      "beat_id": "B02",
+      "start_sec": 18.0,
+      "end_sec": 42.0,
+      "dramatic_question": "그녀는 티켓을 버릴 수 있는가?",
+      "change": "버리려다 손을 멈춘다.",
+      "visual_event": "붉은 표가 손가락 사이에서 젖는다.",
+      "motif": "red_ticket",
+      "setup_or_payoff": "development",
+      "lyric_line_ids": [
+        "L003",
+        "L004",
+        "L007",
+        "L008"
+      ],
+      "lyric_intent": "놓지 못하는 승차권과 첫 번째 가정법"
+    },
+    {
+      "beat_id": "B03",
+      "start_sec": 42.0,
+      "end_sec": 65.0,
+      "dramatic_question": "기억을 붙잡는 것과 받아들이는 것은 같은가?",
+      "change": "표를 버리지 않고 빈 의자 위에 두고 떠난다.",
+      "visual_event": "문이 닫힌 뒤 빗물 속 반사만 남는다.",
+      "motif": "red_ticket",
+      "setup_or_payoff": "payoff",
+      "lyric_line_ids": [
+        "L009",
+        "L010",
+        "L011",
+        "L012"
+      ],
+      "lyric_intent": "같은 후렴의 의미가 작별/수용으로 변하고 승차권을 남김"
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "S001",
+      "beat_id": "B01",
+      "start_sec": 0.0,
+      "end_sec": 6.0,
+      "narrative_function": "Introduce the lonely world and her emotional distance",
+      "lyric_or_music_cue": "instrumental intro",
+      "subject": "Mio sits alone on the bench, seen in soft three-quarter profile",
+      "action": "she remains still while only her eyes drift toward the rain-streaked window",
+      "environment": "old coastal station waiting room during gentle rain",
+      "composition": "medium-wide, Mio on right third, empty seat and window on left",
+      "camera": {
+        "framing": "medium-wide",
+        "lens": "50mm",
+        "angle": "eye level",
+        "movement": "very slow 10 cm push-in",
+        "movement_strength": "subtle"
+      },
+      "lighting": "warm tungsten interior balanced against cool overcast window light",
+      "emotional_note": "controlled loneliness, not melodrama",
+      "motif": "empty_opposite_seat",
+      "continuity_in": [
+        "cream coat dry at shoulders",
+        "red ticket held in right hand"
+      ],
+      "continuity_out": [
+        "camera ends slightly closer",
+        "her gaze reaches the window"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "i2v",
+      "first_frame_ref": "REF_LOC_01",
+      "last_frame_ref": null,
+      "negative_constraints": [
+        "no smile",
+        "no extra passengers",
+        "no camera orbit"
+      ],
+      "lyric_line_ids": [
+        "L001",
+        "L002"
+      ],
+      "lyric_intent": "새벽 전 역과 빈 벤치로 현재의 고독과 부재를 설정",
+      "lyric_visual_strategy": "literal"
+    },
+    {
+      "shot_id": "S002",
+      "beat_id": "B02",
+      "start_sec": 18.0,
+      "end_sec": 24.0,
+      "narrative_function": "Turn the recurring ticket from prop into emotional decision",
+      "lyric_or_music_cue": "first chorus downbeat",
+      "subject": "Mio's right hand holding the muted red paper ticket beside the wet window",
+      "action": "her fingers loosen as if to drop it, then gently close again",
+      "environment": "same station window, rain trails moving down the glass",
+      "composition": "close-up of hand and ticket; her face only as soft reflection",
+      "camera": {
+        "framing": "close-up",
+        "lens": "85mm",
+        "angle": "slightly above hand",
+        "movement": "locked camera with tiny breathing drift",
+        "movement_strength": "locked"
+      },
+      "lighting": "cool window light on hand, warm reflection from station interior",
+      "emotional_note": "hesitation, private grief",
+      "motif": "red_ticket",
+      "continuity_in": [
+        "same red ticket from S001",
+        "same cream sleeve"
+      ],
+      "continuity_out": [
+        "ticket remains in her hand"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "i2v",
+      "first_frame_ref": "REF_PROP_01",
+      "last_frame_ref": null,
+      "negative_constraints": [
+        "no hand deformation",
+        "no printed readable text",
+        "no sudden movement"
+      ],
+      "lyric_line_ids": [
+        "L003",
+        "L004"
+      ],
+      "lyric_intent": "젖은 승차권을 버리지 못하는 행동으로 말하지 못한 감정을 물리화",
+      "lyric_visual_strategy": "motif"
+    },
+    {
+      "shot_id": "S003",
+      "beat_id": "B03",
+      "start_sec": 54.0,
+      "end_sec": 61.0,
+      "narrative_function": "Pay off the motif through acceptance rather than destruction",
+      "lyric_or_music_cue": "final chorus release",
+      "subject": "the empty opposite seat after Mio stands to leave",
+      "action": "she places the red ticket on the seat and exits frame; rain reflection settles",
+      "environment": "same waiting room, rain easing outside",
+      "composition": "medium shot centered on the empty seat, doorway in deep background",
+      "camera": {
+        "framing": "medium",
+        "lens": "50mm",
+        "angle": "eye level",
+        "movement": "camera remains still after she exits",
+        "movement_strength": "locked"
+      },
+      "lighting": "warm interior remains, exterior becomes slightly brighter as rain eases",
+      "emotional_note": "acceptance without triumph",
+      "motif": "red_ticket",
+      "continuity_in": [
+        "same ticket and bench",
+        "cream coat"
+      ],
+      "continuity_out": [
+        "ticket stays alone on seat",
+        "frame becomes still"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "first_last",
+      "first_frame_ref": "REF_LOC_01",
+      "last_frame_ref": "REF_LOC_01",
+      "negative_constraints": [
+        "no new objects",
+        "no camera movement after exit",
+        "no dramatic sunlight"
+      ],
+      "lyric_line_ids": [
+        "L011",
+        "L012"
+      ],
+      "lyric_intent": "첫차가 오는 순간 승차권을 남기는 행동으로 기억을 지우지 않고 놓아주는 결말",
+      "lyric_visual_strategy": "motif"
+    }
+  ],
+  "lyric_lines": [
+    {
+      "line_id": "L001",
+      "text": "夜明け前の小さな駅で",
+      "start_sec": 0.0,
+      "end_sec": 15.0,
+      "section": null
+    },
+    {
+      "line_id": "L002",
+      "text": "君のいないベンチを見ていた",
+      "start_sec": 15.0,
+      "end_sec": 30.0,
+      "section": null
+    },
+    {
+      "line_id": "L003",
+      "text": "濡れた切符を指で折って",
+      "start_sec": 30.0,
+      "end_sec": 45.0,
+      "section": null
+    },
+    {
+      "line_id": "L004",
+      "text": "言えなかった言葉を数えた",
+      "start_sec": 45.0,
+      "end_sec": 60.0,
+      "section": null
+    },
+    {
+      "line_id": "L005",
+      "text": "雨は窓に古い町を描く",
+      "start_sec": 60.0,
+      "end_sec": 75.0,
+      "section": null
+    },
+    {
+      "line_id": "L006",
+      "text": "あの日の声だけ遠くなる",
+      "start_sec": 75.0,
+      "end_sec": 90.0,
+      "section": null
+    },
+    {
+      "line_id": "L007",
+      "text": "もしももう一度会えるなら",
+      "start_sec": 90.0,
+      "end_sec": 105.0,
+      "section": null
+    },
+    {
+      "line_id": "L008",
+      "text": "同じ傘には戻らない",
+      "start_sec": 105.0,
+      "end_sec": 120.0,
+      "section": null
+    },
+    {
+      "line_id": "L009",
+      "text": "もしももう一度会えるなら",
+      "start_sec": 120.0,
+      "end_sec": 135.0,
+      "section": null
+    },
+    {
+      "line_id": "L010",
+      "text": "今度はちゃんと手を振るよ",
+      "start_sec": 135.0,
+      "end_sec": 150.0,
+      "section": null
+    },
+    {
+      "line_id": "L011",
+      "text": "始発のベルが朝を連れて",
+      "start_sec": 150.0,
+      "end_sec": 165.0,
+      "section": null
+    },
+    {
+      "line_id": "L012",
+      "text": "赤い切符を席に残した",
+      "start_sec": 165.0,
+      "end_sec": 180.0,
+      "section": null
+    }
+  ],
+  "lyric_interpretation": {
+    "language_hint": "ja",
+    "synopsis": "관계/기억의 중심어: 君 / 시각적으로 강한 가사 앵커: 切符, 駅, 葉, 窓, 町 / 감정 흐름: neutral/ambiguous → neutral/ambiguous → hope → hope → neutral/ambiguous",
+    "pov": "second_person",
+    "central_conflict": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+    "emotional_arc": [
+      "neutral/ambiguous",
+      "neutral/ambiguous",
+      "hope",
+      "hope",
+      "neutral/ambiguous"
+    ],
+    "repeated_phrases": [
+      "もしももう一度会えるなら"
+    ],
+    "anchors": [
+      {
+        "anchor_id": "A01",
+        "anchor_type": "object",
+        "phrase": "切符",
+        "source_line_ids": [
+          "L003",
+          "L012"
+        ],
+        "weight": 1.0
+      },
+      {
+        "anchor_id": "A02",
+        "anchor_type": "time",
+        "phrase": "夜明け",
+        "source_line_ids": [
+          "L001"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A03",
+        "anchor_type": "place",
+        "phrase": "駅",
+        "source_line_ids": [
+          "L001"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A04",
+        "anchor_type": "time",
+        "phrase": "夜",
+        "source_line_ids": [
+          "L001"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A05",
+        "anchor_type": "relationship",
+        "phrase": "君",
+        "source_line_ids": [
+          "L002"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A06",
+        "anchor_type": "nature",
+        "phrase": "葉",
+        "source_line_ids": [
+          "L004"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A07",
+        "anchor_type": "place",
+        "phrase": "窓",
+        "source_line_ids": [
+          "L005"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A08",
+        "anchor_type": "place",
+        "phrase": "町",
+        "source_line_ids": [
+          "L005"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A09",
+        "anchor_type": "weather",
+        "phrase": "雨",
+        "source_line_ids": [
+          "L005"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A10",
+        "anchor_type": "body_sense",
+        "phrase": "声",
+        "source_line_ids": [
+          "L006"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A11",
+        "anchor_type": "object",
+        "phrase": "傘",
+        "source_line_ids": [
+          "L008"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A12",
+        "anchor_type": "body_sense",
+        "phrase": "手",
+        "source_line_ids": [
+          "L010"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A13",
+        "anchor_type": "time",
+        "phrase": "朝",
+        "source_line_ids": [
+          "L011"
+        ],
+        "weight": 0.73
+      },
+      {
+        "anchor_id": "A14",
+        "anchor_type": "color_light",
+        "phrase": "赤",
+        "source_line_ids": [
+          "L012"
+        ],
+        "weight": 0.73
+      }
+    ],
+    "visual_risk_notes": [
+      "가사의 모든 명사를 그대로 화면에 옮기지 말 것.",
+      "반복되는 후렴은 같은 이미지를 복사하지 말고 모티프의 의미를 발전시킬 것.",
+      "추상 감정어는 행동·공간 변화·빛·거리로 번역할 것.",
+      "counterpoint는 서사적 이유가 있을 때만 사용할 것."
+    ]
+  },
+  "world_concepts": [
+    {
+      "concept_id": "WC03",
+      "title": "현실 80% + 시적 비현실 20%",
+      "interpretation_mode": "hybrid",
+      "one_line": "현실적인 駅에서 시작하지만 특정 가사 구절이 반복될 때만 雨, 切符, 葉가 미세하게 불가능한 방식으로 반응한다.",
+      "world_rule": "대부분은 현실 물리를 따른다. 단 하나의 반복 모티프만 감정의 문턱에서 비현실적으로 변한다.",
+      "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+      "recurring_motifs": [
+        "切符",
+        "雨",
+        "葉",
+        "赤"
+      ],
+      "visual_language": [
+        "grounded cinematic realism",
+        "subtle magical event",
+        "motif payoff",
+        "visual restraint"
+      ],
+      "ending_image": "마지막에는 현실만 남고 切符의 작은 변화로 서사를 회수한다.",
+      "lyric_evidence": [
+        "L001",
+        "L005",
+        "L003",
+        "L012",
+        "L008",
+        "L004"
+      ],
+      "lyric_relevance_score": 97
+    },
+    {
+      "concept_id": "WC01",
+      "title": "가사에 가장 가까운 현실 세계",
+      "interpretation_mode": "literal",
+      "one_line": "駅을 중심으로 雨와 切符가 실제 사건의 흔적이 되는 현실적 세계.",
+      "world_rule": "가사에 나온 장소·사물은 실제로 존재하지만 감정은 표정 설명보다 행동과 거리 변화로 보여준다.",
+      "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+      "recurring_motifs": [
+        "切符",
+        "雨",
+        "赤"
+      ],
+      "visual_language": [
+        "observational realism",
+        "restrained camera",
+        "lyric-grounded props"
+      ],
+      "ending_image": "처음과 같은 駅이지만 切符의 위치 또는 의미가 달라져 인물의 변화를 보여준다.",
+      "lyric_evidence": [
+        "L001",
+        "L005",
+        "L003",
+        "L012",
+        "L008",
+        "L004"
+      ],
+      "lyric_relevance_score": 94
+    },
+    {
+      "concept_id": "WC02",
+      "title": "가사의 감정을 물리 법칙으로 만든 세계",
+      "interpretation_mode": "metaphoric",
+      "one_line": "切符와 雨가 인물의 기억 상태에 반응하며 공간 자체가 감정을 보존하는 세계.",
+      "world_rule": "감정이 강해질수록 雨 또는 빛의 물성이 변하고 切符는 기억의 상태를 기록한다. 인물은 현상을 완전히 통제할 수 없다.",
+      "emotional_engine": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+      "recurring_motifs": [
+        "切符",
+        "葉",
+        "赤"
+      ],
+      "visual_language": [
+        "poetic realism",
+        "one impossible rule only",
+        "motif transformation",
+        "negative space"
+      ],
+      "ending_image": "切符는 남아 있지만 더 이상 비현실적 현상을 일으키지 않는다. 감정이 받아들여졌음을 암시한다.",
+      "lyric_evidence": [
+        "L001",
+        "L005",
+        "L003",
+        "L012",
+        "L008",
+        "L004"
+      ],
+      "lyric_relevance_score": 90
+    }
+  ],
+  "lyric_visual_bridges": [
+    {
+      "bridge_id": "LB001",
+      "beat_id": null,
+      "source_line_ids": [
+        "L001"
+      ],
+      "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+      "visual_strategy": "literal",
+      "literalness": 0.6,
+      "must_preserve": [
+        "夜明け前の小さな駅で"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB002",
+      "beat_id": null,
+      "source_line_ids": [
+        "L002"
+      ],
+      "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+      "visual_strategy": "metaphor",
+      "literalness": 0.2,
+      "must_preserve": [
+        "君のいないベンチを見ていた"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB003",
+      "beat_id": null,
+      "source_line_ids": [
+        "L003"
+      ],
+      "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+      "visual_strategy": "literal",
+      "literalness": 0.6,
+      "must_preserve": [
+        "濡れた切符を指で折って"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB004",
+      "beat_id": null,
+      "source_line_ids": [
+        "L004"
+      ],
+      "lyric_intent": "자연/빛 이미지를 감정 변화의 시각 은유로 번역. 감정=neutral/ambiguous",
+      "visual_strategy": "metaphor",
+      "literalness": 0.35,
+      "must_preserve": [
+        "言えなかった言葉を数えた"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB005",
+      "beat_id": null,
+      "source_line_ids": [
+        "L005"
+      ],
+      "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+      "visual_strategy": "literal",
+      "literalness": 0.6,
+      "must_preserve": [
+        "雨は窓に古い町を描く"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB006",
+      "beat_id": null,
+      "source_line_ids": [
+        "L006"
+      ],
+      "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+      "visual_strategy": "metaphor",
+      "literalness": 0.2,
+      "must_preserve": [
+        "あの日の声だけ遠くなる"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB007",
+      "beat_id": null,
+      "source_line_ids": [
+        "L007"
+      ],
+      "lyric_intent": "반복 구절을 같은 장면 반복이 아니라 점진적으로 의미가 변하는 모티프로 사용. 감정=hope",
+      "visual_strategy": "motif",
+      "literalness": 0.25,
+      "must_preserve": [
+        "もしももう一度会えるなら"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB008",
+      "beat_id": null,
+      "source_line_ids": [
+        "L008"
+      ],
+      "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+      "visual_strategy": "literal",
+      "literalness": 0.6,
+      "must_preserve": [
+        "同じ傘には戻らない"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB009",
+      "beat_id": null,
+      "source_line_ids": [
+        "L009"
+      ],
+      "lyric_intent": "반복 구절을 같은 장면 반복이 아니라 점진적으로 의미가 변하는 모티프로 사용. 감정=hope",
+      "visual_strategy": "motif",
+      "literalness": 0.25,
+      "must_preserve": [
+        "もしももう一度会えるなら"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB010",
+      "beat_id": null,
+      "source_line_ids": [
+        "L010"
+      ],
+      "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+      "visual_strategy": "metaphor",
+      "literalness": 0.2,
+      "must_preserve": [
+        "今度はちゃんと手を振るよ"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB011",
+      "beat_id": null,
+      "source_line_ids": [
+        "L011"
+      ],
+      "lyric_intent": "추상 가사를 표정보다 공간, 거리, 행동 변화로 번역. 감정=neutral/ambiguous",
+      "visual_strategy": "metaphor",
+      "literalness": 0.2,
+      "must_preserve": [
+        "始発のベルが朝を連れて"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    },
+    {
+      "bridge_id": "LB012",
+      "beat_id": null,
+      "source_line_ids": [
+        "L012"
+      ],
+      "lyric_intent": "구체적 행위/사물을 행동 근거로 쓰되 설명적 재연은 피함. 감정=neutral/ambiguous",
+      "visual_strategy": "literal",
+      "literalness": 0.6,
+      "must_preserve": [
+        "赤い切符を席に残した"
+      ],
+      "avoid": [
+        "가사 문장을 그대로 설명하는 삽화식 연출",
+        "근거 없는 새 상징 추가"
+      ]
+    }
+  ]
+}

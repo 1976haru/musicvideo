@@ -1,0 +1,301 @@
+{
+  "schema_version": "0.1",
+  "title": "비가 기억을 비추는 역",
+  "song_path": "music/song.wav",
+  "lyrics_path": "music/lyrics.srt",
+  "creative_thesis": "헤어진 사람을 잊으려는 여자가 마지막 열차역에서 기억을 피하지 않고 받아들이는 이야기.",
+  "world_bible": {
+    "premise": "비가 내리는 동안 유리 표면에는 장소가 기억한 과거가 잠깐 비친다.",
+    "emotional_thesis": "이별을 지우는 것이 아니라 견딜 수 있는 기억으로 바꾸는 과정.",
+    "reality_rules": [
+      "기억은 오직 젖은 유리나 얕은 물 표면에만 나타난다.",
+      "인물은 기억 속 자신과 직접 접촉할 수 없다."
+    ],
+    "time_period": "contemporary, timeless small Japanese coastal town",
+    "visual_language": [
+      "quiet realism",
+      "restrained magical element",
+      "negative space",
+      "weather as emotion"
+    ],
+    "palette": [
+      "wet slate blue",
+      "aged cream",
+      "muted red accent"
+    ],
+    "material_language": [
+      "wet glass",
+      "painted iron",
+      "old wood",
+      "paper ticket"
+    ],
+    "weather_rules": [
+      "rain begins lightly and peaks before final chorus"
+    ],
+    "lighting_rules": [
+      "soft overcast exterior",
+      "warm tungsten inside station",
+      "no neon cyberpunk"
+    ],
+    "camera_rules": [
+      "camera movement motivated by emotion",
+      "avoid constant orbit shots",
+      "close-ups reserved for emotional turns"
+    ],
+    "recurring_motifs": [
+      "red paper ticket",
+      "rain on glass",
+      "empty opposite seat"
+    ],
+    "forbidden_elements": [
+      "random wardrobe changes",
+      "extra fingers",
+      "text artifacts",
+      "modern LED signage",
+      "oversaturated colors"
+    ]
+  },
+  "references": [
+    {
+      "reference_id": "REF_CHAR_01",
+      "role": "character_master",
+      "path": "references/character_master.png",
+      "lock_strength": 1.0,
+      "notes": "Main woman identity + cream coat",
+      "provider_asset_ids": {}
+    },
+    {
+      "reference_id": "REF_LOC_01",
+      "role": "location_master",
+      "path": "references/station_master.png",
+      "lock_strength": 0.95,
+      "notes": "Small coastal station waiting room",
+      "provider_asset_ids": {}
+    },
+    {
+      "reference_id": "REF_PROP_01",
+      "role": "prop_master",
+      "path": "references/red_ticket.png",
+      "lock_strength": 0.9,
+      "notes": "Muted red paper ticket",
+      "provider_asset_ids": {}
+    }
+  ],
+  "characters": [
+    {
+      "character_id": "C01",
+      "name": "Mio",
+      "identity_anchor": "Japanese woman in her late 20s, calm face, shoulder-length dark hair",
+      "silhouette": "cream coat over charcoal dress",
+      "appearance_locks": [
+        "same face",
+        "same hair length and part",
+        "natural makeup"
+      ],
+      "wardrobe_locks": [
+        "same cream coat throughout station sequence"
+      ],
+      "motion_signature": [
+        "small delayed gestures",
+        "looks before moving"
+      ],
+      "emotional_range": [
+        "guarded",
+        "nostalgic",
+        "quietly accepting"
+      ],
+      "forbidden_variations": [
+        "no hairstyle change",
+        "no jewelry change"
+      ],
+      "master_reference_ids": [
+        "REF_CHAR_01"
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "location_id": "L01",
+      "name": "Coastal station waiting room",
+      "architectural_grammar": "old local station, painted steel window frames, worn wood bench, large rain-streaked window",
+      "spatial_anchors": [
+        "bench under window",
+        "clock above doorway",
+        "platform visible through glass"
+      ],
+      "lighting_rules": [
+        "warm tungsten interior against cool rainy exterior"
+      ],
+      "signature_objects": [
+        "paper timetable",
+        "red ticket",
+        "old wall clock"
+      ],
+      "master_reference_ids": [
+        "REF_LOC_01"
+      ]
+    }
+  ],
+  "story_beats": [
+    {
+      "beat_id": "B01",
+      "start_sec": 0.0,
+      "end_sec": 18.0,
+      "dramatic_question": "왜 그녀는 마지막 역에 혼자 와 있는가?",
+      "change": "회피 상태에서 기억의 첫 흔적을 본다.",
+      "visual_event": "빗물 흐르는 창에 과거의 두 사람이 희미하게 겹친다.",
+      "motif": "rain_on_glass",
+      "setup_or_payoff": "setup"
+    },
+    {
+      "beat_id": "B02",
+      "start_sec": 18.0,
+      "end_sec": 42.0,
+      "dramatic_question": "그녀는 티켓을 버릴 수 있는가?",
+      "change": "버리려다 손을 멈춘다.",
+      "visual_event": "붉은 표가 손가락 사이에서 젖는다.",
+      "motif": "red_ticket",
+      "setup_or_payoff": "development"
+    },
+    {
+      "beat_id": "B03",
+      "start_sec": 42.0,
+      "end_sec": 65.0,
+      "dramatic_question": "기억을 붙잡는 것과 받아들이는 것은 같은가?",
+      "change": "표를 버리지 않고 빈 의자 위에 두고 떠난다.",
+      "visual_event": "문이 닫힌 뒤 빗물 속 반사만 남는다.",
+      "motif": "red_ticket",
+      "setup_or_payoff": "payoff"
+    }
+  ],
+  "shots": [
+    {
+      "shot_id": "S001",
+      "beat_id": "B01",
+      "start_sec": 0.0,
+      "end_sec": 6.0,
+      "narrative_function": "Introduce the lonely world and her emotional distance",
+      "lyric_or_music_cue": "instrumental intro",
+      "subject": "Mio sits alone on the bench, seen in soft three-quarter profile",
+      "action": "she remains still while only her eyes drift toward the rain-streaked window",
+      "environment": "old coastal station waiting room during gentle rain",
+      "composition": "medium-wide, Mio on right third, empty seat and window on left",
+      "camera": {
+        "framing": "medium-wide",
+        "lens": "50mm",
+        "angle": "eye level",
+        "movement": "very slow 10 cm push-in",
+        "movement_strength": "subtle"
+      },
+      "lighting": "warm tungsten interior balanced against cool overcast window light",
+      "emotional_note": "controlled loneliness, not melodrama",
+      "motif": "empty_opposite_seat",
+      "continuity_in": [
+        "cream coat dry at shoulders",
+        "red ticket held in right hand"
+      ],
+      "continuity_out": [
+        "camera ends slightly closer",
+        "her gaze reaches the window"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "i2v",
+      "first_frame_ref": "REF_LOC_01",
+      "last_frame_ref": null,
+      "negative_constraints": [
+        "no smile",
+        "no extra passengers",
+        "no camera orbit"
+      ]
+    },
+    {
+      "shot_id": "S002",
+      "beat_id": "B02",
+      "start_sec": 18.0,
+      "end_sec": 24.0,
+      "narrative_function": "Turn the recurring ticket from prop into emotional decision",
+      "lyric_or_music_cue": "first chorus downbeat",
+      "subject": "Mio's right hand holding the muted red paper ticket beside the wet window",
+      "action": "her fingers loosen as if to drop it, then gently close again",
+      "environment": "same station window, rain trails moving down the glass",
+      "composition": "close-up of hand and ticket; her face only as soft reflection",
+      "camera": {
+        "framing": "close-up",
+        "lens": "85mm",
+        "angle": "slightly above hand",
+        "movement": "locked camera with tiny breathing drift",
+        "movement_strength": "locked"
+      },
+      "lighting": "cool window light on hand, warm reflection from station interior",
+      "emotional_note": "hesitation, private grief",
+      "motif": "red_ticket",
+      "continuity_in": [
+        "same red ticket from S001",
+        "same cream sleeve"
+      ],
+      "continuity_out": [
+        "ticket remains in her hand"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "i2v",
+      "first_frame_ref": "REF_PROP_01",
+      "last_frame_ref": null,
+      "negative_constraints": [
+        "no hand deformation",
+        "no printed readable text",
+        "no sudden movement"
+      ]
+    },
+    {
+      "shot_id": "S003",
+      "beat_id": "B03",
+      "start_sec": 54.0,
+      "end_sec": 61.0,
+      "narrative_function": "Pay off the motif through acceptance rather than destruction",
+      "lyric_or_music_cue": "final chorus release",
+      "subject": "the empty opposite seat after Mio stands to leave",
+      "action": "she places the red ticket on the seat and exits frame; rain reflection settles",
+      "environment": "same waiting room, rain easing outside",
+      "composition": "medium shot centered on the empty seat, doorway in deep background",
+      "camera": {
+        "framing": "medium",
+        "lens": "50mm",
+        "angle": "eye level",
+        "movement": "camera remains still after she exits",
+        "movement_strength": "locked"
+      },
+      "lighting": "warm interior remains, exterior becomes slightly brighter as rain eases",
+      "emotional_note": "acceptance without triumph",
+      "motif": "red_ticket",
+      "continuity_in": [
+        "same ticket and bench",
+        "cream coat"
+      ],
+      "continuity_out": [
+        "ticket stays alone on seat",
+        "frame becomes still"
+      ],
+      "reference_ids": [
+        "REF_CHAR_01",
+        "REF_LOC_01",
+        "REF_PROP_01"
+      ],
+      "generation_mode": "first_last",
+      "first_frame_ref": "REF_LOC_01",
+      "last_frame_ref": "REF_LOC_01",
+      "negative_constraints": [
+        "no new objects",
+        "no camera movement after exit",
+        "no dramatic sunlight"
+      ]
+    }
+  ]
+}

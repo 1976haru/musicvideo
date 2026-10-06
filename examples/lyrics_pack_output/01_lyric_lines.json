@@ -1,0 +1,86 @@
+[
+  {
+    "line_id": "L001",
+    "text": "夜明け前の小さな駅で",
+    "start_sec": 0.0,
+    "end_sec": 15.0,
+    "section": null
+  },
+  {
+    "line_id": "L002",
+    "text": "君のいないベンチを見ていた",
+    "start_sec": 15.0,
+    "end_sec": 30.0,
+    "section": null
+  },
+  {
+    "line_id": "L003",
+    "text": "濡れた切符を指で折って",
+    "start_sec": 30.0,
+    "end_sec": 45.0,
+    "section": null
+  },
+  {
+    "line_id": "L004",
+    "text": "言えなかった言葉を数えた",
+    "start_sec": 45.0,
+    "end_sec": 60.0,
+    "section": null
+  },
+  {
+    "line_id": "L005",
+    "text": "雨は窓に古い町を描く",
+    "start_sec": 60.0,
+    "end_sec": 75.0,
+    "section": null
+  },
+  {
+    "line_id": "L006",
+    "text": "あの日の声だけ遠くなる",
+    "start_sec": 75.0,
+    "end_sec": 90.0,
+    "section": null
+  },
+  {
+    "line_id": "L007",
+    "text": "もしももう一度会えるなら",
+    "start_sec": 90.0,
+    "end_sec": 105.0,
+    "section": null
+  },
+  {
+    "line_id": "L008",
+    "text": "同じ傘には戻らない",
+    "start_sec": 105.0,
+    "end_sec": 120.0,
+    "section": null
+  },
+  {
+    "line_id": "L009",
+    "text": "もしももう一度会えるなら",
+    "start_sec": 120.0,
+    "end_sec": 135.0,
+    "section": null
+  },
+  {
+    "line_id": "L010",
+    "text": "今度はちゃんと手を振るよ",
+    "start_sec": 135.0,
+    "end_sec": 150.0,
+    "section": null
+  },
+  {
+    "line_id": "L011",
+    "text": "始発のベルが朝を連れて",
+    "start_sec": 150.0,
+    "end_sec": 165.0,
+    "section": null
+  },
+  {
+    "line_id": "L012",
+    "text": "赤い切符を席に残した",
+    "start_sec": 165.0,
+    "end_sec": 180.0,
+    "section": null
+  }
+]

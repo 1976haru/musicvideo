@@ -1,0 +1,86 @@
+# MV Director Studio v0.4 — MUSIC + LYRICS DIRECTOR TIMELINE
+
+AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
+
+## 현재 전체 진행률: 45%
+
+```text
+MUSIC FILE
+  ↓
+Beat / Onset / Energy / Spectral Change
+  ↓
+Audio Change Candidates
+  +
+LYRICS
+  ↓
+POV / Conflict / Emotion / Repetition / Visual Anchors
+  ↓
+MV DIRECTOR TIMELINE
+  ↓
+WORLD LAB
+  ↓
+(다음 G2) WORLD BIBLE + REFERENCE VAULT
+```
+
+## v0.4 핵심 기능
+
+- WAV / MP3 / FLAC / OGG 중심 음악 읽기
+- Tempo BPM
+- Beat time
+- Onset
+- RMS Energy
+- Spectral centroid / bandwidth 변화
+- 음악 변화점 후보
+- Audio section 후보
+- 4 / 8 / 16 beats 컷 cadence 참고값
+- 가사 Line ID와 음악 변화 결합
+- 반복 가사의 setup → transformation → payoff cue
+- MV Director Timeline
+- MUSIC 데스크톱 UI 탭
+- Music/Lyrics/World 세션 JSON 저장
+
+## 가장 중요한 원칙
+
+프로그램은 음악만 보고 Verse/Chorus를 확정하지 않습니다.
+오디오 분석은 `section_candidate`를 만들고, 향후 가사 반복/LLM/사용자 확인으로 의미적 Section을 확정합니다.
+
+또한 Beat가 있다고 매번 화면을 자르지 않습니다.
+Timeline의 Priority는 **연출을 바꿀 만한 우선순위**이지 자동 컷 명령이 아닙니다.
+
+## Windows 실행
+
+`RUN_WINDOWS.bat` 더블클릭.
+
+최초 실행 시 `.venv`를 만들고 `PySide6 + librosa + soundfile`을 설치합니다.
+
+## CLI
+
+```bash
+mvstudio music-pack song.wav
+mvstudio timeline-pack song.wav --lyrics lyrics.srt
+mvstudio lyrics-pack lyrics.txt --duration 180
+```
+
+## 다음 단계
+
+G2: WORLD BIBLE + REFERENCE VAULT
+
+- 선택한 세계관을 실제 World Bible로 잠금
+- Character Master
+- Wardrobe
+- Location Master
+- Prop Master
+- Color / Light
+- Composition
+- Camera Motion
+- Texture / Material
+- drag & drop reference management
+- reference lock strength
+- shot에 쓸 reference ID 관리
+
+## Codex / Claude 전환
+
+**v0.4 / 45%가 첫 Codex 병행 시점입니다.**
+
+`docs/G2_CODEX_HANDOFF.md`의 지시문을 그대로 사용하세요.
+Claude Code는 Reference Vault가 완성되는 58%부터 적극 병행을 권장합니다.

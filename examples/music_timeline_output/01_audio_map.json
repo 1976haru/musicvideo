@@ -1,0 +1,136 @@
+{
+  "source_path": "examples/_synthetic_120bpm.wav",
+  "duration_sec": 18.0,
+  "sample_rate": 22050,
+  "tempo_bpm": 117.45,
+  "beat_times_sec": [
+    1.022,
+    1.509,
+    2.02,
+    2.508,
+    3.019,
+    3.529,
+    4.017,
+    4.528,
+    5.016,
+    5.526,
+    6.014,
+    6.525,
+    7.012,
+    7.523,
+    8.011,
+    8.522,
+    9.009,
+    9.52,
+    10.008,
+    10.519,
+    11.029,
+    11.517,
+    12.028,
+    12.516,
+    13.026,
+    13.514,
+    14.025,
+    14.512,
+    15.023,
+    15.511,
+    16.022,
+    16.509,
+    17.02
+  ],
+  "onset_times_sec": [
+    0.511,
+    1.022,
+    1.509,
+    2.02,
+    2.508,
+    3.019,
+    3.506,
+    4.017,
+    4.505,
+    5.016,
+    5.503,
+    6.014,
+    6.525,
+    7.012,
+    7.523,
+    8.011,
+    8.522,
+    9.009,
+    9.52,
+    10.008,
+    10.519,
+    11.006,
+    11.517,
+    12.005,
+    12.516,
+    13.003,
+    13.514,
+    14.025,
+    14.512,
+    15.023,
+    15.511,
+    16.022,
+    16.509,
+    17.02,
+    17.508
+  ],
+  "transitions": [
+    {
+      "transition_id": "AT01",
+      "time_sec": 5.573,
+      "strength": 0.149,
+      "character": "energy_rise",
+      "reasons": [
+        "audio_novelty_peak",
+        "rms_delta=0.0342"
+      ]
+    },
+    {
+      "transition_id": "AT02",
+      "time_sec": 12.005,
+      "strength": 0.15,
+      "character": "energy_drop",
+      "reasons": [
+        "audio_novelty_peak",
+        "rms_delta=0.0301"
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "AS01",
+      "label": "intro_candidate",
+      "start_sec": 0.0,
+      "end_sec": 5.573,
+      "mean_energy": 0.04419,
+      "confidence": 0.45
+    },
+    {
+      "section_id": "AS02",
+      "label": "section_candidate",
+      "start_sec": 5.573,
+      "end_sec": 12.005,
+      "mean_energy": 0.07578,
+      "confidence": 0.55
+    },
+    {
+      "section_id": "AS03",
+      "label": "outro_candidate",
+      "start_sec": 12.005,
+      "end_sec": 18.0,
+      "mean_energy": 0.04586,
+      "confidence": 0.45
+    }
+  ],
+  "cut_cadence_hints": {
+    "4_beats_sec": 2.043,
+    "8_beats_sec": 4.087,
+    "16_beats_sec": 8.173
+  },
+  "analysis_notes": [
+    "Audio section labels are candidates, not semantic Verse/Chorus claims.",
+    "Use lyric repetition, user labels, or an LLM/music-structure model to assign semantic section names.",
+    "Transition strength is for directing/editing priority, not a command to cut at every peak."
+  ]
+}

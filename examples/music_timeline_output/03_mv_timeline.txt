@@ -1,0 +1,14 @@
+00:00.00  P=0.72  lyric_entry  lyrics=L001
+  → 첫 가사 진입: 세계/주인공/핵심 질문을 명료하게 제시할 후보
+
+00:05.57  P=0.69  music_transition  lyrics=L004,L005
+  → 카메라 이동/공간 확장/행동 강도를 한 단계 올릴 후보
+
+00:09.75  P=0.80  lyric_return  lyrics=L007
+  → 같은 가사를 같은 그림으로 반복하지 말고 motif의 setup 단계로 의미를 발전시킬 후보
+
+00:12.01  P=0.92  music+lyrics  lyrics=L008,L009
+  → 컷을 비우거나 정지·클로즈업·여운으로 전환할 후보 / 같은 가사를 같은 그림으로 반복하지 말고 motif의 transformation 단계로 의미를 발전시킬 후보
+
+00:18.00  P=0.82  lyric_exit  lyrics=L012
+  → 마지막 가사: 초반 motif를 회수하거나 결말 이미지를 잠글 후보

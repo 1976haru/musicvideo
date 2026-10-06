@@ -1,0 +1,151 @@
+{
+  "language_hint": "ja",
+  "synopsis": "관계/기억의 중심어: 君 / 시각적으로 강한 가사 앵커: 切符, 駅, 葉, 窓, 町 / 감정 흐름: neutral/ambiguous → neutral/ambiguous → hope → hope → neutral/ambiguous",
+  "pov": "second_person",
+  "central_conflict": "neutral/ambiguous에서 neutral/ambiguous로 이동하는 내적 변화",
+  "emotional_arc": [
+    "neutral/ambiguous",
+    "neutral/ambiguous",
+    "hope",
+    "hope",
+    "neutral/ambiguous"
+  ],
+  "repeated_phrases": [
+    "もしももう一度会えるなら"
+  ],
+  "anchors": [
+    {
+      "anchor_id": "A01",
+      "anchor_type": "object",
+      "phrase": "切符",
+      "source_line_ids": [
+        "L003",
+        "L012"
+      ],
+      "weight": 1.0
+    },
+    {
+      "anchor_id": "A02",
+      "anchor_type": "time",
+      "phrase": "夜明け",
+      "source_line_ids": [
+        "L001"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A03",
+      "anchor_type": "place",
+      "phrase": "駅",
+      "source_line_ids": [
+        "L001"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A04",
+      "anchor_type": "time",
+      "phrase": "夜",
+      "source_line_ids": [
+        "L001"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A05",
+      "anchor_type": "relationship",
+      "phrase": "君",
+      "source_line_ids": [
+        "L002"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A06",
+      "anchor_type": "nature",
+      "phrase": "葉",
+      "source_line_ids": [
+        "L004"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A07",
+      "anchor_type": "place",
+      "phrase": "窓",
+      "source_line_ids": [
+        "L005"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A08",
+      "anchor_type": "place",
+      "phrase": "町",
+      "source_line_ids": [
+        "L005"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A09",
+      "anchor_type": "weather",
+      "phrase": "雨",
+      "source_line_ids": [
+        "L005"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A10",
+      "anchor_type": "body_sense",
+      "phrase": "声",
+      "source_line_ids": [
+        "L006"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A11",
+      "anchor_type": "object",
+      "phrase": "傘",
+      "source_line_ids": [
+        "L008"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A12",
+      "anchor_type": "body_sense",
+      "phrase": "手",
+      "source_line_ids": [
+        "L010"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A13",
+      "anchor_type": "time",
+      "phrase": "朝",
+      "source_line_ids": [
+        "L011"
+      ],
+      "weight": 0.73
+    },
+    {
+      "anchor_id": "A14",
+      "anchor_type": "color_light",
+      "phrase": "赤",
+      "source_line_ids": [
+        "L012"
+      ],
+      "weight": 0.73
+    }
+  ],
+  "visual_risk_notes": [
+    "가사의 모든 명사를 그대로 화면에 옮기지 말 것.",
+    "반복되는 후렴은 같은 이미지를 복사하지 말고 모티프의 의미를 발전시킬 것.",
+    "추상 감정어는 행동·공간 변화·빛·거리로 번역할 것.",
+    "counterpoint는 서사적 이유가 있을 때만 사용할 것."
+  ]
+}
