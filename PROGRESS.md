@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 83% (G4B Result / Take Manager FINAL PASS)
+## 전체 진행률: 83% (G4B FINAL PASS · G5 준비)
 
 ### 완료
 
@@ -55,11 +55,18 @@
   - Reference ID 연결, World Bible 금지 요소 및 continuity 경고
   - G3 FINAL PASS 확정
 
+### UI 원칙
+
+- G5부터 Beginner UI Standard 적용
+- 처음 실행한 사용자도 설명서 없이 주요 흐름을 완료할 수 있어야 함
+- 상태 → 이유 → 추천 행동 → 전문가 상세 순서
+
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
-- G5 Automated QC: **83→91%**
+- G5A Technical / Temporal QC + Beginner UI: **83→87%**
+- G5B Visual / Semantic QC: **87→91%**
 - G6 Editor/Render: **91→97%**
 - G7 Packaging/Recovery/Release: **97→100%**
 
