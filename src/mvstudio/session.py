@@ -25,6 +25,10 @@ from .result_takes import (
 )
 from .reference_vault import ReferenceVault, portable_path, resolve_reference_path
 from .world_bible import promote_world_concept
+from .technical_qc import TakeQCReport
+from .semantic_qc import SemanticQCReport
+from .director_intelligence import DirectorIntelligenceResult
+from .music_intelligence import EnhancedMusicStructure
 
 
 @dataclass
@@ -47,6 +51,10 @@ class LyricsWorldSession:
     generation_packs: list[ManualGenerationPack] = field(default_factory=list)
     generation_takes: list[GenerationTake] = field(default_factory=list)
     take_id_counters: dict[str, int] = field(default_factory=dict)
+    qc_reports: list[TakeQCReport] = field(default_factory=list)
+    semantic_qc_reports: list[SemanticQCReport] = field(default_factory=list)
+    director_intelligence_results: list[DirectorIntelligenceResult] = field(default_factory=list)
+    enhanced_music_structure: EnhancedMusicStructure | None = None
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -134,7 +142,7 @@ class LyricsWorldSession:
             data["output_path"] = portable_take_path(resolve_take_path(take, self.project_dir), target_dir)
             takes.append(data)
         return {
-            "schema_version": "0.7",
+            "schema_version": "0.9",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],
@@ -153,6 +161,10 @@ class LyricsWorldSession:
             "generation_packs": [pack.model_dump(mode="json") for pack in self.generation_packs],
             "generation_takes": takes,
             "take_id_counters": dict(self.take_id_counters),
+            "qc_reports": [report.model_dump(mode="json") for report in self.qc_reports],
+            "semantic_qc_reports": [report.model_dump(mode="json") for report in self.semantic_qc_reports],
+            "director_intelligence_results": [result.model_dump(mode="json") for result in self.director_intelligence_results],
+            "enhanced_music_structure": self.enhanced_music_structure.model_dump(mode="json") if self.enhanced_music_structure else None,
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -177,6 +189,10 @@ class LyricsWorldSession:
             generation_packs=[ManualGenerationPack.model_validate(x) for x in data.get("generation_packs", [])],
             generation_takes=[GenerationTake.model_validate(x) for x in data.get("generation_takes", [])],
             take_id_counters={str(key): int(value) for key, value in data.get("take_id_counters", {}).items()},
+            qc_reports=[TakeQCReport.model_validate(x) for x in data.get("qc_reports", [])],
+            semantic_qc_reports=[SemanticQCReport.model_validate(x) for x in data.get("semantic_qc_reports", [])],
+            director_intelligence_results=[DirectorIntelligenceResult.model_validate(x) for x in data.get("director_intelligence_results", [])],
+            enhanced_music_structure=EnhancedMusicStructure.model_validate(data["enhanced_music_structure"]) if data.get("enhanced_music_structure") else None,
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         reconcile_take_counters(session.generation_takes, session.take_id_counters)

@@ -114,7 +114,7 @@ def test_schema_07_roundtrip_and_06_backward_compatibility(tmp_path):
     path = project / "session file.json"
     session.export(path)
     restored = LyricsWorldSession.import_file(path)
-    assert restored.to_dict()["schema_version"] == "0.7"
+    assert restored.to_dict()["schema_version"] == "0.9"
     assert restored.generation_takes[0].rating == 5
     assert resolve_take_path(restored.generation_takes[0], restored.project_dir) == source.resolve()
     old = LyricsWorldSession.from_dict({"schema_version": "0.6", "lyrics_text": "old"})
@@ -133,7 +133,7 @@ def test_result_takes_offscreen_autosave_and_file_safety(tmp_path, monkeypatch):
     assert window.generation_tabs.count() == 2
     assert window.generation_tabs.tabText(0) == "PROMPT PACK"
     assert window.generation_tabs.tabText(1) == "RESULT / TAKES"
-    assert window.nav_buttons[7].isEnabled() and not window.nav_buttons[8].isEnabled()
+    assert window.nav_buttons[7].isEnabled() and window.nav_buttons[8].isEnabled()
     source = _video(tmp_path / "UI 결과.mp4", b"ui source")
     page._register_paths([str(source)])
     assert len(window.session.generation_takes) == 1

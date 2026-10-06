@@ -23,6 +23,7 @@ from .models import ReferenceRole
 from .g3_ui import ShotBoardPage, StoryRoomPage
 from .g4_ui import ManualGenerationStudioPage
 from .g4b_ui import ResultTakesPage
+from .g5a_ui import TechnicalQCPage
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -192,7 +193,7 @@ class MainWindow(QMainWindow):
             ("06  STORY ROOM", True),
             ("07  SHOT BOARD", True),
             ("08  GENERATE", True),
-            ("09  QC / EDIT", False),
+            ("09  QC", True),
         ]
         for i, (txt, enabled) in enumerate(steps):
             b = QPushButton(txt)
@@ -207,7 +208,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 약 81% · G4B 1차\nResult / Take Manager", "muted"))
+        side.addWidget(_label("전체 약 92% · G5B\nQC + Director / Music Intelligence", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -225,9 +226,15 @@ class MainWindow(QMainWindow):
         self.generation_tabs.addTab(self.manual_generation_page, "PROMPT PACK")
         self.generation_tabs.addTab(self.result_takes_page, "RESULT / TAKES")
         self.pages.addWidget(self.generation_tabs)
+        self.technical_qc_page = TechnicalQCPage(
+            lambda: self.session, self._schedule_autosave,
+            lambda: (self.generation_tabs.setCurrentIndex(1), self._switch(7)),
+        )
+        self.pages.addWidget(self.technical_qc_page)
         self.nav_buttons[5].clicked.connect(lambda: self._switch(5))
         self.nav_buttons[6].clicked.connect(lambda: self._switch(6))
         self.nav_buttons[7].clicked.connect(lambda: self._switch(7))
+        self.nav_buttons[8].clicked.connect(lambda: self._switch(8))
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
@@ -654,6 +661,7 @@ class MainWindow(QMainWindow):
         self.shot_board_page.refresh()
         self.manual_generation_page.refresh()
         self.result_takes_page.refresh()
+        self.technical_qc_page.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(

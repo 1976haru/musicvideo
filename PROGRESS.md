@@ -1,8 +1,24 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 83% (G4B Result / Take Manager FINAL PASS)
+## 전체 진행률: 92% (G5B FINAL PASS)
 
 ### 완료
+
+- **G5B MEGAGATE (FINAL PASS)**
+  - optional OpenCLIP 의미/레퍼런스 유사도 adapter와 graceful N/A
+  - OpenCV palette drift, accepted Take continuity, adjacent Shot redundancy 경고
+  - API 없는 Director Intelligence prompt → JSON proposal → 검증 → 선택 반영
+  - LIBROSA_BASIC + optional BEAT_THIS / FUNCTIONAL_STRUCTURE backend 계층
+  - concrete Beat This / All-In-One adapter, registry, CPU 기본, graceful fallback
+  - 기능 구간 + audio transition + lyric return Director timeline fusion
+  - schema 0.9 proposal / structure / semantic QC 저장·복원
+
+- **G5A Technical / Temporal QC + Beginner UI**
+  - read-only 영상 읽기·duration·resolution·fps 검사
+  - near-black / freeze / flicker / coarse motion / instability heuristic
+  - deterministic PASS / REVIEW / REGENERATE / BLOCKED 추천
+  - source fingerprint 기반 QC cache와 schema 0.8 roundtrip
+  - 결론 → 쉬운 이유 → 추천 행동 → 접힌 전문가 정보 UI
 
 - **G4B Result / Take Manager (FINAL PASS)**
   - metadata-only result registration and portable paths
@@ -55,13 +71,20 @@
   - Reference ID 연결, World Bible 금지 요소 및 continuity 경고
   - G3 FINAL PASS 확정
 
+### UI 원칙
+
+- G5부터 Beginner UI Standard 적용
+- 처음 실행한 사용자도 설명서 없이 주요 흐름을 완료할 수 있어야 함
+- 상태 → 이유 → 추천 행동 → 전문가 상세 순서
+
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
-- G5 Automated QC: **83→91%**
-- G6 Editor/Render: **91→97%**
-- G7 Packaging/Recovery/Release: **97→100%**
+- G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
+- G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **92% / FINAL PASS**
+- G6 Editor/Render: **92→98%**
+- G7 Packaging/Recovery/Release: **98→100%**
 
 ## 지금이 Codex 1차 병행 시점
 
