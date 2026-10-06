@@ -46,6 +46,7 @@ class TakeWarning(BaseModel):
     code: Literal[
         "ORPHAN_SHOT", "ORPHAN_PACK", "MISSING_FILE", "PACK_SHOT_MISMATCH",
         "MULTIPLE_ACCEPTED", "DUPLICATE_TAKE_ID", "NO_PACK_SNAPSHOT",
+        "STALE_TAKE_COUNTER",
     ]
     message: str
     take_ids: list[str] = Field(default_factory=list)
@@ -82,6 +83,21 @@ def next_take_id(shot_id: str, existing_ids: set[str] | list[str], last_number: 
         number += 1
         take_id = f"{prefix}{number:03d}"
     return take_id, number
+
+
+def take_id_floor(shot_id: str, takes: list[GenerationTake]) -> int:
+    prefix = f"TAKE-{shot_id}-"
+    return max(
+        (int(take.take_id[len(prefix):]) for take in takes
+         if take.take_id.startswith(prefix) and take.take_id[len(prefix):].isdigit()),
+        default=0,
+    )
+
+
+def reconcile_take_counters(takes: list[GenerationTake], counters: dict[str, int]) -> None:
+    """Raise stale counters without changing any imported Take or decreasing a counter."""
+    for shot_id in {take.shot_id for take in takes}:
+        counters[shot_id] = max(counters.get(shot_id, 0), take_id_floor(shot_id, takes))
 
 
 class TakeManager:
@@ -151,6 +167,26 @@ class TakeManager:
         take = self._take(take_id)
         self.takes.remove(take)
         return take
+
+    def relink_take(self, take_id: str, source: str | Path) -> GenerationTake:
+        take = self._take(take_id)
+        source_path = Path(source).expanduser().resolve(strict=True)
+        if not source_path.is_file():
+            raise ValueError(f"Result video is not a file: {source_path}")
+        if source_path.suffix.casefold() not in VIDEO_EXTENSIONS:
+            raise ValueError(f"Unsupported result video extension: {source_path.suffix}")
+        normalized = os.path.normcase(str(source_path))
+        for other in self.takes:
+            if other is not take and other.shot_id == take.shot_id:
+                if os.path.normcase(str(resolve_take_path(other, self.project_dir))) == normalized:
+                    raise DuplicateTakePathError(f"This result file is already registered for {take.shot_id}")
+        take.output_path = portable_take_path(source_path, self.project_dir)
+        take.original_filename = source_path.name
+        take.file_size_bytes = source_path.stat().st_size
+        return take
+
+    def relink(self, take_id: str, source: str | Path) -> GenerationTake:
+        return self.relink_take(take_id, source)
 
     def accept(self, take_id: str) -> GenerationTake:
         selected = self._take(take_id)
@@ -226,4 +262,31 @@ class TakeManager:
         for shot_id, take_ids in by_shot.items():
             if len(take_ids) > 1:
                 warnings.append(TakeWarning(code="MULTIPLE_ACCEPTED", message=f"Multiple accepted takes for {shot_id}", take_ids=take_ids))
+        for shot_id in {item.shot_id for item in self.takes}:
+            floor = take_id_floor(shot_id, self.takes)
+            if self.id_counters.get(shot_id, 0) < floor:
+                warnings.append(TakeWarning(
+                    code="STALE_TAKE_COUNTER",
+                    message=f"Take counter for {shot_id} is below existing ID floor {floor}",
+                    take_ids=[item.take_id for item in self.takes if item.shot_id == shot_id],
+                ))
         return warnings
+
+    def warnings_for_take(self, take: GenerationTake) -> list[TakeWarning]:
+        """Only warnings relevant to the inspected Take/Shot."""
+        return [
+            warning for warning in self.warnings(take)
+            if warning.code not in {"DUPLICATE_TAKE_ID", "MULTIPLE_ACCEPTED", "STALE_TAKE_COUNTER"}
+            or take.take_id in warning.take_ids
+        ]
+
+
+def audit_take_state(
+    takes: list[GenerationTake],
+    shots: list[ShotSpec],
+    packs: list[ManualGenerationPack],
+    project_dir: str | Path | None,
+    counters: dict[str, int] | None = None,
+) -> list[TakeWarning]:
+    """Deterministic, read-only audit for imported or live Take metadata."""
+    return TakeManager(takes, shots, packs, project_dir, counters).warnings()

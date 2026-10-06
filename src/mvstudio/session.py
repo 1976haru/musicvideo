@@ -19,7 +19,10 @@ from .models import (
     ReferenceAsset, ReferenceRole, ShotSpec, StoryBeat, WorldBible, WorldConcept,
 )
 from .manual_generation import ManualGenerationPack
-from .result_takes import GenerationTake, TakeManager, portable_take_path, resolve_take_path
+from .result_takes import (
+    GenerationTake, TakeManager, portable_take_path, reconcile_take_counters,
+    resolve_take_path,
+)
 from .reference_vault import ReferenceVault, portable_path, resolve_reference_path
 from .world_bible import promote_world_concept
 
@@ -176,6 +179,7 @@ class LyricsWorldSession:
             take_id_counters={str(key): int(value) for key, value in data.get("take_id_counters", {}).items()},
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
+        reconcile_take_counters(session.generation_takes, session.take_id_counters)
         ReferenceVault(session.references, session.project_dir)
         return session
 

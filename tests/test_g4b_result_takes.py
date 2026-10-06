@@ -7,8 +7,8 @@ import pytest
 from mvstudio.manual_generation import compile_manual_pack
 from mvstudio.models import CameraSpec, ShotSpec, StoryBeat, WorldBible
 from mvstudio.result_takes import (
-    DuplicateTakePathError, GenerationTake, TakeManager, next_take_id,
-    portable_take_path, resolve_take_path,
+    DuplicateTakeIDError, DuplicateTakePathError, GenerationTake, TakeManager,
+    audit_take_state, next_take_id, portable_take_path, resolve_take_path,
 )
 from mvstudio.session import LyricsWorldSession
 
@@ -151,5 +151,132 @@ def test_result_takes_offscreen_autosave_and_file_safety(tmp_path, monkeypatch):
     page._unregister()
     assert source.read_bytes() == b"ui source"
     assert window.session.generation_takes == []
+    window.autosave_timer.stop()
+    window.close()
+
+
+def test_corrupt_duplicate_id_blocks_all_core_mutations(tmp_path):
+    session = _session(tmp_path)
+    take = session.take_manager.register(_video(tmp_path / "a.mp4"), "B001-S01")
+    session.generation_takes.append(take.model_copy(deep=True))
+    before = [item.model_dump() for item in session.generation_takes]
+    manager = session.take_manager
+    for operation in (
+        lambda: manager.accept(take.take_id),
+        lambda: manager.reject(take.take_id, "bad"),
+        lambda: manager.restore_candidate(take.take_id),
+        lambda: manager.update_notes(take.take_id, rating=2, notes="x", reject_reason=""),
+        lambda: manager.unregister(take.take_id),
+        lambda: manager.relink(take.take_id, tmp_path / "a.mp4"),
+    ):
+        with pytest.raises(DuplicateTakeIDError):
+            operation()
+    assert [item.model_dump() for item in session.generation_takes] == before
+
+
+def test_multiple_accepted_preserved_until_explicit_accept(tmp_path):
+    session = _session(tmp_path)
+    a = session.take_manager.register(_video(tmp_path / "a.mp4"), "B001-S01")
+    b = session.take_manager.register(_video(tmp_path / "b.mp4"), "B001-S01")
+    a.status = b.status = "accepted"
+    restored = LyricsWorldSession.from_dict(session.to_dict(tmp_path), project_dir=tmp_path)
+    assert [take.status for take in restored.generation_takes] == ["accepted", "accepted"]
+    assert restored.take_manager.shot_result_status("B001-S01") == "NEEDS_REVIEW"
+    restored.take_manager.accept(b.take_id)
+    assert [take.status for take in restored.generation_takes] == ["candidate", "accepted"]
+
+
+def test_stale_counter_reconciles_upward_and_never_decreases(tmp_path):
+    session = _session(tmp_path)
+    take = session.take_manager.register(_video(tmp_path / "a.mp4"), "B001-S01")
+    take.take_id = "TAKE-B001-S01-009"
+    payload = session.to_dict(tmp_path)
+    payload["take_id_counters"] = {"B001-S01": 2, "B001-S02": 20}
+    restored = LyricsWorldSession.from_dict(payload, project_dir=tmp_path)
+    assert restored.take_id_counters == {"B001-S01": 9, "B001-S02": 20}
+    restored.take_manager.unregister(take.take_id)
+    added = restored.take_manager.register(_video(tmp_path / "new.mp4"), "B001-S01")
+    assert added.take_id == "TAKE-B001-S01-010"
+
+
+def test_relink_is_metadata_only_and_preserves_history(tmp_path):
+    session = _session(tmp_path)
+    old = _video(tmp_path / "missing.mp4", b"old bytes")
+    take = session.take_manager.register(old, "B001-S01", now="created")
+    take.status, take.rating, take.notes, take.reject_reason = "rejected", 4, "note", "reason"
+    old.unlink()
+    new = _video(tmp_path / "새 결과.mov", b"new bytes")
+    snapshot = (take.take_id, take.shot_id, take.pack_id, take.status, take.rating, take.notes, take.reject_reason, take.created_at, take.imported_at)
+    session.take_manager.relink(take.take_id, new)
+    assert snapshot == (take.take_id, take.shot_id, take.pack_id, take.status, take.rating, take.notes, take.reject_reason, take.created_at, take.imported_at)
+    assert new.read_bytes() == b"new bytes" and resolve_take_path(take, tmp_path) == new.resolve()
+
+
+def test_failed_registration_relink_and_status_edits_never_touch_files(tmp_path):
+    session = _session(tmp_path)
+    source = _video(tmp_path / "same.mp4", b"same immutable")
+    other = _video(tmp_path / "other.mp4", b"other immutable")
+    take = session.take_manager.register(source, "B001-S01")
+    second = session.take_manager.register(other, "B001-S01")
+    with pytest.raises(DuplicateTakePathError):
+        session.take_manager.register(source, "B001-S01")
+    with pytest.raises(DuplicateTakePathError):
+        session.take_manager.relink(second.take_id, source)
+    session.take_manager.accept(take.take_id)
+    session.take_manager.reject(take.take_id, "reason")
+    session.take_manager.update_notes(take.take_id, rating=5, notes="safe", reject_reason="reason")
+    assert source.read_bytes() == b"same immutable"
+    assert other.read_bytes() == b"other immutable"
+
+
+def test_audit_and_selected_warning_scope(tmp_path):
+    session = _session(tmp_path)
+    first = session.take_manager.register(_video(tmp_path / "a.mp4"), "B001-S01")
+    second = session.take_manager.register(_video(tmp_path / "b.mp4"), "B001-S02")
+    duplicate = second.model_copy(deep=True)
+    session.generation_takes.append(duplicate)
+    codes = {warning.code for warning in audit_take_state(
+        session.generation_takes, session.shots, session.generation_packs, tmp_path, session.take_id_counters,
+    )}
+    assert "DUPLICATE_TAKE_ID" in codes
+    selected_codes = {warning.code for warning in session.take_manager.warnings_for_take(first)}
+    assert "DUPLICATE_TAKE_ID" not in selected_codes
+
+
+def test_ui_selection_duplicate_block_and_partial_batch(tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QMessageBox
+    from mvstudio.ui_app import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.session = _session(tmp_path)
+    page = window.result_takes_page
+    page.refresh()
+    first = _video(tmp_path / "정상 A.mp4", b"A")
+    second = _video(tmp_path / "正常 B.mov", b"B")
+    bad = _video(tmp_path / "unsupported.txt", b"bad")
+    messages = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: messages.append(args[-1]))
+    page._register_paths([str(first), str(first), str(bad), str(second)])
+    assert len(window.session.generation_takes) == 2
+    assert page._selected_take().original_filename == second.name
+    assert len(messages) == 1 and "unsupported" in messages[0]
+    selected_id = page._selected_take().take_id
+    page._accept()
+    assert page._selected_take().take_id == selected_id
+    page.reject_reason.setPlainText("manual")
+    page._reject()
+    assert page._selected_take().take_id == selected_id
+    page._restore()
+    page.notes.setPlainText("stable")
+    page._save_notes()
+    assert page._selected_take().take_id == selected_id
+
+    duplicate = window.session.generation_takes[0].model_copy(deep=True)
+    window.session.generation_takes.append(duplicate)
+    page._refresh_takes(duplicate.take_id)
+    history = [item.model_dump() for item in window.session.generation_takes]
+    page._accept()
+    assert [item.model_dump() for item in window.session.generation_takes] == history
     window.autosave_timer.stop()
     window.close()

@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QSplitter, QTextEdit, QVBoxLayout, QWidget,
 )
 
-from .result_takes import DuplicateTakePathError, VIDEO_EXTENSIONS, resolve_take_path
+from .result_takes import DuplicateTakeIDError, DuplicateTakePathError, VIDEO_EXTENSIONS, resolve_take_path
 
 
 def _button(text: str) -> QPushButton:
@@ -81,12 +81,13 @@ class ResultTakesPage(QWidget):
         inspector_layout.addLayout(form)
         actions = QHBoxLayout()
         self.open_button = _button("영상 열기")
+        self.relink_button = _button("파일 다시 연결")
         self.accept_button = _button("ACCEPT")
         self.reject_button = _button("REJECT")
         self.restore_button = _button("Candidate로 복원")
         self.save_button = _button("메모 저장")
         self.unregister_button = _button("등록 해제 (원본 유지)")
-        for button in (self.open_button, self.accept_button, self.reject_button, self.restore_button, self.save_button, self.unregister_button):
+        for button in (self.open_button, self.relink_button, self.accept_button, self.reject_button, self.restore_button, self.save_button, self.unregister_button):
             actions.addWidget(button)
         inspector_layout.addLayout(actions)
         self.final_take = _label("FINAL TAKE: -")
@@ -100,6 +101,7 @@ class ResultTakesPage(QWidget):
         self.take_list.currentRowChanged.connect(self._load_selected)
         self.register_button.clicked.connect(self._pick_results)
         self.open_button.clicked.connect(self._open_result)
+        self.relink_button.clicked.connect(self._relink)
         self.accept_button.clicked.connect(self._accept)
         self.reject_button.clicked.connect(self._reject)
         self.restore_button.clicked.connect(self._restore)
@@ -144,32 +146,52 @@ class ResultTakesPage(QWidget):
 
     def _refresh_takes(self, selected_id: str | None = None):
         if selected_id is None and self.take_list.currentItem():
-            selected_id = self.take_list.currentItem().data(Qt.UserRole)
+            selected_id = self.take_list.currentItem().data(Qt.UserRole + 1)
         self.take_list.blockSignals(True)
         self.take_list.clear()
         for index, take in enumerate(self._takes()):
             display = chr(ord("A") + index) if index < 26 else str(index + 1)
             available = "MISSING" if take.file_missing(self.session_getter().project_dir) else "available"
             item = QListWidgetItem(f"Take {display} · {take.status.upper()} · {available}\n{take.take_id}\n{take.original_filename}")
-            item.setData(Qt.UserRole, take.take_id)
+            session_index = next(i for i, stored in enumerate(self.session_getter().generation_takes) if stored is take)
+            item.setData(Qt.UserRole, session_index)
+            item.setData(Qt.UserRole + 1, take.take_id)
             self.take_list.addItem(item)
-        row = next((i for i in range(self.take_list.count()) if self.take_list.item(i).data(Qt.UserRole) == selected_id), 0)
+        row = next((i for i in range(self.take_list.count()) if self.take_list.item(i).data(Qt.UserRole + 1) == selected_id), 0)
         self.take_list.setCurrentRow(row if self.take_list.count() else -1)
         self.take_list.blockSignals(False)
         self._load_selected()
-        final = self.session_getter().take_manager.accepted_take_for_shot(self._shot_id())
-        self.final_take.setText(f"FINAL TAKE: {final.take_id} · {final.original_filename}" if final else "FINAL TAKE: -")
+        manager = self.session_getter().take_manager
+        final = manager.accepted_take_for_shot(self._shot_id())
+        if final:
+            self.final_take.setText(f"FINAL TAKE: {final.take_id} · {final.original_filename}")
+        elif manager.shot_result_status(self._shot_id()) == "NEEDS_REVIEW":
+            self.final_take.setText("FINAL TAKE: NEEDS_REVIEW")
+        else:
+            self.final_take.setText("FINAL TAKE: -")
 
     def _selected_take(self):
         item = self.take_list.currentItem()
-        take_id = item.data(Qt.UserRole) if item else None
-        return next((take for take in self.session_getter().generation_takes if take.take_id == take_id), None)
+        index = item.data(Qt.UserRole) if item else None
+        takes = self.session_getter().generation_takes
+        return takes[index] if isinstance(index, int) and 0 <= index < len(takes) else None
+
+    def _mutation_take(self):
+        take = self._selected_take()
+        if not take:
+            return None
+        if sum(item.take_id == take.take_id for item in self.session_getter().generation_takes) != 1:
+            QMessageBox.warning(self, "Duplicate Take ID", "중복 take_id가 있어 변경할 수 없습니다. 원본 history는 유지됩니다.")
+            return None
+        return take
 
     def _load_selected(self, *_):
         take = self._selected_take()
         active = take is not None
-        for widget in (self.open_button, self.accept_button, self.reject_button, self.restore_button, self.save_button, self.unregister_button, self.rating, self.notes, self.reject_reason):
-            widget.setEnabled(active)
+        unique = active and sum(item.take_id == take.take_id for item in self.session_getter().generation_takes) == 1
+        self.open_button.setEnabled(active)
+        for widget in (self.relink_button, self.accept_button, self.reject_button, self.restore_button, self.save_button, self.unregister_button, self.rating, self.notes, self.reject_reason):
+            widget.setEnabled(unique)
         if not take:
             return
         resolved = resolve_take_path(take, self.session_getter().project_dir)
@@ -182,7 +204,7 @@ class ResultTakesPage(QWidget):
         self.notes.setPlainText(take.notes)
         self.reject_reason.setPlainText(take.reject_reason)
         self.missing.setText("MISSING" if take.file_missing(self.session_getter().project_dir) else "Available")
-        warnings = self.session_getter().take_manager.warnings(take)
+        warnings = self.session_getter().take_manager.warnings_for_take(take)
         self.warnings.setText("\n".join(f"{warning.code}: {warning.message}" for warning in warnings) or "None")
 
     def _pick_results(self):
@@ -194,18 +216,22 @@ class ResultTakesPage(QWidget):
             QMessageBox.information(self, "Shot 선택", "먼저 Shot을 선택하세요.")
             return
         selected_id = None
+        failures = []
         for path in paths:
             if Path(path).suffix.casefold() not in VIDEO_EXTENSIONS:
+                failures.append(f"{Path(path).name}: unsupported file type")
                 continue
             try:
                 take = self.session_getter().take_manager.register(path, self._shot_id(), self.pack_combo.currentData())
             except (OSError, ValueError, DuplicateTakePathError) as exc:
-                QMessageBox.warning(self, "결과 등록 실패", str(exc))
+                failures.append(f"{Path(path).name}: {exc}")
                 continue
             selected_id = take.take_id
         if selected_id:
             self._refresh_takes(selected_id)
             self.on_change()
+        if failures:
+            QMessageBox.warning(self, "일부 결과 등록 실패", "\n".join(failures))
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls() and any(Path(url.toLocalFile()).suffix.casefold() in VIDEO_EXTENSIONS for url in event.mimeData().urls() if url.isLocalFile()):
@@ -226,26 +252,45 @@ class ResultTakesPage(QWidget):
             return
         QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
+    def _relink(self):
+        take = self._mutation_take()
+        if not take:
+            return
+        path, _ = QFileDialog.getOpenFileName(self, "파일 다시 연결", "", "Video (*.mp4 *.mov *.webm *.mkv *.m4v)")
+        if not path:
+            return
+        try:
+            self.session_getter().take_manager.relink(take.take_id, path)
+        except (OSError, ValueError, DuplicateTakeIDError, DuplicateTakePathError) as exc:
+            QMessageBox.warning(self, "파일 다시 연결 실패", str(exc))
+            return
+        self._refresh_takes(take.take_id); self.on_change()
+
     def _accept(self):
-        take = self._selected_take()
+        take = self._mutation_take()
         if take:
             self.session_getter().take_manager.accept(take.take_id)
             self._refresh_takes(take.take_id); self.on_change()
 
     def _reject(self):
-        take = self._selected_take()
+        take = self._mutation_take()
         if take:
-            self.session_getter().take_manager.reject(take.take_id, self.reject_reason.toPlainText())
+            reason = self.reject_reason.toPlainText().strip()
+            if not reason:
+                answer = QMessageBox.question(self, "Reject reason 없음", "Reject reason이 비어 있습니다. 그대로 REJECT할까요?")
+                if answer != QMessageBox.Yes:
+                    return
+            self.session_getter().take_manager.reject(take.take_id, reason)
             self._refresh_takes(take.take_id); self.on_change()
 
     def _restore(self):
-        take = self._selected_take()
+        take = self._mutation_take()
         if take:
             self.session_getter().take_manager.restore_candidate(take.take_id)
             self._refresh_takes(take.take_id); self.on_change()
 
     def _save_notes(self):
-        take = self._selected_take()
+        take = self._mutation_take()
         if take:
             updated = self.session_getter().take_manager.update_notes(
                 take.take_id, rating=self.rating.value() or None, notes=self.notes.toPlainText(),
@@ -254,7 +299,7 @@ class ResultTakesPage(QWidget):
             self._refresh_takes(updated.take_id); self.on_change()
 
     def _unregister(self):
-        take = self._selected_take()
+        take = self._mutation_take()
         if not take:
             return
         answer = QMessageBox.question(self, "등록 해제", "Take metadata만 제거합니다. 원본 영상 파일은 그대로 유지됩니다. 계속할까요?")
