@@ -6,6 +6,7 @@ from typing import Literal
 
 
 BackendState = Literal["AVAILABLE", "NOT_INSTALLED", "LOAD_FAILED"]
+_RUNTIME_FAILURES: dict[str, str] = {}
 
 
 @dataclass(frozen=True)
@@ -16,11 +17,21 @@ class BackendAvailability:
 
 
 def module_availability(backend_id: str, module_name: str) -> BackendAvailability:
+    if backend_id in _RUNTIME_FAILURES:
+        return BackendAvailability(backend_id, "LOAD_FAILED", _RUNTIME_FAILURES[backend_id])
     try:
         found = importlib.util.find_spec(module_name)
     except (ImportError, AttributeError, ValueError) as exc:
         return BackendAvailability(backend_id, "LOAD_FAILED", str(exc))
     return BackendAvailability(backend_id, "AVAILABLE" if found else "NOT_INSTALLED")
+
+
+def mark_backend_load_failed(backend_id: str, detail: str) -> None:
+    _RUNTIME_FAILURES[backend_id] = detail
+
+
+def clear_backend_load_failure(backend_id: str) -> None:
+    _RUNTIME_FAILURES.pop(backend_id, None)
 
 
 def openclip_availability() -> BackendAvailability:

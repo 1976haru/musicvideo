@@ -16,7 +16,7 @@ from .director_intelligence import (
     compare_with_current, import_director_result,
 )
 from .music_intelligence import analyze_music_intelligence, fuse_music_structure_timeline
-from .optional_backends import functional_structure_availability
+from .optional_backends import beat_this_availability, functional_structure_availability
 
 
 def _label(text: str = "") -> QLabel:
@@ -119,11 +119,13 @@ class TechnicalQCPage(QWidget):
         music_actions = QHBoxLayout()
         self.music_basic = _button("기본 분석")
         self.music_advanced = _button("고급 음악 구조 분석")
-        self.music_advanced.setVisible(functional_structure_availability().state == "AVAILABLE")
         music_actions.addWidget(self.music_basic); music_actions.addWidget(self.music_advanced); music_actions.addStretch(1)
         music_layout.addLayout(music_actions)
+        self.music_backend_status = _label("")
+        music_layout.addWidget(self.music_backend_status)
         self.music_summary = _label("기본 분석은 빠르고 오프라인으로 동작합니다.")
         music_layout.addWidget(self.music_summary)
+        self._refresh_music_backend_status()
         body.addWidget(music)
         body.addStretch(1)
         scroll.setWidget(host)
@@ -299,7 +301,21 @@ class TechnicalQCPage(QWidget):
             session.mv_timeline = fuse_music_structure_timeline(session.audio_map, session.lines, session.analysis, structure)
         labels = [segment.label.replace("_", " ").title() for segment in structure.segments]
         self.music_summary.setText(" → ".join(labels) if labels else "기본 음악 분석을 유지합니다. 고급 기능 구간은 확정하지 않았습니다.")
+        self._refresh_music_backend_status()
         self.on_change()
+
+    def _refresh_music_backend_status(self):
+        functional = functional_structure_availability()
+        beat = beat_this_availability()
+        messages = {
+            "AVAILABLE": "사용 가능",
+            "NOT_INSTALLED": "고급 분석 구성요소가 설치되어 있지 않습니다.",
+            "LOAD_FAILED": "고급 분석을 불러오지 못했습니다. 기본 분석을 사용할 수 있습니다.",
+        }
+        self.music_backend_status.setText(
+            f"음악 구조: {messages[functional.state]}\n박자 강화: {messages[beat.state]}"
+        )
+        self.music_advanced.setEnabled(functional.state == "AVAILABLE")
 
     def _primary_action(self):
         if self.primary_action.text() == "품질 검사 시작":

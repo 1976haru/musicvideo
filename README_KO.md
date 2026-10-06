@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 약 92% (G5B MEGAGATE)
+## 현재 전체 진행률: 92% (G5B FINAL PASS)
 
 ```text
 MUSIC FILE
@@ -115,7 +115,7 @@ G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP genera
 - 초보자 화면은 “이 영상은 사용해도 될까요?”와 쉬운 이유·추천 행동을 먼저 표시
 - 기술 수치는 기본 화면에서 숨기고 “전문가 정보 보기”에 표시
 
-## G5B MEGAGATE
+## G5B MEGAGATE FINAL PASS
 
 - Prompt Pack과 영상의 의미 비교를 위한 optional OpenCLIP adapter
 - Shot scope에 맞는 레퍼런스만 사용하는 시각 유사도 비교
@@ -128,6 +128,18 @@ G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP genera
 - schema 0.9 및 기존 0.8 이하 하위호환
 
 Provider API, 브라우저 자동화, 자동 ACCEPT/REJECT, Editor / Render는 구현하지 않았습니다.
+
+### 선택형 Music Intelligence 설치
+
+고급 음악 패키지는 Windows/Python/PyTorch 조합에 따라 설치 조건이 달라 기본 extras에 넣지 않았습니다.
+
+- Beat This: `pip install beat-this`
+  - 모델 파일을 수동으로 내려받은 뒤 `MVSTUDIO_BEAT_THIS_CHECKPOINT`에 로컬 checkpoint 경로를 지정합니다.
+  - 앱은 이름 기반 checkpoint를 요청하거나 자동 다운로드하지 않습니다.
+- Functional Structure: PyTorch와 Windows용 NATTEN을 먼저 준비한 뒤 `pip install allin1`
+  - 로컬 모델 준비를 확인한 환경에서만 `MVSTUDIO_FUNCTIONAL_STRUCTURE_READY=1`을 지정합니다.
+
+두 backend 모두 CPU를 기본으로 사용하며, 설치·모델 준비·API 호출 중 문제가 발생하면 기본 librosa 분석으로 돌아갑니다.
 
 ## Codex / Claude 전환
 

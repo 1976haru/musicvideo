@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import json
+import importlib.machinery
+import os
+import subprocess
+import sys
+import types
 from pathlib import Path
 
 import cv2
@@ -17,10 +22,11 @@ from mvstudio.models import (
     ReferenceScope, ShotSpec,
 )
 from mvstudio.music_intelligence import (
-    EnhancedMusicStructure, MusicStructureSegment, analyze_music_intelligence,
-    fuse_music_structure_timeline,
+    BeatThisBackend, EnhancedMusicStructure, FunctionalStructureBackend,
+    MusicStructureSegment, analyze_music_intelligence, fuse_music_structure_timeline,
+    get_music_backend, normalize_section_label,
 )
-from mvstudio.optional_backends import openclip_availability
+from mvstudio.optional_backends import clear_backend_load_failure, openclip_availability
 from mvstudio.result_takes import GenerationTake
 from mvstudio.semantic_qc import (
     adjacent_visual_findings, analyze_visual_semantic, eligible_visual_references,
@@ -206,4 +212,115 @@ def test_megagate_beginner_ui_hides_backend_details(tmp_path):
     assert page.expert_text.isHidden()
     assert page.director_copy.minimumHeight() >= 44 and page.music_basic.minimumHeight() >= 44
     assert "API 없이도" in page.api_notice.text()
+    assert any(text in page.music_backend_status.text() for text in (
+        "사용 가능", "설치되어 있지 않습니다", "불러오지 못했습니다",
+    ))
     window.close()
+
+
+def _fake_package(monkeypatch, name, **attributes):
+    module = types.ModuleType(name)
+    module.__spec__ = importlib.machinery.ModuleSpec(name, loader=None)
+    for key, value in attributes.items():
+        setattr(module, key, value)
+    monkeypatch.setitem(sys.modules, name, module)
+    return module
+
+
+def _audio_map(path: Path):
+    return AudioMap(source_path=str(path), duration_sec=4, sample_rate=22050, tempo_bpm=100)
+
+
+def test_builtin_beat_this_adapter_selection_and_normalization(tmp_path, monkeypatch):
+    source = tmp_path / "beat source.wav"; source.write_bytes(b"audio")
+    checkpoint = tmp_path / "manual model.ckpt"; checkpoint.write_bytes(b"weights")
+    calls = []
+
+    class File2Beats:
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
+        def __call__(self, path):
+            return [0.5, 1.0, 1.5], [0.5, 1.5]
+
+    package = _fake_package(monkeypatch, "beat_this", __version__="fake-1")
+    package.__path__ = []
+    _fake_package(monkeypatch, "beat_this.inference", File2Beats=File2Beats)
+    clear_backend_load_failure("BEAT_THIS")
+    result = analyze_music_intelligence(
+        source, "BEAT_THIS", audio_map=_audio_map(source),
+        backend_options={"checkpoint_path": str(checkpoint)},
+    )
+    assert isinstance(get_music_backend("BEAT_THIS", options={"checkpoint_path": checkpoint}), BeatThisBackend)
+    assert result.backend == "BEAT_THIS"
+    assert result.beats == [0.5, 1.0, 1.5] and result.downbeats == [0.5, 1.5]
+    assert result.tempo_bpm == 120 and result.backend_version
+    assert calls == [{"checkpoint_path": str(checkpoint.resolve()), "device": "cpu", "float16": False}]
+
+
+def test_builtin_functional_adapter_and_label_normalization(tmp_path, monkeypatch):
+    source = tmp_path / "structure 日本語.wav"; source.write_bytes(b"audio")
+    calls = []
+
+    def analyze(path, device=None):
+        calls.append((path, device))
+        return {
+            "bpm": 98, "beats": [0.6, 1.2], "downbeats": [0.6],
+            "segments": [
+                {"start": 0, "end": 2, "label": "Introduction", "confidence": .8},
+                {"start": 2, "end": 3, "label": "Pre-Chorus 2"},
+                {"start": 3, "end": 4, "label": "Instrumental Solo"},
+            ],
+        }
+
+    _fake_package(monkeypatch, "allin1", analyze=analyze, __version__="fake-2")
+    clear_backend_load_failure("FUNCTIONAL_STRUCTURE")
+    result = analyze_music_intelligence(
+        source, "FUNCTIONAL_STRUCTURE", audio_map=_audio_map(source),
+        backend_options={"allow_model_load": True},
+    )
+    assert isinstance(get_music_backend("FUNCTIONAL_STRUCTURE", options={"allow_model_load": True}), FunctionalStructureBackend)
+    assert result.backend == "FUNCTIONAL_STRUCTURE" and result.backend_version
+    assert [segment.label for segment in result.segments] == ["intro", "pre_chorus", "other"]
+    assert normalize_section_label("FINAL CHORUS") == "chorus"
+    assert calls == [(str(source.resolve()), "cpu")]
+
+
+def test_builtin_api_mismatch_gracefully_falls_back_without_download(tmp_path, monkeypatch):
+    source = tmp_path / "fallback.wav"; source.write_bytes(b"audio")
+    checkpoint = tmp_path / "local.ckpt"; checkpoint.write_bytes(b"local only")
+    package = _fake_package(monkeypatch, "beat_this", __version__="broken")
+    package.__path__ = []
+    _fake_package(monkeypatch, "beat_this.inference", UnexpectedAPI=object)
+    clear_backend_load_failure("BEAT_THIS")
+    result = analyze_music_intelligence(
+        source, "BEAT_THIS", audio_map=_audio_map(source),
+        backend_options={"checkpoint_path": checkpoint},
+    )
+    assert result.backend == "LIBROSA_BASIC"
+    assert any("불러오지 못했습니다" in warning for warning in result.warnings)
+    assert checkpoint.read_bytes() == b"local only"
+
+
+def test_app_startup_does_not_import_heavy_music_backends():
+    code = (
+        "import sys; import mvstudio.ui_app; "
+        "assert 'beat_this' not in sys.modules; assert 'allin1' not in sys.modules"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", code], cwd=Path.cwd(), capture_output=True, text=True,
+        env={**os.environ, "PYTHONPATH": str(Path.cwd() / "src")},
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_existing_music_adapter_injection_is_preserved(tmp_path):
+    source = tmp_path / "injected.wav"; source.write_bytes(b"audio")
+
+    class Injected:
+        backend_id = "INJECTED"
+        version = "test"
+        def analyze(self, path):
+            return EnhancedMusicStructure(backend=self.backend_id, backend_version=self.version, beats=[1.0])
+
+    result = analyze_music_intelligence(source, "BEAT_THIS", adapter=Injected())
+    assert result.backend == "INJECTED" and result.beats == [1.0]
