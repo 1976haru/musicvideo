@@ -9,3 +9,8 @@ build/
 projects/**/outputs/
 projects/**/cache/
 projects/**/provider_uploads/
+projects/**/references_local/
+.test_workspace/
+.test_tmp/
+pytest-cache-files-*/
+.numba_cache/

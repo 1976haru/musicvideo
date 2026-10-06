@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 45%
+## 전체 진행률: 58%
 
 ### 완료
 
@@ -18,10 +18,21 @@
   - Music + Lyrics MV Director Timeline
   - MUSIC UI
   - 세션 export
+- **G2 World Bible + Reference Vault**
+  - 선택 WorldConcept → WorldBible draft 승격
+  - lyric foundation / source concept 추적
+  - 역할·잠금 강도·scope·Master 메타데이터
+  - Project scope UI 지원, Scene/Shot scope는 모델만 준비 (G3에서 연결)
+  - drag & drop / 파일 선택 Reference UI
+  - 원본 보존형 add/remove와 missing-file 상태
+  - 상대/절대 경로 세션 roundtrip
+  - core/UI 분리 thumbnail cache
+  - 기존 JSON 세션 열기 및 화면 복원
+  - 사용자가 정한 세션 파일 대상 debounced atomic autosave
+  - Project scope는 UI 사용 가능, Scene/Shot scope는 데이터 모델만 준비되어 G3 UI에서 연결 예정
 
 ### 남은 단계
 
-- G2 World Bible + Reference Vault: **45→58%**
 - G3 Story Room + Shot Board: **58→72%**
 - G4 Provider adapters: **72→83%**
 - G5 Automated QC: **83→91%**

@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 45%
+## 현재 전체 진행률: 58%
 
 ```text
 MUSIC FILE
@@ -19,7 +19,7 @@ MV DIRECTOR TIMELINE
   ↓
 WORLD LAB
   ↓
-(다음 G2) WORLD BIBLE + REFERENCE VAULT
+WORLD BIBLE + REFERENCE VAULT
 ```
 
 ## v0.4 핵심 기능
@@ -37,7 +37,8 @@ WORLD LAB
 - 반복 가사의 setup → transformation → payoff cue
 - MV Director Timeline
 - MUSIC 데스크톱 UI 탭
-- Music/Lyrics/World 세션 JSON 저장
+- Music/Lyrics/World 세션 JSON 저장 및 다시 열기
+- 명시적으로 저장하거나 기존 세션을 연 뒤 1초 debounce autosave
 
 ## 가장 중요한 원칙
 
@@ -61,9 +62,7 @@ mvstudio timeline-pack song.wav --lyrics lyrics.srt
 mvstudio lyrics-pack lyrics.txt --duration 180
 ```
 
-## 다음 단계
-
-G2: WORLD BIBLE + REFERENCE VAULT
+## G2 완료
 
 - 선택한 세계관을 실제 World Bible로 잠금
 - Character Master
@@ -76,7 +75,11 @@ G2: WORLD BIBLE + REFERENCE VAULT
 - Texture / Material
 - drag & drop reference management
 - reference lock strength
-- shot에 쓸 reference ID 관리
+- Project scope Reference 등록
+- G2 project scope는 UI에서 사용할 수 있습니다. Scene/Shot scope는 모델 준비가 완료됐으며 G3 UI에서 실제 ID에 연결됩니다.
+- 세션 열기와 기존 파일 대상 autosave
+
+다음 단계는 G3 Story Room + Shot Board이며, 현재 구현에는 포함하지 않았습니다.
 
 ## Codex / Claude 전환
 
