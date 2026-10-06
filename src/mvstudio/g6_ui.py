@@ -15,6 +15,7 @@ from .editor import (
     OUTPUT_PRESETS, RenderEngine, RenderFailure, RenderSettings, build_rough_cut,
     check_readiness, export_edit_plan, export_otio, ffmpeg_status, otio_status,
 )
+from .release_runtime import app_paths
 
 
 def _label(text: str = "", name: str | None = None) -> QLabel:
@@ -311,7 +312,7 @@ class EditorRenderPage(QWidget):
         if target.exists() and QMessageBox.question(self, "파일 덮어쓰기", "기존 파일을 성공한 렌더로 교체할까요?") != QMessageBox.Yes:
             return
         self.thread = QThread(self)
-        self.worker = RenderWorker(RenderEngine(cache_dir=(self.session.project_dir or Path.cwd()) / ".mvstudio_cache" / "segments"), self.session, path, kind)
+        self.worker = RenderWorker(RenderEngine(cache_dir=app_paths().cache / "render-segments"), self.session, path, kind)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.progressed.connect(self._progress)

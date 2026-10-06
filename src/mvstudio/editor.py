@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from .optional_backends import BackendState
 from .result_takes import GenerationTake, resolve_take_path
+from .release_runtime import app_paths, configure_logging, discover_ffmpeg
 
 if TYPE_CHECKING:
     from .session import LyricsWorldSession
@@ -164,11 +165,11 @@ def _status_for_executable(name: str) -> BackendState:
 
 
 def ffmpeg_status() -> BackendState:
-    return _status_for_executable("ffmpeg")
+    return discover_ffmpeg().state
 
 
 def ffprobe_status() -> BackendState:
-    return _status_for_executable("ffprobe")
+    return discover_ffmpeg().state
 
 
 def _rational(value: str | None) -> float:
@@ -182,7 +183,7 @@ def _rational(value: str | None) -> float:
 
 def probe_media(path: str | Path, ffprobe_path: str | None = None) -> MediaInfo:
     source = Path(path).expanduser().resolve(strict=True)
-    executable = ffprobe_path or shutil.which("ffprobe")
+    executable = ffprobe_path or discover_ffmpeg().ffprobe_path or None
     probe_error = ""
     if executable:
         argv = [executable, "-v", "error", "-show_streams", "-show_format", "-of", "json", str(source)]
@@ -455,8 +456,8 @@ def parse_ffmpeg_progress(line: str, duration_sec: float) -> float | None:
 class RenderEngine:
     def __init__(self, ffmpeg_path: str | None = None, cache_dir: str | Path | None = None,
                  probe: Callable[[str | Path], MediaInfo] = probe_media):
-        self.ffmpeg_path = ffmpeg_path or shutil.which("ffmpeg")
-        self.cache_dir = Path(cache_dir or Path(tempfile.gettempdir()) / "mvstudio-render-cache")
+        self.ffmpeg_path = ffmpeg_path or discover_ffmpeg().ffmpeg_path or None
+        self.cache_dir = Path(cache_dir or app_paths().cache / "render-segments")
         self.probe = probe
         self.expert_log: list[str] = []
 
@@ -469,6 +470,8 @@ class RenderEngine:
         if not self.ffmpeg_path:
             raise RenderFailure("영상 내보내기 도구(FFmpeg)를 찾을 수 없습니다.")
         safe_argv = [argv[0], "-loglevel", "error", *argv[1:]] if "-loglevel" not in argv else argv
+        logger = configure_logging()
+        logger.info("ffmpeg stage output=%s", Path(argv[-1]).name)
         process = subprocess.Popen(safe_argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                                    encoding="utf-8", errors="replace", shell=False)
         while True:
@@ -489,7 +492,9 @@ class RenderEngine:
         stderr = process.stderr.read() if process.stderr else ""
         if stderr:
             self.expert_log.append(stderr)
+        logger.info("ffmpeg return_code=%s output=%s", process.returncode, Path(argv[-1]).name)
         if process.returncode:
+            logger.error("ffmpeg failed tail=%s", stderr[-4000:])
             raise RenderFailure("영상 내보내기에 실패했습니다. 원본 파일은 변경되지 않았습니다.")
 
     def _segment_argv(self, clip: EditClip, output: Path, settings: RenderSettings) -> list[str]:
