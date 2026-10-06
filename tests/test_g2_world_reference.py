@@ -1,8 +1,9 @@
 from pathlib import Path
+import os
 
 import pytest
 
-from mvstudio.models import ReferenceRole, WorldConcept
+from mvstudio.models import AudioMap, MVTimelineCue, ReferenceRole, WorldConcept
 from mvstudio.reference_vault import DuplicateReferenceIDError, ReferenceVault, resolve_reference_path
 from mvstudio.session import LyricsWorldSession
 from mvstudio.thumbnail_cache import ThumbnailCache
@@ -92,3 +93,84 @@ def test_g2_session_export_import_roundtrip(tmp_path):
     assert restored.references[0].path == "references_local/캐릭터 master.png"
     assert restored.reference_vault.status(restored.references[0]) == "available"
     assert source.read_bytes() == b"original"
+
+
+def test_session_import_reports_corrupt_json(tmp_path):
+    broken = tmp_path / "손상된 セッション.json"
+    broken.write_text("{ this is not json", encoding="utf-8")
+    with pytest.raises(ValueError, match="손상되었거나"):
+        LyricsWorldSession.import_file(broken)
+
+
+def test_atomic_export_keeps_previous_file_on_replace_failure(tmp_path, monkeypatch):
+    target = tmp_path / "프로젝트 日本語 session.json"
+    target.write_bytes(b"previous valid session")
+    session = LyricsWorldSession(lyrics_text="새벽에 역에 서 있어", duration_sec=30)
+    session.analyze()
+
+    def fail_replace(source, destination):
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(os, "replace", fail_replace)
+    with pytest.raises(OSError, match="simulated"):
+        session.export(target)
+    assert target.read_bytes() == b"previous valid session"
+    assert not list(tmp_path.glob("*.tmp"))
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+def test_new_session_has_no_implicit_autosave_target():
+    session = LyricsWorldSession(lyrics_text="비 내리는 역", duration_sec=20)
+    session.analyze()
+    assert session.session_path is None
+    with pytest.raises(ValueError, match="경로를 지정"):
+        session.export()
+
+
+def test_ui_offscreen_session_open_restores_all_g2_panels(tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
+    from mvstudio.ui_app import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    session_file = tmp_path / "열린 세션 日本語.json"
+    session = LyricsWorldSession(
+        lyrics_text="새벽 역에서 비를 기다려\n붉은 표를 남긴다", duration_sec=60,
+        concepts=[_concept()], selected_concept_id="WC03",
+        audio_map=AudioMap(
+            source_path="song.wav", duration_sec=60, sample_rate=22050, tempo_bpm=120,
+            beat_times_sec=[0.5, 1.0],
+        ),
+        mv_timeline=[MVTimelineCue(
+            cue_id="MV01", time_sec=0, priority=0.8, cue_type="lyric_entry",
+            reasons=["test"], lyric_line_ids=["L001"], recommended_visual_action="첫 장면을 제시",
+        )],
+    )
+    session.analyze()
+    session.select_concept("WC03")
+    session.promote_selected_concept()
+    source = tmp_path / "reference 原본.png"
+    source.write_bytes(b"reference")
+    session.add_reference(source, ReferenceRole.CHARACTER_MASTER, is_master=True)
+    session.export(session_file)
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *args, **kwargs: (str(session_file), ""))
+    window = MainWindow()
+    assert not window.autosave_timer.isActive()
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: None)
+
+    window._open_session()
+    app.processEvents()
+
+    assert window.pages.currentIndex() == 0
+    assert window.session.project_dir == tmp_path.resolve()
+    assert window.lyrics.toPlainText() == session.lyrics_text
+    assert window.summary.text() == session.analysis.synopsis
+    assert "WC03" in window.concept_cards
+    assert window.concept_cards["WC03"].property("selected") is True
+    assert window.bible_fields["premise"].toPlainText() == session.world_bible.premise
+    assert window.reference_layout.count() == 2  # one card and the trailing stretch
+    assert window.music_duration.text() == "60.0s"
+    assert "lyrics=L001" in window.timeline_summary.toPlainText()
+    assert window.session.session_path == session_file.resolve()
+    assert window.autosave_timer.isActive()  # refresh scheduled only because this is a saved session
+    window.autosave_timer.stop()
+    window.close()

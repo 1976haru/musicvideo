@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtCore import QStandardPaths, Qt
+    from PySide6.QtCore import QStandardPaths, QTimer, Qt
     from PySide6.QtGui import QFont, QPixmap
     from PySide6.QtWidgets import (
         QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout,
@@ -141,6 +142,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.session = LyricsWorldSession()
+        self.autosave_timer = QTimer(self)
+        self.autosave_timer.setSingleShot(True)
+        self.autosave_timer.setInterval(1000)
+        self.autosave_timer.timeout.connect(self._autosave)
         self.concept_cards = {}
         self.setWindowTitle("MV Director Studio — G2 World Bible + Reference Vault")
         self.resize(1420, 900)
@@ -165,6 +170,14 @@ class MainWindow(QMainWindow):
         side.addWidget(_label("MV DIRECTOR\nSTUDIO", "sectionTitle"))
         side.addWidget(_label("음악과 가사를 먼저 읽고\n그 뒤에 세계를 설계합니다.", "muted"))
         side.addSpacing(18)
+        session_actions = QHBoxLayout()
+        open_session = QPushButton("세션 열기")
+        open_session.clicked.connect(self._open_session)
+        save_session = QPushButton("세션 저장")
+        save_session.clicked.connect(self._export)
+        session_actions.addWidget(open_session)
+        session_actions.addWidget(save_session)
+        side.addLayout(session_actions)
 
         self.nav_buttons = []
         steps = [
@@ -438,6 +451,7 @@ class MainWindow(QMainWindow):
         controls.addWidget(self.reference_notes, 1)
         controls.addWidget(choose)
         outer.addLayout(controls)
+        outer.addWidget(_label("현재 G2는 Project scope를 사용합니다. Scene / Shot scope assignment는 G3 Story Room / Shot Board에서 활성화됩니다.", "muted"))
         outer.addWidget(ReferenceDropArea(self._add_reference_paths))
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -460,6 +474,7 @@ class MainWindow(QMainWindow):
             value = getattr(bible, key)
             editor.setPlainText("\n".join(value) if isinstance(value, list) else value)
         self.statusBar().showMessage(f"World Bible 초안 생성 · {bible.source_concept_id}")
+        self._schedule_autosave()
 
     def _save_world_bible(self):
         if not self.session.world_bible:
@@ -475,12 +490,14 @@ class MainWindow(QMainWindow):
             changes[key] = [line.strip() for line in text.splitlines() if line.strip()] if key in list_fields else text
         self.session.world_bible = self.session.world_bible.model_copy(update=changes)
         self.statusBar().showMessage("World Bible 변경 저장 완료")
+        self._schedule_autosave()
 
     def _choose_references(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "Reference 파일 선택", "", "Media (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.mp4 *.mov);;All Files (*)")
         self._add_reference_paths(paths)
 
     def _add_reference_paths(self, paths):
+        added = False
         for path in paths:
             try:
                 self.session.add_reference(
@@ -490,9 +507,12 @@ class MainWindow(QMainWindow):
                     notes=self.reference_notes.text().strip(),
                     is_master=self.reference_master.isChecked(),
                 )
+                added = True
             except (ValueError, OSError) as exc:
                 QMessageBox.warning(self, "Reference 등록 실패", f"{path}\n\n{exc}")
         self._render_references()
+        if added:
+            self._schedule_autosave()
 
     def _render_references(self):
         while self.reference_layout.count() > 1:
@@ -523,6 +543,97 @@ class MainWindow(QMainWindow):
         self.session.remove_reference(reference_id)
         self._render_references()
         self.statusBar().showMessage(f"{reference_id} 메타데이터 등록 해제 · 원본 파일 유지")
+        self._schedule_autosave()
+
+    def _schedule_autosave(self):
+        if self.session.session_path is not None:
+            self.autosave_timer.start()
+
+    def _autosave(self):
+        if self.session.session_path is None:
+            return
+        try:
+            saved = self.session.export()
+        except Exception as exc:
+            self.statusBar().showMessage(f"자동 저장 실패 · 기존 파일은 유지됨 · {exc}", 10000)
+            return
+        self.statusBar().showMessage(f"자동 저장 완료 · {saved}", 5000)
+
+    def _open_session(self):
+        path, _ = QFileDialog.getOpenFileName(self, "세션 JSON 열기", "", "MV Director Session (*.json);;JSON (*.json)")
+        if not path:
+            return
+        try:
+            loaded = LyricsWorldSession.import_file(path)
+        except (OSError, json.JSONDecodeError, UnicodeError, ValueError, TypeError) as exc:
+            QMessageBox.warning(
+                self,
+                "세션을 열 수 없습니다",
+                f"선택한 JSON 세션을 읽지 못했습니다. 파일이 있는지와 JSON 형식을 확인하세요.\n\n{exc}",
+            )
+            self.statusBar().showMessage("세션 열기 실패 · 현재 작업은 유지됩니다", 8000)
+            return
+        self.autosave_timer.stop()
+        self.session = loaded
+        self._refresh_from_session()
+        self._switch(0)
+        self.statusBar().showMessage(f"세션 열기 완료 · 자동 저장 사용 · {loaded.session_path}")
+
+    def _refresh_from_session(self):
+        session = self.session
+        self.music_source.setText(f"선택된 음악: {Path(session.music_path).name if session.music_path else '-'}")
+        if session.audio_map:
+            audio = session.audio_map
+            self.music_duration.setText(f"{audio.duration_sec:.1f}s")
+            self.music_tempo.setText(f"{audio.tempo_bpm:.1f} BPM")
+            self.music_beats.setText(str(len(audio.beat_times_sec)))
+            self.music_transitions.setText(str(len(audio.transitions)))
+            sections = [
+                f"{sec.section_id}  {sec.start_sec:6.2f}–{sec.end_sec:6.2f}s  {sec.label}  energy={sec.mean_energy:.4f}"
+                for sec in audio.sections
+            ]
+            transitions = [
+                f"{tr.time_sec:6.2f}s  {tr.character:26s}  strength={tr.strength:.2f}"
+                for tr in audio.transitions
+            ]
+            cadence = " / ".join(f"{k}={v}s" for k, v in audio.cut_cadence_hints.items()) or "tempo 불명"
+            self.audio_summary.setPlainText(
+                "[CUT CADENCE HINT]\n" + cadence + "\n\n[SECTION CANDIDATES]\n" +
+                ("\n".join(sections) or "-") + "\n\n[MUSIC TRANSITIONS]\n" + ("\n".join(transitions) or "-")
+            )
+        else:
+            for name in ("music_duration", "music_tempo", "music_beats", "music_transitions"):
+                getattr(self, name).setText("-")
+            self.audio_summary.clear()
+        self.timeline_summary.setPlainText(format_timeline_text(session.mv_timeline))
+        self.lyrics.setPlainText(session.lyrics_text)
+        self.source.setText(f"입력: {session.source_name if session.lyrics_text else '직접 붙여넣기'}")
+        if session.duration_sec is not None:
+            self.duration.setValue(max(0, min(3600, round(session.duration_sec))))
+        if session.analysis:
+            analysis = session.analysis
+            self.summary.setText(analysis.synopsis)
+            self.pov.setText(f"POV · {analysis.pov}")
+            self.conflict.setText(f"중심 갈등 · {analysis.central_conflict}")
+            self.arc.setText("감정곡선 · " + " → ".join(analysis.emotional_arc or ["분석 보강 필요"]))
+            self.repeat.setText("반복구절 · " + (" / ".join(analysis.repeated_phrases) if analysis.repeated_phrases else "명시적 반복 없음"))
+            self.anchors.setText("시각 앵커 · " + (" / ".join(f"{x.anchor_type}:{x.phrase}" for x in analysis.anchors[:12]) if analysis.anchors else "추가 해석 필요"))
+        else:
+            self.summary.setText("분석 전입니다.")
+            self.pov.setText("POV · -")
+            self.conflict.setText("중심 갈등 · -")
+            self.arc.setText("감정곡선 · -")
+            self.repeat.setText("반복구절 · -")
+            self.anchors.setText("시각 앵커 · -")
+        self._render_concepts()
+        if session.world_bible:
+            for key, editor in self.bible_fields.items():
+                value = getattr(session.world_bible, key)
+                editor.setPlainText("\n".join(value) if isinstance(value, list) else value or "")
+        else:
+            for editor in self.bible_fields.values():
+                editor.clear()
+        self._render_references()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -582,6 +693,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(
             f"G1 완료 · {a.tempo_bpm:.1f} BPM · 변화점 {len(a.transitions)}개 · MV cue {len(self.session.mv_timeline)}개"
         )
+        self._refresh_from_session()
+        self._schedule_autosave()
 
     def _load_lyrics(self):
         path, _ = QFileDialog.getOpenFileName(self, "가사 파일 선택", "", "Lyrics (*.txt *.srt *.lrc);;All Files (*)")
@@ -609,21 +722,12 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "분석할 수 없습니다", str(exc))
             return
         a = self.session.analysis
-        self.summary.setText(a.synopsis)
-        self.pov.setText(f"POV · {a.pov}")
-        self.conflict.setText(f"중심 갈등 · {a.central_conflict}")
-        self.arc.setText("감정곡선 · " + " → ".join(a.emotional_arc or ["분석 보강 필요"]))
-        self.repeat.setText("반복구절 · " + (" / ".join(a.repeated_phrases) if a.repeated_phrases else "명시적 반복 없음"))
-        self.anchors.setText("시각 앵커 · " + (
-            " / ".join(f"{x.anchor_type}:{x.phrase}" for x in a.anchors[:12]) if a.anchors else "추가 해석 필요"
-        ))
-        if self.session.audio_map:
-            self.timeline_summary.setPlainText(format_timeline_text(self.session.mv_timeline))
-        self._render_concepts()
+        self._refresh_from_session()
         self.statusBar().showMessage(
             f"가사 {len(self.session.lines)}행 분석 완료 · 세계관 {len(self.session.concepts)}안 · MV cue {len(self.session.mv_timeline)}개"
         )
         self._switch(2)
+        self._schedule_autosave()
 
     def _clear_cards(self):
         while self.card_layout.count():
@@ -650,6 +754,7 @@ class MainWindow(QMainWindow):
         c = self.session.selected_concept
         if c:
             self.selected.setText(f"선택된 세계관: {c.title} · 가사 연관도 {c.lyric_relevance_score}")
+            self._schedule_autosave()
 
     def _lock(self):
         c = self.session.selected_concept
@@ -672,7 +777,9 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "저장 실패", str(exc))
             return
-        self.statusBar().showMessage(f"저장 완료 · {saved}")
+        self.autosave_timer.stop()
+        self._refresh_from_session()
+        self.statusBar().showMessage(f"저장 완료 · 자동 저장 활성 · {saved}")
 
 
 def run_gui() -> int:

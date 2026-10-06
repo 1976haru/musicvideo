@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from pydantic import ValidationError
 
 from .lyrics_engine import (
     analyze_lyrics,
@@ -35,6 +38,7 @@ class LyricsWorldSession:
     world_bible: WorldBible | None = None
     references: list[ReferenceAsset] = field(default_factory=list)
     project_dir: Path | None = None
+    session_path: Path | None = None
 
     def analyze(self, suffix: str | None = None) -> None:
         if not self.lyrics_text.strip():
@@ -148,13 +152,38 @@ class LyricsWorldSession:
 
     @classmethod
     def import_file(cls, path: str | Path) -> "LyricsWorldSession":
-        path = Path(path)
-        data = json.loads(path.read_text(encoding="utf-8-sig"))
-        return cls.from_dict(data, project_dir=path.parent)
+        path = Path(path).expanduser().resolve(strict=True)
+        if not path.is_file():
+            raise ValueError(f"세션 파일이 아닙니다: {path}")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8-sig"))
+            if not isinstance(data, dict):
+                raise ValueError("세션 JSON의 최상위 값은 객체여야 합니다.")
+            session = cls.from_dict(data, project_dir=path.parent)
+        except (json.JSONDecodeError, UnicodeError, ValidationError, TypeError, AttributeError) as exc:
+            raise ValueError(f"세션 JSON이 손상되었거나 형식이 올바르지 않습니다: {exc}") from exc
+        session.session_path = path
+        return session
 
-    def export(self, path: str | Path) -> Path:
-        path = Path(path)
+    def export(self, path: str | Path | None = None) -> Path:
+        path = Path(path or self.session_path).expanduser().resolve(strict=False) if (path or self.session_path) else None
+        if path is None:
+            raise ValueError("저장할 세션 JSON 경로를 지정하세요.")
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.to_dict(path.parent), ensure_ascii=False, indent=2), encoding="utf-8")
+        payload = json.dumps(self.to_dict(path.parent), ensure_ascii=False, indent=2).encode("utf-8")
+        temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb", prefix=f".{path.name}.", suffix=".tmp", dir=path.parent, delete=False
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                temp_file.write(payload)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+            os.replace(temp_path, path)
+        finally:
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
         self.project_dir = path.parent.resolve(strict=False)
+        self.session_path = path
         return path
