@@ -132,6 +132,10 @@ class ManualGenerationStudioPage(QWidget):
         form.addRow("Aspect", self.aspect_combo)
         form.addRow("Resolution", self.resolution_combo)
         layout.addLayout(form)
+        self.profile_notice = _wrapped("")
+        self.profile_notice.setObjectName("smallTitle")
+        self.profile_notice.setStyleSheet("padding: 10px; border: 1px solid #d69e2e; background: #332b18;")
+        layout.addWidget(self.profile_notice)
         self.settings = _wrapped("Settings: -")
         self.frames = _wrapped("First Frame: -\nLast Frame: -")
         self.preset = _wrapped("Camera preset: -")
@@ -201,13 +205,23 @@ class ManualGenerationStudioPage(QWidget):
         profile = get_manual_site_profile(self.profile_combo.currentData() or "GENERIC_MANUAL")
         self._building = True
         self.duration_combo.clear()
-        self.duration_combo.addItem("Auto / nearest", None)
+        duration_label = "Auto / site-model dependent" if profile.capabilities_model_dependent else "Auto / nearest"
+        self.duration_combo.addItem(duration_label, None)
         for value in profile.duration_options:
             self.duration_combo.addItem(f"{value:g}s", float(value))
         self.aspect_combo.clear()
         self.aspect_combo.addItems(profile.aspect_ratio_options)
         self.resolution_combo.clear()
         self.resolution_combo.addItems(profile.resolution_options)
+        if profile.profile_id == "HIGGSFIELD":
+            self.profile_notice.setText(
+                "모델별 지원 옵션이 다릅니다. Higgsfield에서 현재 선택한 모델의 duration / aspect / "
+                "resolution / first-last frame 지원을 확인하세요."
+            )
+            self.profile_notice.show()
+        else:
+            self.profile_notice.clear()
+            self.profile_notice.hide()
         self._building = False
         self._compile()
 

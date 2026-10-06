@@ -48,6 +48,11 @@ def test_generic_and_higgsfield_profiles_load_and_map_safely(tmp_path):
     session = _session(tmp_path)
     assert generic.mode == "manual_web"
     assert higgsfield.supports_camera_presets
+    assert higgsfield.capabilities_model_dependent
+    assert higgsfield.duration_options == []
+    assert 3 not in higgsfield.duration_options and 5 not in higgsfield.duration_options and 10 not in higgsfield.duration_options
+    assert higgsfield.aspect_ratio_options == ["site / model dependent"]
+    assert higgsfield.resolution_options == ["site / model dependent"]
     assert recommend_camera_preset(higgsfield, session.shots[0]) == "Dolly In"
     unknown = session.shots[0].model_copy(update={"camera": session.shots[0].camera.model_copy(update={"movement": "crane diagonal"})})
     assert recommend_camera_preset(higgsfield, unknown) == "Custom / no preset recommendation"
@@ -64,6 +69,18 @@ def test_manual_pack_preserves_provenance_and_distinct_prompt_layers(tmp_path):
     assert pack.generation_duration_hint == 10 and session.shots[0].duration_sec == original_duration
     assert pack.camera_preset_recommendation == "Dolly In"
     assert "雨の駅" in pack.lyric_evidence[0]
+
+
+def test_higgsfield_default_hints_are_model_dependent_and_do_not_mutate_shot(tmp_path):
+    session = _session(tmp_path)
+    shot = session.shots[0]
+    original_times = (shot.start_sec, shot.end_sec, shot.duration_sec)
+    pack = compile_manual_pack(session, shot, "HIGGSFIELD")
+    assert pack.generation_duration_hint is None
+    assert pack.aspect_ratio == "site / model dependent"
+    assert pack.resolution_hint == "site / model dependent"
+    assert (shot.start_sec, shot.end_sec, shot.duration_sec) == original_times
+    assert any("model-dependent" in warning for warning in pack.warnings)
 
 
 def test_readiness_warns_for_missing_and_ineligible_references(tmp_path):
@@ -104,6 +121,14 @@ def test_offscreen_generate_page_and_copy_snapshot_autosave(tmp_path):
     page = window.manual_generation_page
     assert window.pages.count() == 8 and window.nav_buttons[7].isEnabled()
     assert page.current_pack is not None
+    higgsfield_index = page.profile_combo.findData("HIGGSFIELD")
+    page.profile_combo.setCurrentIndex(higgsfield_index)
+    assert page.duration_combo.count() == 1
+    assert page.duration_combo.itemData(0) is None
+    assert "site-model dependent" in page.duration_combo.itemText(0)
+    assert "모델별 지원 옵션이 다릅니다" in page.profile_notice.text()
+    assert page.profile_notice.isVisibleTo(page)
+    assert page.current_pack.generation_duration_hint is None
     page._copy(page.current_pack.main_prompt)
     assert QApplication.clipboard().text() == page.current_pack.main_prompt
     assert page.feedback.text() == "복사 완료"

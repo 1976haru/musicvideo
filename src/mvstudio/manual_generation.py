@@ -35,6 +35,7 @@ class ManualSiteProfile(BaseModel):
     notes: list[str] = Field(default_factory=list)
     website_label: str
     profile_version: str = "1.0"
+    capabilities_model_dependent: bool = False
 
 
 class ReferenceInstruction(BaseModel):
@@ -115,12 +116,17 @@ HIGGSFIELD = ManualSiteProfile(
         "tilt": "Tilt Up / Down",
         "handheld": "Handheld",
     },
-    duration_options=[3, 5, 10],
-    aspect_ratio_options=["16:9", "9:16", "1:1"],
-    resolution_options=["1080p", "720p"],
-    generation_mode_options=["t2v", "i2v", "first_last"],
-    notes=["Preset names are recommendations only; verify current website options manually."],
+    duration_options=[],
+    aspect_ratio_options=["site / model dependent"],
+    resolution_options=["site / model dependent"],
+    generation_mode_options=["t2v", "i2v", "first_last", "extend", "v2v"],
+    notes=[
+        "Duration, aspect ratio, resolution, first/last frame, and negative-prompt support depend on the model selected on Higgsfield.",
+        "supports_* means available on at least some models on this site, not guaranteed for every model.",
+        "Camera preset recommendations are site-level guidance; verify current model options manually.",
+    ],
     website_label="Higgsfield website",
+    capabilities_model_dependent=True,
 )
 
 MANUAL_SITE_PROFILES = {profile.profile_id: profile for profile in (GENERIC_MANUAL, HIGGSFIELD)}
@@ -272,22 +278,33 @@ def compile_manual_pack(
             exists = candidate.is_file()
         if not exists:
             warnings.append(f"Missing {label}: {frame_ref}")
-    if shot.first_frame_ref and not profile.supports_first_frame:
+    if shot.first_frame_ref and not profile.supports_first_frame and not profile.capabilities_model_dependent:
         warnings.append(f"{profile.display_name} does not advertise first-frame support")
-    if shot.last_frame_ref and not profile.supports_last_frame:
+    if shot.last_frame_ref and not profile.supports_last_frame and not profile.capabilities_model_dependent:
         warnings.append(f"{profile.display_name} does not advertise last-frame support")
-    if shot.generation_mode not in profile.generation_mode_options:
+    if shot.generation_mode not in profile.generation_mode_options and not profile.capabilities_model_dependent:
         warnings.append(f"Generation mode '{shot.generation_mode}' is not listed by {profile.display_name}")
+    if profile.capabilities_model_dependent:
+        warnings.append(
+            "Higgsfield settings are model-dependent; verify duration, aspect ratio, resolution, "
+            "first/last frame, negative prompt, and generation-mode support for the selected model."
+        )
     warnings = _dedupe([*blockers, *warnings])
     readiness = "BLOCKED" if blockers else "READY_WITH_WARNINGS" if warnings else "READY"
 
     duration_hint = generation_duration_hint if generation_duration_hint is not None else _nearest_duration(shot.duration_sec, profile.duration_options)
     aspect = aspect_ratio or (profile.aspect_ratio_options[0] if profile.aspect_ratio_options else "site default")
     resolution = resolution_hint or (profile.resolution_options[0] if profile.resolution_options else "site default")
+    if duration_hint is not None:
+        duration_checklist = f"Website Duration Hint: {duration_hint}s"
+    elif profile.capabilities_model_dependent:
+        duration_checklist = "Website Duration Hint: site / model dependent (verify manually)"
+    else:
+        duration_checklist = "Website Duration Hint: site default"
     checklist = [
         f"Site Profile: {profile.display_name}", f"Generation Mode: {shot.generation_mode}",
         f"Timeline Duration (do not overwrite): {shot.duration_sec:.2f}s",
-        f"Website Duration Hint: {duration_hint}s" if duration_hint is not None else "Website Duration Hint: site default",
+        duration_checklist,
         f"Aspect Ratio: {aspect}", f"Resolution Hint: {resolution}", f"Camera Preset: {preset}",
         f"First Frame: {shot.first_frame_ref or '-'}", f"Last Frame: {shot.last_frame_ref or '-'}",
     ]
