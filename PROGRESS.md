@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 92% (G5B FINAL PASS)
+## 전체 진행률: 92% (G5 FINAL PASS · G6 Editor/Render 준비)
 
 ### 완료
 
@@ -77,13 +77,22 @@
 - 처음 실행한 사용자도 설명서 없이 주요 흐름을 완료할 수 있어야 함
 - 상태 → 이유 → 추천 행동 → 전문가 상세 순서
 
+### G6 핵심 목표
+
+- Accepted Take 기반 자동 Rough Cut
+- Shot 타임라인과 원곡 오디오 정렬
+- FFmpeg 기반 preview/final render
+- OpenTimelineIO .otio 선택형 export
+- 초보자용 "자동 편집 만들기 → 미리보기 → 최종 영상 내보내기" 흐름
+- 원본 미디어 read-only / 최종 출력 atomic
+
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
 - G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
 - G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **92% / FINAL PASS**
-- G6 Editor/Render: **92→98%**
+- G6 Editor/Render MEGAGATE: **92→98% / 진행 예정**
 - G7 Packaging/Recovery/Release: **98→100%**
 
 ## 지금이 Codex 1차 병행 시점
