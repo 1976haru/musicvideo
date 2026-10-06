@@ -368,3 +368,16 @@ A/B 결과 비교, Reject reason, Re-render, Final lock.
 `MUSIC INGEST → LYRICS & MEANING → WORLD LAB → WORLD BIBLE → STORY → SHOT` 순서로 확장한다.
 
 World/Beat/Shot은 가능한 한 `lyric_line_ids`를 보존해 생성 이유를 추적할 수 있어야 한다. 상세 설계는 `docs/LYRICS_TO_WORLD.md` 참고.
+# G6 Editor / Render Architecture
+
+`editor.py`가 편집 계약과 renderer를 소유하고 `g6_ui.py`는 사용자 결정을 연결합니다.
+
+1. `build_rough_cut()`은 Shot 시간과 Shot당 정확히 하나의 accepted Take만 사용합니다.
+2. `check_readiness()`는 Take 상태를 바꾸지 않고 blocker/warning을 결정합니다.
+3. `RenderEngine`은 무음 정규화 segment, concat, 원곡 mux를 거쳐 destination을 atomic 교체합니다.
+4. cache key는 source fingerprint, source range, target duration, 출력 크기/fps, framing, fit, renderer version을 포함합니다.
+5. Preview와 Final은 같은 편집 결정을 사용하고 출력 비용 설정만 다릅니다.
+6. OpenTimelineIO는 lazy optional이며 Edit Plan JSON은 optional dependency가 없습니다.
+7. schema 1.0은 편집 결정/settings/record만 저장하고 media binary는 저장하지 않습니다.
+
+Music, Take, Reference 원본은 immutable input입니다. G7은 이 계층의 범위가 아닙니다.

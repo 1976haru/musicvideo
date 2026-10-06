@@ -194,7 +194,7 @@ def test_schema_09_roundtrip_and_08_backward_compatibility(tmp_path):
     path = tmp_path / "통합 세션 日本語.json"
     session.export(path)
     restored = LyricsWorldSession.import_file(path)
-    assert restored.to_dict()["schema_version"] == "0.9"
+    assert restored.to_dict()["schema_version"] == "1.0"
     assert restored.director_intelligence_results[0].result_id == "DIR-1"
     assert restored.enhanced_music_structure.backend == "TEST"
     old = LyricsWorldSession.from_dict({"schema_version": "0.8"})

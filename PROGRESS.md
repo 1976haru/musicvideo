@@ -111,3 +111,15 @@ Reference Vault가 안정화되면 Claude Code 적극 병행.
 
 ### 72%
 로컬 + GitHub를 주 개발환경으로 전환. 초기 G4는 API가 아니라 Higgsfield 같은 웹사이트에 수동 입력하는 Generation Pack 방식으로 진행.
+# G6 Editor / Render MEGAGATE — FINAL PASS (98%)
+
+- accepted Take만 사용하는 비파괴 Rough Cut
+- short clip / gap 명시적 해결과 overlap blocker
+- FFmpeg segment normalize → concat → 원곡 mux → atomic final output
+- cover / contain, preview, 실제 progress, cancel, segment cache
+- MV Director Edit Plan JSON 및 optional OpenTimelineIO export
+- 세션 schema 1.0, 기존 0.9 이하 하위호환, 편집 결정 autosave
+- 초보자용 `10 EDIT / RENDER` 화면과 44px 주요 행동 버튼
+- 음악·Take·Reference 원본은 계속 read-only
+
+G7 Packaging / Recovery / Release는 시작하지 않았습니다.

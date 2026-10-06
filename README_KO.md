@@ -147,3 +147,17 @@ Provider API, 브라우저 자동화, 자동 ACCEPT/REJECT, Editor / Render는 �
 
 `docs/G2_CODEX_HANDOFF.md`의 지시문을 그대로 사용하세요.
 Claude Code는 Reference Vault가 완성되는 58%부터 적극 병행을 권장합니다.
+# G6 Editor / Render
+
+`10 EDIT / RENDER`에서 accepted Take만으로 Rough Cut을 만들고, 문제 Shot을 해결한 뒤 미리보기와 최종 MP4를 내보낼 수 있습니다.
+
+- 긴 Take는 필요한 길이만 비파괴 trim합니다.
+- 짧은 Take와 timeline gap은 사용자가 해결 방법을 명시적으로 선택합니다.
+- overlap은 Shot Board에서 해결하기 전까지 render를 차단합니다.
+- YouTube 1080p/4K, Vertical, Square preset을 제공합니다.
+- 원곡은 `session.music_path`에서 시작하며 Take 내부 오디오는 제거합니다.
+- FFmpeg가 없어도 앱은 정상 실행되고 내보내기만 사용할 수 없습니다.
+- Edit Plan JSON은 항상 지원하고 OTIO는 OpenTimelineIO 설치 시에만 지원합니다.
+- 모든 원본 파일은 read-only이며 final은 성공 시에만 atomic 교체됩니다.
+
+세션 schema는 1.0이며 0.9 이하 세션도 edit data 없이 정상 로드됩니다.

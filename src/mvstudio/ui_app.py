@@ -24,6 +24,7 @@ from .g3_ui import ShotBoardPage, StoryRoomPage
 from .g4_ui import ManualGenerationStudioPage
 from .g4b_ui import ResultTakesPage
 from .g5a_ui import TechnicalQCPage
+from .g6_ui import EditorRenderPage
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -194,6 +195,7 @@ class MainWindow(QMainWindow):
             ("07  SHOT BOARD", True),
             ("08  GENERATE", True),
             ("09  QC", True),
+            ("10  EDIT / RENDER", True),
         ]
         for i, (txt, enabled) in enumerate(steps):
             b = QPushButton(txt)
@@ -231,10 +233,16 @@ class MainWindow(QMainWindow):
             lambda: (self.generation_tabs.setCurrentIndex(1), self._switch(7)),
         )
         self.pages.addWidget(self.technical_qc_page)
+        self.editor_render_page = EditorRenderPage(
+            lambda: self.session, self._schedule_autosave,
+            lambda: (self.generation_tabs.setCurrentIndex(1), self._switch(7)),
+        )
+        self.pages.addWidget(self.editor_render_page)
         self.nav_buttons[5].clicked.connect(lambda: self._switch(5))
         self.nav_buttons[6].clicked.connect(lambda: self._switch(6))
         self.nav_buttons[7].clicked.connect(lambda: self._switch(7))
         self.nav_buttons[8].clicked.connect(lambda: self._switch(8))
+        self.nav_buttons[9].clicked.connect(lambda: self._switch(9))
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
@@ -662,6 +670,7 @@ class MainWindow(QMainWindow):
         self.manual_generation_page.refresh()
         self.result_takes_page.refresh()
         self.technical_qc_page.refresh()
+        self.editor_render_page.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
