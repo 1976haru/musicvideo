@@ -119,7 +119,7 @@ def test_offscreen_generate_page_and_copy_snapshot_autosave(tmp_path):
     window.session = _session(tmp_path)
     window.manual_generation_page.refresh()
     page = window.manual_generation_page
-    assert window.pages.count() == 9 and window.nav_buttons[7].isEnabled()
+    assert window.pages.count() == 10 and window.nav_buttons[7].isEnabled()
     assert page.current_pack is not None
     higgsfield_index = page.profile_combo.findData("HIGGSFIELD")
     page.profile_combo.setCurrentIndex(higgsfield_index)

@@ -101,7 +101,7 @@ def test_schema_08_roundtrip_and_07_backward_compatibility(tmp_path):
     target = tmp_path / "QC 세션 日本語.json"
     session.export(target)
     restored = LyricsWorldSession.import_file(target)
-    assert restored.to_dict()["schema_version"] == "0.9"
+    assert restored.to_dict()["schema_version"] == "1.0"
     assert restored.qc_reports[0].report_id == report.report_id
     old = LyricsWorldSession.from_dict({"schema_version": "0.7", "generation_takes": []})
     assert old.qc_reports == []

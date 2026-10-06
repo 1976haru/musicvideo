@@ -29,6 +29,7 @@ from .technical_qc import TakeQCReport
 from .semantic_qc import SemanticQCReport
 from .director_intelligence import DirectorIntelligenceResult
 from .music_intelligence import EnhancedMusicStructure
+from .editor import EditTimeline, RenderRecord, RenderSettings
 
 
 @dataclass
@@ -55,6 +56,11 @@ class LyricsWorldSession:
     semantic_qc_reports: list[SemanticQCReport] = field(default_factory=list)
     director_intelligence_results: list[DirectorIntelligenceResult] = field(default_factory=list)
     enhanced_music_structure: EnhancedMusicStructure | None = None
+    edit_timeline: EditTimeline | None = None
+    render_settings: RenderSettings = field(default_factory=RenderSettings)
+    render_records: list[RenderRecord] = field(default_factory=list)
+    preview_path: str = ""
+    final_path: str = ""
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -142,7 +148,7 @@ class LyricsWorldSession:
             data["output_path"] = portable_take_path(resolve_take_path(take, self.project_dir), target_dir)
             takes.append(data)
         return {
-            "schema_version": "0.9",
+            "schema_version": "1.0",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],
@@ -165,6 +171,11 @@ class LyricsWorldSession:
             "semantic_qc_reports": [report.model_dump(mode="json") for report in self.semantic_qc_reports],
             "director_intelligence_results": [result.model_dump(mode="json") for result in self.director_intelligence_results],
             "enhanced_music_structure": self.enhanced_music_structure.model_dump(mode="json") if self.enhanced_music_structure else None,
+            "edit_timeline": self.edit_timeline.model_dump(mode="json") if self.edit_timeline else None,
+            "render_settings": self.render_settings.model_dump(mode="json"),
+            "render_records": [record.model_dump(mode="json") for record in self.render_records],
+            "preview_path": self.preview_path,
+            "final_path": self.final_path,
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -193,6 +204,11 @@ class LyricsWorldSession:
             semantic_qc_reports=[SemanticQCReport.model_validate(x) for x in data.get("semantic_qc_reports", [])],
             director_intelligence_results=[DirectorIntelligenceResult.model_validate(x) for x in data.get("director_intelligence_results", [])],
             enhanced_music_structure=EnhancedMusicStructure.model_validate(data["enhanced_music_structure"]) if data.get("enhanced_music_structure") else None,
+            edit_timeline=EditTimeline.model_validate(data["edit_timeline"]) if data.get("edit_timeline") else None,
+            render_settings=RenderSettings.model_validate(data.get("render_settings", {})),
+            render_records=[RenderRecord.model_validate(x) for x in data.get("render_records", [])],
+            preview_path=data.get("preview_path", ""),
+            final_path=data.get("final_path", ""),
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         reconcile_take_counters(session.generation_takes, session.take_id_counters)

@@ -87,7 +87,7 @@ def test_offscreen_story_and_shot_pages_are_active_and_editable():
 
     app = QApplication.instance() or QApplication([])
     window = MainWindow()
-    assert window.pages.count() == 9
+    assert window.pages.count() == 10
     assert window.nav_buttons[5].isEnabled()
     assert window.nav_buttons[6].isEnabled()
     session = window.session
