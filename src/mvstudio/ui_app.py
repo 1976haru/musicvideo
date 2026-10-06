@@ -20,6 +20,7 @@ except ImportError as exc:
 
 from .music_engine import format_timeline_text
 from .models import ReferenceRole
+from .g3_ui import ShotBoardPage, StoryRoomPage
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -186,8 +187,8 @@ class MainWindow(QMainWindow):
             ("03  WORLD LAB", True),
             ("04  WORLD BIBLE", True),
             ("05  REFERENCE VAULT", True),
-            ("06  STORY ROOM", False),
-            ("07  SHOT BOARD", False),
+            ("06  STORY ROOM", True),
+            ("07  SHOT BOARD", True),
             ("08  GENERATE", False),
             ("09  QC / EDIT", False),
         ]
@@ -204,7 +205,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 58% · G2\nStory Room은 다음 Gate입니다.", "muted"))
+        side.addWidget(_label("전체 약 65% · G3 1차 구현\nStory Room + Shot Board", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -212,6 +213,12 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self._world_page())
         self.pages.addWidget(self._world_bible_page())
         self.pages.addWidget(self._reference_page())
+        self.story_room_page = StoryRoomPage(lambda: self.session, self._schedule_autosave)
+        self.shot_board_page = ShotBoardPage(lambda: self.session, self._schedule_autosave)
+        self.pages.addWidget(self.story_room_page)
+        self.pages.addWidget(self.shot_board_page)
+        self.nav_buttons[5].clicked.connect(lambda: self._switch(5))
+        self.nav_buttons[6].clicked.connect(lambda: self._switch(6))
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
@@ -634,6 +641,8 @@ class MainWindow(QMainWindow):
             for editor in self.bible_fields.values():
                 editor.clear()
         self._render_references()
+        self.story_room_page.refresh()
+        self.shot_board_page.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -766,7 +775,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"WORLD LOCK · {c.title} · World Bible 초안 생성")
 
     def _export(self):
-        if not self.session.analysis and not self.session.audio_map and not self.session.world_bible and not self.session.references:
+        if not self.session.analysis and not self.session.audio_map and not self.session.world_bible and not self.session.references and not self.session.story_beats and not self.session.shots:
             QMessageBox.information(self, "저장할 내용 없음", "먼저 음악 또는 가사를 분석하세요.")
             return
         path, _ = QFileDialog.getSaveFileName(self, "Music/Lyrics/World 세션 저장", "mv_director_session.json", "JSON (*.json)")

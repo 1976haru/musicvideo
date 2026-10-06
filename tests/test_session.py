@@ -8,7 +8,7 @@ def test_pasted_lyrics_session_analysis():
     assert s.analysis is not None
     assert len(s.concepts) == 3
     assert s.selected_concept_id == s.concepts[0].concept_id
-    assert s.to_dict()["schema_version"] == "0.4"
+    assert s.to_dict()["schema_version"] == "0.5"
 
 
 def test_concept_selection():

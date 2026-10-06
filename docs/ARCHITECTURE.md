@@ -306,10 +306,12 @@ positive / negative / seed / workflow variable / reference paths로 내보냅니
 ### ④ STORY ROOM
 3막/5막/뮤직비디오형 비선형 구조 선택.
 각 Story Beat를 음악 타임라인에 배치.
+G3에서 Beat는 `lyric_line_ids`와 `music_cue_ids`를 함께 보존하며, 반복 motif의 setup/development/payoff 상태와 World Bible 규칙 및 Reference ID를 연결한다.
 
 ### ⑤ SHOT BOARD
 카드형 샷 보드.
 썸네일 / 타임코드 / 렌즈 / 카메라 / reference / provider / prompt.
+각 Shot은 상위 `beat_id`와 가사·음악 근거 ID를 이어받고, continuity in/out 비교 경고를 제공한다.
 
 ### ⑥ GENERATE
 모델별 예상 비용/길이/기능 확인.

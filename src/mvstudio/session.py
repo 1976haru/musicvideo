@@ -16,7 +16,7 @@ from .lyrics_engine import (
 )
 from .models import (
     AudioMap, LyricInterpretation, LyricLine, LyricVisualBridge, MVTimelineCue,
-    ReferenceAsset, ReferenceRole, WorldBible, WorldConcept,
+    ReferenceAsset, ReferenceRole, ShotSpec, StoryBeat, WorldBible, WorldConcept,
 )
 from .reference_vault import ReferenceVault, portable_path, resolve_reference_path
 from .world_bible import promote_world_concept
@@ -37,6 +37,8 @@ class LyricsWorldSession:
     selected_concept_id: str | None = None
     world_bible: WorldBible | None = None
     references: list[ReferenceAsset] = field(default_factory=list)
+    story_beats: list[StoryBeat] = field(default_factory=list)
+    shots: list[ShotSpec] = field(default_factory=list)
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -112,7 +114,7 @@ class LyricsWorldSession:
             data["path"] = portable_path(resolved, target_dir)
             references.append(data)
         return {
-            "schema_version": "0.4",
+            "schema_version": "0.5",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],
@@ -126,6 +128,8 @@ class LyricsWorldSession:
             "selected_concept_id": self.selected_concept_id,
             "world_bible": self.world_bible.model_dump() if self.world_bible else None,
             "references": references,
+            "story_beats": [beat.model_dump(mode="json") for beat in self.story_beats],
+            "shots": [shot.model_dump(mode="json") for shot in self.shots],
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -145,6 +149,8 @@ class LyricsWorldSession:
             selected_concept_id=data.get("selected_concept_id"),
             world_bible=WorldBible.model_validate(data["world_bible"]) if data.get("world_bible") else None,
             references=[ReferenceAsset.model_validate(x) for x in data.get("references", [])],
+            story_beats=[StoryBeat.model_validate(x) for x in data.get("story_beats", [])],
+            shots=[ShotSpec.model_validate(x) for x in data.get("shots", [])],
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         ReferenceVault(session.references, session.project_dir)

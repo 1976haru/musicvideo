@@ -208,7 +208,12 @@ class StoryBeat(BaseModel):
     motif: str | None = None
     setup_or_payoff: Literal["setup", "development", "payoff", "none"] = "none"
     lyric_line_ids: list[str] = Field(default_factory=list)
+    music_cue_ids: list[str] = Field(default_factory=list)
     lyric_intent: str = ""
+    emotional_state: str = ""
+    world_rule_refs: list[str] = Field(default_factory=list)
+    reference_ids: list[str] = Field(default_factory=list)
+    notes: str = ""
 
     @model_validator(mode="after")
     def validate_range(self):
@@ -233,6 +238,7 @@ class ShotSpec(BaseModel):
     narrative_function: str
     lyric_or_music_cue: str = ""
     lyric_line_ids: list[str] = Field(default_factory=list)
+    music_cue_ids: list[str] = Field(default_factory=list)
     lyric_intent: str = ""
     lyric_visual_strategy: Literal[
         "literal", "metaphor", "motif", "counterpoint", "performance", "silence"
@@ -248,6 +254,7 @@ class ShotSpec(BaseModel):
     continuity_in: list[str] = Field(default_factory=list)
     continuity_out: list[str] = Field(default_factory=list)
     reference_ids: list[str] = Field(default_factory=list)
+    world_rule_refs: list[str] = Field(default_factory=list)
     generation_mode: Literal["t2v", "i2v", "first_last", "extend", "v2v"] = "i2v"
     first_frame_ref: str | None = None
     last_frame_ref: str | None = None
@@ -265,7 +272,7 @@ class ShotSpec(BaseModel):
 
 
 class MusicVideoProject(BaseModel):
-    schema_version: str = "0.4"
+    schema_version: str = "0.5"
     title: str
     song_path: str | None = None
     lyrics_path: str | None = None
