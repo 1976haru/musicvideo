@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 78% (G4A FINAL PASS)
+## 현재 전체 진행률: 83% (G4B FINAL PASS)
 
 ```text
 MUSIC FILE
@@ -93,6 +93,17 @@ G3 Story Room + Shot Board FINAL hardening을 완료했습니다. Provider API �
 - Pack snapshot 세션 저장·복원·autosave
 
 G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP generation, 브라우저 자동화를 포함하지 않습니다.
+
+## G4B FINAL PASS
+
+- 외부 사이트에서 생성한 결과 영상을 Shot에 metadata-only로 등록
+- ManualGenerationPack → GenerationTake 추적성
+- Take A/B/C, candidate / accepted / rejected, Shot당 FINAL TAKE 1개
+- 원본 영상 이동·이름 변경·삭제·변환 없음
+- duplicate take_id / multiple accepted 비파괴 audit 및 안전한 mutation 차단
+- stale/missing counter reconciliation과 missing 결과 영상 metadata-only relink
+- 정렬·refresh 후 선택 안정성, 다중 drag & drop 부분 성공 처리
+- G5는 아직 시작하지 않음
 
 ## Codex / Claude 전환
 

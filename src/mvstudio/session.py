@@ -19,6 +19,10 @@ from .models import (
     ReferenceAsset, ReferenceRole, ShotSpec, StoryBeat, WorldBible, WorldConcept,
 )
 from .manual_generation import ManualGenerationPack
+from .result_takes import (
+    GenerationTake, TakeManager, portable_take_path, reconcile_take_counters,
+    resolve_take_path,
+)
 from .reference_vault import ReferenceVault, portable_path, resolve_reference_path
 from .world_bible import promote_world_concept
 
@@ -41,6 +45,8 @@ class LyricsWorldSession:
     story_beats: list[StoryBeat] = field(default_factory=list)
     shots: list[ShotSpec] = field(default_factory=list)
     generation_packs: list[ManualGenerationPack] = field(default_factory=list)
+    generation_takes: list[GenerationTake] = field(default_factory=list)
+    take_id_counters: dict[str, int] = field(default_factory=dict)
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -107,6 +113,13 @@ class LyricsWorldSession:
     def selected_concept(self) -> WorldConcept | None:
         return next((c for c in self.concepts if c.concept_id == self.selected_concept_id), None)
 
+    @property
+    def take_manager(self) -> TakeManager:
+        return TakeManager(
+            self.generation_takes, self.shots, self.generation_packs,
+            self.project_dir, self.take_id_counters,
+        )
+
     def to_dict(self, project_dir: str | Path | None = None) -> dict:
         target_dir = Path(project_dir).resolve(strict=False) if project_dir else self.project_dir
         references = []
@@ -115,8 +128,13 @@ class LyricsWorldSession:
             resolved = resolve_reference_path(asset, self.project_dir)
             data["path"] = portable_path(resolved, target_dir)
             references.append(data)
+        takes = []
+        for take in self.generation_takes:
+            data = take.model_dump(mode="json")
+            data["output_path"] = portable_take_path(resolve_take_path(take, self.project_dir), target_dir)
+            takes.append(data)
         return {
-            "schema_version": "0.6",
+            "schema_version": "0.7",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],
@@ -133,6 +151,8 @@ class LyricsWorldSession:
             "story_beats": [beat.model_dump(mode="json") for beat in self.story_beats],
             "shots": [shot.model_dump(mode="json") for shot in self.shots],
             "generation_packs": [pack.model_dump(mode="json") for pack in self.generation_packs],
+            "generation_takes": takes,
+            "take_id_counters": dict(self.take_id_counters),
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -155,8 +175,11 @@ class LyricsWorldSession:
             story_beats=[StoryBeat.model_validate(x) for x in data.get("story_beats", [])],
             shots=[ShotSpec.model_validate(x) for x in data.get("shots", [])],
             generation_packs=[ManualGenerationPack.model_validate(x) for x in data.get("generation_packs", [])],
+            generation_takes=[GenerationTake.model_validate(x) for x in data.get("generation_takes", [])],
+            take_id_counters={str(key): int(value) for key, value in data.get("take_id_counters", {}).items()},
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
+        reconcile_take_counters(session.generation_takes, session.take_id_counters)
         ReferenceVault(session.references, session.project_dir)
         return session
 
