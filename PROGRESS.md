@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 98% (G6 FINAL PASS · G7 FINAL RELEASE 준비)
+## 전체 진행률: 100% (MV Director Studio 1.0.0 FINAL RELEASE READY)
 
 ### 완료
 
@@ -105,7 +105,7 @@
 - G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
 - G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **92% / FINAL PASS**
 - G6 Editor/Render MEGAGATE: **98% / FINAL PASS**
-- G7 Packaging/Recovery/Release FINAL: **98→100% / 진행 예정**
+- G7 Packaging/Recovery/Release FINAL: **100% / FINAL RELEASE READY**
 
 ## 지금이 Codex 1차 병행 시점
 
@@ -134,4 +134,14 @@ Reference Vault가 안정화되면 Claude Code 적극 병행.
 - 초보자용 `10 EDIT / RENDER` 화면과 44px 주요 행동 버튼
 - 음악·Take·Reference 원본은 계속 read-only
 
-G7 Packaging / Recovery / Release는 시작하지 않았습니다.
+# MV Director Studio 1.0.0 — G7 FINAL RELEASE
+
+- Windows ONEDIR build: PASS (`release/dist/MV_Director_Studio`)
+- Packaged UI/runtime smoke: PASS (`--smoke-test`, no developer PYTHONPATH)
+- Packaged FFmpeg render smoke: PASS (`--render-smoke-test`, app-local FFmpeg, source bytes unchanged)
+- Full tests: 98 passed / 0 failed
+- Backup rotation / crash marker / recovery validation: PASS
+- Session schema: 1.0
+- Release gate: Packaging / Recovery / Doctor / E2E / CI
+
+G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니다.

@@ -14,3 +14,4 @@ projects/**/references_local/
 .test_tmp/
 pytest-cache-files-*/
 .numba_cache/
+release/

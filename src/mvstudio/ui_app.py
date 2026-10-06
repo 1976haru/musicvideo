@@ -25,6 +25,8 @@ from .g4_ui import ManualGenerationStudioPage
 from .g4b_ui import ResultTakesPage
 from .g5a_ui import TechnicalQCPage
 from .g6_ui import EditorRenderPage
+from .release_ui import ReleaseDoctorDialog
+from .release_runtime import APP_VERSION, log_uncaught, should_show_startup_doctor
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -144,7 +146,7 @@ class ReferenceCard(QFrame):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, previous_unclean: bool = False):
         super().__init__()
         self.session = LyricsWorldSession()
         self.autosave_timer = QTimer(self)
@@ -152,7 +154,9 @@ class MainWindow(QMainWindow):
         self.autosave_timer.setInterval(1000)
         self.autosave_timer.timeout.connect(self._autosave)
         self.concept_cards = {}
-        self.setWindowTitle("MV Director Studio — G4B Result / Take Manager")
+        self.previous_unclean = previous_unclean
+        self.release_doctor = None
+        self.setWindowTitle(f"MV Director Studio {APP_VERSION}")
         self.resize(1420, 900)
         self.setMinimumSize(1100, 720)
         self.setStyleSheet(APP_STYLE)
@@ -183,6 +187,9 @@ class MainWindow(QMainWindow):
         session_actions.addWidget(open_session)
         session_actions.addWidget(save_session)
         side.addLayout(session_actions)
+        doctor_button = QPushButton("제작 준비 / 진단")
+        doctor_button.clicked.connect(self._show_release_doctor)
+        side.addWidget(doctor_button)
 
         self.nav_buttons = []
         steps = [
@@ -210,7 +217,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 약 92% · G5B\nQC + Director / Music Intelligence", "muted"))
+        side.addWidget(_label("전체 100% · Release 1.0.0\nEditor / Render 포함", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -246,6 +253,30 @@ class MainWindow(QMainWindow):
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
+        if should_show_startup_doctor(self.previous_unclean):
+            QTimer.singleShot(250, lambda: self._show_release_doctor(self.previous_unclean))
+
+    def _show_release_doctor(self, previous_unclean: bool | None = None):
+        self.release_doctor = ReleaseDoctorDialog(
+            lambda: self.session,
+            self.previous_unclean if previous_unclean is None else previous_unclean,
+            self,
+        )
+        self.release_doctor.recovery_selected.connect(self._open_recovery_session)
+        self.release_doctor.setModal(False)
+        self.release_doctor.show()
+
+    def _open_recovery_session(self, path: str):
+        try:
+            loaded = LyricsWorldSession.import_file(path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "복구본 열기", f"복구본 검증에 실패했습니다.\n{exc}")
+            return
+        self.autosave_timer.stop()
+        self.session = loaded
+        self._refresh_from_session()
+        self._switch(0)
+        self.statusBar().showMessage("검증된 복구본을 열었습니다. 원래 프로젝트는 덮어쓰지 않았습니다.")
 
     def _switch(self, index):
         self.pages.setCurrentIndex(index)
@@ -819,13 +850,20 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"저장 완료 · 자동 저장 활성 · {saved}")
 
 
-def run_gui() -> int:
+def run_gui(previous_unclean: bool = False) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("MV Director Studio")
     font = QFont()
     font.setPointSize(11)
     app.setFont(font)
-    w = MainWindow()
+    def gui_exception(exc_type, exc_value, exc_traceback):
+        log_uncaught(exc_type, exc_value, exc_traceback)
+        QMessageBox.critical(
+            None, "예상하지 못한 오류",
+            "예상하지 못한 오류가 발생했습니다.\n프로젝트 원본 파일은 변경되지 않았습니다.\n진단 정보에서 자세한 기록을 확인할 수 있습니다.",
+        )
+    sys.excepthook = gui_exception
+    w = MainWindow(previous_unclean=previous_unclean)
     w.show()
     return app.exec()
 

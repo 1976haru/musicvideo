@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import uuid
+import os
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("MVSTUDIO_APPDATA", str(Path.cwd() / ".test_workspace" / "appdata"))
 
 
 @pytest.fixture

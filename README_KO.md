@@ -1,8 +1,36 @@
-# MV Director Studio v0.4 — MUSIC + LYRICS DIRECTOR TIMELINE
+# MV Director Studio 1.0.0 — Windows에서 뮤직비디오 만들기
 
-AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
+음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 Windows desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
 
-## 현재 전체 진행률: 92% (G5B FINAL PASS)
+## Windows 실행과 전체 workflow
+
+배포 폴더의 `MV Director Studio.exe`를 실행합니다. 소스에서 실행할 때는 `RUN_WINDOWS.bat`를 사용합니다. 첫 실행의 **“뮤직비디오 제작 준비가 되었나요?”** 화면에서 필수 도구와 선택 기능을 확인하세요.
+
+1. MUSIC — 원곡과 가사를 불러와 분석합니다.
+2. WORLD — 해석과 World Bible을 정합니다.
+3. REFERENCES — 캐릭터·장소·색감 자료를 등록합니다.
+4. STORY — Story Beat와 가사 근거를 만듭니다.
+5. SHOTS — Shot 시간과 카메라를 확인합니다.
+6. GENERATE — manual website용 prompt pack을 복사합니다.
+7. RESULTS — 생성 영상을 Take로 등록하고 하나를 ACCEPT합니다.
+8. QC — 기술·시각 QC 권고를 확인합니다.
+9. EDIT / RENDER — Rough Cut, preview, final MP4를 만듭니다.
+
+### FFmpeg
+
+Final Render에는 H.264(libx264)와 AAC를 지원하는 FFmpeg/FFprobe가 필요합니다. 탐지 순서는 앱 설정, `tools/ffmpeg/bin`, 시스템 PATH입니다. 프로그램은 FFmpeg를 백그라운드에서 내려받지 않습니다.
+
+### 프로젝트 저장과 복구
+
+Session JSON은 사용자가 고른 위치에 저장됩니다. 기존 정상 세션은 사용자 AppData recovery에 최대 5개 보관하고, 비정상 종료 뒤에는 검증된 복구본을 선택해 열 수 있습니다.
+
+### 캐시
+
+`제작 준비 / 진단`에서 프로그램 소유 cache 크기를 확인하고 정리할 수 있습니다. Music, Take, Reference, Session, Final 파일은 정리 대상이 아닙니다.
+
+### 선택 기능과 알려진 제한
+
+OpenCLIP, Beat This, Functional Structure, OpenTimelineIO는 선택 기능입니다. AI 영상 생성은 manual website workflow 중심입니다. Semantic QC는 보조 판단이며 정확한 얼굴 identity를 보장하지 않습니다. 긴 렌더 속도는 PC와 FFmpeg 성능에 따라 달라지고 OTIO 호환성은 외부 편집기/plugin에 따라 다릅니다. 자세한 내용은 [Known Limitations](docs/KNOWN_LIMITATIONS.md)을 참고하세요.
 
 ```text
 MUSIC FILE
@@ -161,3 +189,32 @@ Claude Code는 Reference Vault가 완성되는 58%부터 적극 병행을 권장
 - 모든 원본 파일은 read-only이며 final은 성공 시에만 atomic 교체됩니다.
 
 세션 schema는 1.0이며 0.9 이하 세션도 edit data 없이 정상 로드됩니다.
+# MV Director Studio 1.0.0 — Windows에서 뮤직비디오 만들기
+
+음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
+
+## Windows 실행과 처음 시작
+
+배포 폴더의 `MV Director Studio.exe`를 실행합니다. 소스에서 실행할 때는 `RUN_WINDOWS.bat`를 사용합니다. 첫 실행의 **“뮤직비디오 제작 준비가 되었나요?”** 화면에서 필수 도구와 선택 기능을 확인하세요.
+
+## 전체 workflow
+
+1. MUSIC — 원곡과 가사를 불러와 분석합니다.
+2. WORLD — 해석과 World Bible을 정합니다.
+3. REFERENCES — 캐릭터·장소·색감 자료를 등록합니다.
+4. STORY — Story Beat와 가사 근거를 만듭니다.
+5. SHOTS — Shot 시간, 카메라, continuity를 확인합니다.
+6. GENERATE — manual website용 prompt pack을 복사합니다.
+7. RESULTS — 생성 영상을 Take로 등록하고 하나를 ACCEPT합니다.
+8. QC — 기술·시각 QC 권고를 확인합니다.
+9. EDIT / RENDER — Rough Cut, preview, final MP4를 만듭니다.
+
+## FFmpeg, 프로젝트, 복구, 캐시
+
+Final Render에는 H.264(libx264)와 AAC를 지원하는 FFmpeg/FFprobe가 필요합니다. 탐지 순서는 앱 설정, `tools/ffmpeg/bin`, 시스템 PATH입니다. 프로그램은 FFmpeg를 몰래 다운로드하지 않습니다.
+
+Session JSON은 사용자가 고른 위치에 atomic 저장되고 이전 정상본은 사용자 AppData recovery에 최대 5개 보관됩니다. 비정상 종료 후에는 검증된 복구본만 안내합니다. 캐시 정리는 프로그램 소유 AppData cache만 삭제하며 Music, Take, Reference, Session, Final은 삭제하지 않습니다.
+
+## 선택 기능과 제한
+
+OpenCLIP, Beat This, Functional Structure, OpenTimelineIO는 선택 기능입니다. 자세한 제한은 [Known Limitations](docs/KNOWN_LIMITATIONS.md), 변경 내용은 [Changelog](CHANGELOG.md)를 참고하세요.

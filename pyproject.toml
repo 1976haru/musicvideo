@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mv-director-studio"
-version = "0.4.0"
+version = "1.0.0"
 description = "Worldbuilding-first AI music video pre-production and prompt orchestration."
 requires-python = ">=3.11"
 dependencies = [
@@ -44,11 +44,13 @@ editor = [
 ]
 dev = [
   "pytest>=8",
-  "ruff>=0.6"
+  "ruff>=0.6",
+  "pyinstaller>=6.10,<7"
 ]
 
 [project.scripts]
 mvstudio = "mvstudio.cli:app"
+mvstudio-gui = "mvstudio.app_main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

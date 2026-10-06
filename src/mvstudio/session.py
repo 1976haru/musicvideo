@@ -30,6 +30,7 @@ from .semantic_qc import SemanticQCReport
 from .director_intelligence import DirectorIntelligenceResult
 from .music_intelligence import EnhancedMusicStructure
 from .editor import EditTimeline, RenderRecord, RenderSettings
+from .release_runtime import backup_session, configure_logging
 
 
 @dataclass
@@ -238,6 +239,7 @@ class LyricsWorldSession:
         payload = json.dumps(self.to_dict(path.parent), ensure_ascii=False, indent=2).encode("utf-8")
         temp_path: Path | None = None
         try:
+            backup_session(path)
             with tempfile.NamedTemporaryFile(
                 mode="wb", prefix=f".{path.name}.", suffix=".tmp", dir=path.parent, delete=False
             ) as temp_file:
@@ -246,6 +248,9 @@ class LyricsWorldSession:
                 temp_file.flush()
                 os.fsync(temp_file.fileno())
             os.replace(temp_path, path)
+        except Exception:
+            configure_logging().exception("session save failed: %s", path)
+            raise
         finally:
             if temp_path is not None and temp_path.exists():
                 temp_path.unlink()
