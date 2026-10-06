@@ -114,7 +114,7 @@ class LyricsWorldSession:
             data["path"] = portable_path(resolved, target_dir)
             references.append(data)
         return {
-            "schema_version": "0.4",
+            "schema_version": "0.5",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],

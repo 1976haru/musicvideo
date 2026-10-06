@@ -8,7 +8,12 @@ from PySide6.QtWidgets import (
 )
 
 from .models import CameraSpec, ShotSpec, StoryBeat
-from .story_engine import beat_traceability_warnings, draft_shot, draft_story_beats, shot_warnings, timeline_warnings
+from .story_engine import (
+    beat_traceability_warnings, cinematic_warnings, draft_shot, draft_story_beats,
+    duplicate_id_warnings, literalization_warnings, motif_progression_warnings,
+    next_beat_id, next_shot_id, reference_is_eligible, shot_timeline_warnings,
+    shot_warnings, timeline_warnings,
+)
 
 
 def _text(value: str = "", height: int = 68) -> QTextEdit:
@@ -176,6 +181,8 @@ class StoryRoomPage(QWidget):
         self.beat_list.blockSignals(False)
         self._load_selected(self.beat_list.currentRow())
         warnings = timeline_warnings(session.story_beats, session.audio_map.duration_sec if session.audio_map else session.duration_sec)
+        warnings.extend(duplicate_id_warnings(session.story_beats, session.shots))
+        warnings.extend(motif_progression_warnings(session.story_beats))
         messages = [warning.message for warning in warnings]
         selected = self._selected_beat()
         if selected:
@@ -200,13 +207,12 @@ class StoryRoomPage(QWidget):
         return next((beat for beat in self.session_getter().story_beats if beat.beat_id == beat_id), None)
 
     def _load_selected(self, row: int):
-        beats = self.session_getter().story_beats
-        active = 0 <= row < len(beats)
+        beat = self._selected_beat()
+        active = beat is not None
         for widget in (self.start, self.end, self.question, self.change, self.visual, self.motif, self.phase, self.lyric_ids, self.cue_ids, self.lyric_intent, self.emotion, self.world_refs, self.reference_ids, self.notes, self.save_button, self.delete_button):
             widget.setEnabled(active)
         if not active:
             return
-        beat = beats[row]
         self.start.setValue(beat.start_sec)
         self.end.setValue(beat.end_sec)
         self.question.setText(beat.dramatic_question)
@@ -244,11 +250,12 @@ class StoryRoomPage(QWidget):
     def _add_beat(self):
         beats = self.session_getter().story_beats
         end = self.session_getter().audio_map.duration_sec if self.session_getter().audio_map else self.session_getter().duration_sec or 10
-        beat_id = f"B{len(beats) + 1:03d}"
+        beat_id = next_beat_id({beat.beat_id for beat in beats})
         beat = StoryBeat(beat_id=beat_id, start_sec=0, end_sec=max(0.1, end), dramatic_question="이 구간의 질문은 무엇인가?", change="", visual_event="")
         beats.append(beat)
         self.refresh()
-        self.beat_list.setCurrentRow(len(beats) - 1)
+        target_row = next(i for i in range(self.beat_list.count()) if self.beat_list.item(i).data(Qt.UserRole) == beat_id)
+        self.beat_list.setCurrentRow(target_row)
         self.on_change()
 
     def _save_selected(self):
@@ -333,6 +340,7 @@ class ShotBoardPage(QWidget):
         for value in ("locked", "subtle", "medium", "strong"):
             self.movement_strength.addItem(value, value)
         self.lighting, self.emotion, self.motif = _text(), _text(), _line()
+        self.world_refs = _text()
         self.continuity_in, self.continuity_out = _text(), _text()
         self.generation_mode = QComboBox()
         for value in ("t2v", "i2v", "first_last", "extend", "v2v"):
@@ -347,6 +355,7 @@ class ShotBoardPage(QWidget):
             ("Framing", self.framing), ("Lens", self.lens), ("Angle", self.angle), ("Camera movement", self.movement),
             ("Movement strength", self.movement_strength), ("Lighting", self.lighting), ("감정 목적", self.emotion),
             ("Motif", self.motif), ("Continuity in", self.continuity_in), ("Continuity out", self.continuity_out),
+            ("World rule refs", self.world_refs),
             ("Reference ID 선택", self.references), ("Generation mode", self.generation_mode), ("금지 요소", self.negative),
         ]:
             form.addRow(label, widget)
@@ -412,14 +421,18 @@ class ShotBoardPage(QWidget):
             return
         session = self.session_getter()
         beat = self._active_beat()
-        row = self.shot_list.currentRow()
+        current = self.shot_list.currentItem()
+        previous_id = current.data(Qt.UserRole) if current else None
         self.shot_list.blockSignals(True)
         self.shot_list.clear()
         shots = [shot for shot in session.shots if beat and shot.beat_id == beat.beat_id]
         for shot in sorted(shots, key=lambda item: (item.start_sec, item.shot_id)):
             self.shot_list.addItem(f"{shot.start_sec:6.2f}–{shot.end_sec:6.2f}s  {shot.shot_id}\n{shot.narrative_function}")
+        for index, shot in enumerate(sorted(shots, key=lambda item: (item.start_sec, item.shot_id))):
+            self.shot_list.item(index).setData(Qt.UserRole, shot.shot_id)
         if shots:
-            self.shot_list.setCurrentRow(min(max(row, 0), len(shots) - 1))
+            restored = next((i for i in range(self.shot_list.count()) if self.shot_list.item(i).data(Qt.UserRole) == previous_id), 0)
+            self.shot_list.setCurrentRow(restored)
         self.shot_list.blockSignals(False)
         self._refresh_reference_choices()
         self._load_selected(self.shot_list.currentRow())
@@ -435,21 +448,28 @@ class ShotBoardPage(QWidget):
             scope_text = f"{asset.applies_to.value}" + (f":{asset.scope_id}" if asset.scope_id else "")
             item = QListWidgetItem(f"{asset.reference_id} · {asset.role.value} · {scope_text}")
             item.setData(Qt.UserRole, asset.reference_id)
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+            shot = self._selected_shot()
+            eligible = shot is None or reference_is_eligible(asset, shot)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            if eligible:
+                item.setFlags(item.flags() | Qt.ItemIsEnabled)
+            else:
+                item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
+                item.setText(item.text() + " · INELIGIBLE")
             item.setCheckState(Qt.Checked if asset.reference_id in selected else Qt.Unchecked)
             self.references.addItem(item)
         self.references.blockSignals(False)
 
     def _selected_shot(self):
         beat = self._active_beat()
-        shots = sorted((shot for shot in self.session_getter().shots if beat and shot.beat_id == beat.beat_id), key=lambda item: (item.start_sec, item.shot_id))
-        row = self.shot_list.currentRow()
-        return shots[row] if 0 <= row < len(shots) else None
+        item = self.shot_list.currentItem()
+        shot_id = item.data(Qt.UserRole) if item else None
+        return next((shot for shot in self.session_getter().shots if beat and shot.beat_id == beat.beat_id and shot.shot_id == shot_id), None)
 
     def _load_selected(self, row: int):
         shot = self._selected_shot()
         active = shot is not None
-        for widget in (self.start, self.end, self.narrative, self.line_ids, self.cue_ids, self.intent, self.strategy, self.subject, self.action, self.environment, self.composition, self.framing, self.lens, self.angle, self.movement, self.movement_strength, self.lighting, self.emotion, self.motif, self.continuity_in, self.continuity_out, self.references, self.generation_mode, self.negative, self.save_button, self.delete_button, self.split_button, self.duplicate_button):
+        for widget in (self.start, self.end, self.narrative, self.line_ids, self.cue_ids, self.intent, self.strategy, self.subject, self.action, self.environment, self.composition, self.framing, self.lens, self.angle, self.movement, self.movement_strength, self.lighting, self.emotion, self.motif, self.continuity_in, self.continuity_out, self.world_refs, self.references, self.generation_mode, self.negative, self.save_button, self.delete_button, self.split_button, self.duplicate_button):
             widget.setEnabled(active)
         self.add_button.setEnabled(self._active_beat() is not None)
         if not active:
@@ -476,17 +496,29 @@ class ShotBoardPage(QWidget):
         self.motif.setText(shot.motif or "")
         self.continuity_in.setPlainText("\n".join(shot.continuity_in))
         self.continuity_out.setPlainText("\n".join(shot.continuity_out))
+        self.world_refs.setPlainText("\n".join(shot.world_rule_refs))
         self.generation_mode.setCurrentIndex(max(0, self.generation_mode.findData(shot.generation_mode)))
         self.negative.setPlainText("\n".join(shot.negative_constraints))
         self._refresh_reference_choices(shot.reference_ids)
         bible = self.session_getter().world_bible
         session = self.session_getter()
+        known_rules = set()
+        if bible:
+            for field in ("reality_rules", "weather_rules", "lighting_rules", "camera_rules"):
+                known_rules.update(f"{field}:{idx}" for idx, _ in enumerate(getattr(bible, field)))
         warnings = shot_warnings(
             shot, session.story_beats, session.shots, bible.forbidden_elements if bible else [],
             lyric_line_ids={line.line_id for line in session.lines},
             music_cue_ids={cue.cue_id for cue in session.mv_timeline},
             reference_ids={asset.reference_id for asset in session.references},
+            world_rule_refs=known_rules,
+            references=session.references,
         )
+        warnings.extend(item.message for item in shot_timeline_warnings(session.story_beats, session.shots) if shot.shot_id in item.item_ids)
+        warnings.extend(item.message for item in duplicate_id_warnings(session.story_beats, session.shots))
+        beat_shots = [item for item in session.shots if item.beat_id == shot.beat_id]
+        warnings.extend(item.message for item in cinematic_warnings(beat_shots))
+        warnings.extend(item.message for item in literalization_warnings(beat_shots, {line.line_id: line.text for line in session.lines}))
         self.warning_label.setText("\n".join(warnings) if warnings else "World Bible / continuity 경고 없음")
 
     def _add_shot(self):
@@ -494,11 +526,13 @@ class ShotBoardPage(QWidget):
         beat = self._active_beat()
         if not beat:
             return
-        count = sum(shot.beat_id == beat.beat_id for shot in session.shots) + 1
-        shot = draft_shot(beat, count)
+        shot_id = next_shot_id(beat.beat_id, {item.shot_id for item in session.shots})
+        ordinal = int(shot_id.rsplit("S", 1)[1])
+        shot = draft_shot(beat, ordinal)
         session.shots.append(shot)
         self.refresh_shots()
-        self.shot_list.setCurrentRow(count - 1)
+        target = next(i for i in range(self.shot_list.count()) if self.shot_list.item(i).data(Qt.UserRole) == shot_id)
+        self.shot_list.setCurrentRow(target)
         self.on_change()
 
     def _duplicate_shot(self):
@@ -506,13 +540,8 @@ class ShotBoardPage(QWidget):
         if not shot:
             return
         session = self.session_getter()
-        base = f"{shot.shot_id}-COPY"
         used = {item.shot_id for item in session.shots}
-        shot_id = base
-        n = 2
-        while shot_id in used:
-            shot_id = f"{base}{n}"
-            n += 1
+        shot_id = next_shot_id(shot.beat_id or "B000", used)
         session.shots.append(shot.model_copy(update={"shot_id": shot_id}))
         self.refresh_shots()
         self.on_change()
@@ -569,6 +598,7 @@ class ShotBoardPage(QWidget):
             "motif": self.motif.text().strip() or None,
             "continuity_in": StoryRoomPage._tokens(self.continuity_in.toPlainText()),
             "continuity_out": StoryRoomPage._tokens(self.continuity_out.toPlainText()),
+            "world_rule_refs": StoryRoomPage._tokens(self.world_refs.toPlainText()),
             "reference_ids": references, "generation_mode": self.generation_mode.currentData(),
             "negative_constraints": StoryRoomPage._tokens(self.negative.toPlainText()),
         }

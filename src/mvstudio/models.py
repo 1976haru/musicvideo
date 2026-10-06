@@ -254,6 +254,7 @@ class ShotSpec(BaseModel):
     continuity_in: list[str] = Field(default_factory=list)
     continuity_out: list[str] = Field(default_factory=list)
     reference_ids: list[str] = Field(default_factory=list)
+    world_rule_refs: list[str] = Field(default_factory=list)
     generation_mode: Literal["t2v", "i2v", "first_last", "extend", "v2v"] = "i2v"
     first_frame_ref: str | None = None
     last_frame_ref: str | None = None
@@ -271,7 +272,7 @@ class ShotSpec(BaseModel):
 
 
 class MusicVideoProject(BaseModel):
-    schema_version: str = "0.4"
+    schema_version: str = "0.5"
     title: str
     song_path: str | None = None
     lyrics_path: str | None = None

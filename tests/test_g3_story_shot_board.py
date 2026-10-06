@@ -22,9 +22,9 @@ def test_auto_story_draft_groups_lines_and_preserves_evidence():
     assert {line_id for beat in beats for line_id in beat.lyric_line_ids} == {line.line_id for line in _lines()}
     assert all(beat.end_sec > beat.start_sec for beat in beats)
     assert all(set(beat.music_cue_ids) <= {"MV01", "MV02"} for beat in beats)
-    assert beats[0].setup_or_payoff == "setup"
-    if len(beats) > 1:
-        assert beats[1].setup_or_payoff == "development"
+    # A motif pool is not evidence by itself; only a group containing the motif may use it.
+    assert all(beat.motif is None and beat.setup_or_payoff == "none" for beat in beats[:-1])
+    assert beats[-1].setup_or_payoff == "setup"
     assert beats[0].world_rule_refs == ["reality_rules:0"]
 
 

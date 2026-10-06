@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 약 65% (G3 1차 구현 중)
+## 전체 진행률: 72% (G3 FINAL PASS)
 
 ### 완료
 
@@ -31,7 +31,7 @@
   - 사용자가 정한 세션 파일 대상 debounced atomic autosave
   - Project scope는 UI 사용 가능, Scene/Shot scope는 데이터 모델만 준비되어 G3 UI에서 연결 예정
   - 세션 열기 및 자동 저장
-- **G3 Story Room + Shot Board (1차 구현 중)**
+- **G3 Story Room + Shot Board (FINAL PASS)**
   - 음악 cue / 가사 Line ID 기반 Story Beat 자동 초안과 편집 UI
   - Beat 시간 구간 gap / overlap 경고
   - Story Beat에서 Shot 생성·시간 분할·복제·삭제
@@ -40,7 +40,7 @@
 
 ### 남은 단계
 
-- G3 Story Room + Shot Board: **약 65% / 1차 구현 중 (목표 72%)**
+- G3 Story Room + Shot Board: **72% / FINAL PASS**
 - G4 Provider adapters: **72→83%**
 - G5 Automated QC: **83→91%**
 - G6 Editor/Render: **91→97%**
