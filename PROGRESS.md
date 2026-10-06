@@ -1,8 +1,15 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 78% (G4A FINAL PASS · G4B 준비)
+## 전체 진행률: 약 81% (G4B Result / Take Manager 1차 구현)
 
 ### 완료
+
+- **G4B Result / Take Manager (1차 구현)**
+  - metadata-only result registration and portable paths
+  - Shot → Pack → Take lineage
+  - candidate / accepted / rejected state transitions
+  - Take A/B/C compare list and one FINAL TAKE per Shot
+  - schema 0.7 session roundtrip / autosave
 
 - **G4A Manual Generation Studio (FINAL PASS)**
   - GENERIC_MANUAL / HIGGSFIELD data-driven profiles
@@ -48,7 +55,7 @@
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
-- G4B Result / Take Manager: **78→83% / 다음 단계**
+- G4B Result / Take Manager: **약 81% / 1차 구현 (목표 83%)**
 - G5 Automated QC: **83→91%**
 - G6 Editor/Render: **91→97%**
 - G7 Packaging/Recovery/Release: **97→100%**

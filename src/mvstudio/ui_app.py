@@ -10,7 +10,7 @@ try:
     from PySide6.QtWidgets import (
         QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout,
         QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
-        QPushButton, QScrollArea, QSpinBox, QStackedWidget, QStatusBar,
+        QPushButton, QScrollArea, QSpinBox, QStackedWidget, QStatusBar, QTabWidget,
         QTextEdit, QVBoxLayout, QWidget,
     )
 except ImportError as exc:
@@ -22,6 +22,7 @@ from .music_engine import format_timeline_text
 from .models import ReferenceRole
 from .g3_ui import ShotBoardPage, StoryRoomPage
 from .g4_ui import ManualGenerationStudioPage
+from .g4b_ui import ResultTakesPage
 from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
 from .thumbnail_cache import ThumbnailCache
@@ -149,7 +150,7 @@ class MainWindow(QMainWindow):
         self.autosave_timer.setInterval(1000)
         self.autosave_timer.timeout.connect(self._autosave)
         self.concept_cards = {}
-        self.setWindowTitle("MV Director Studio — G4A Manual Generation Studio")
+        self.setWindowTitle("MV Director Studio — G4B Result / Take Manager")
         self.resize(1420, 900)
         self.setMinimumSize(1100, 720)
         self.setStyleSheet(APP_STYLE)
@@ -206,7 +207,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 78% · G4A FINAL\nManual Generation Studio", "muted"))
+        side.addWidget(_label("전체 약 81% · G4B 1차\nResult / Take Manager", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -219,7 +220,11 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.story_room_page)
         self.pages.addWidget(self.shot_board_page)
         self.manual_generation_page = ManualGenerationStudioPage(lambda: self.session, self._schedule_autosave)
-        self.pages.addWidget(self.manual_generation_page)
+        self.result_takes_page = ResultTakesPage(lambda: self.session, self._schedule_autosave)
+        self.generation_tabs = QTabWidget()
+        self.generation_tabs.addTab(self.manual_generation_page, "PROMPT PACK")
+        self.generation_tabs.addTab(self.result_takes_page, "RESULT / TAKES")
+        self.pages.addWidget(self.generation_tabs)
         self.nav_buttons[5].clicked.connect(lambda: self._switch(5))
         self.nav_buttons[6].clicked.connect(lambda: self._switch(6))
         self.nav_buttons[7].clicked.connect(lambda: self._switch(7))
@@ -648,6 +653,7 @@ class MainWindow(QMainWindow):
         self.story_room_page.refresh()
         self.shot_board_page.refresh()
         self.manual_generation_page.refresh()
+        self.result_takes_page.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
