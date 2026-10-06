@@ -18,6 +18,7 @@ from .models import (
     AudioMap, LyricInterpretation, LyricLine, LyricVisualBridge, MVTimelineCue,
     ReferenceAsset, ReferenceRole, ShotSpec, StoryBeat, WorldBible, WorldConcept,
 )
+from .manual_generation import ManualGenerationPack
 from .reference_vault import ReferenceVault, portable_path, resolve_reference_path
 from .world_bible import promote_world_concept
 
@@ -39,6 +40,7 @@ class LyricsWorldSession:
     references: list[ReferenceAsset] = field(default_factory=list)
     story_beats: list[StoryBeat] = field(default_factory=list)
     shots: list[ShotSpec] = field(default_factory=list)
+    generation_packs: list[ManualGenerationPack] = field(default_factory=list)
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -114,7 +116,7 @@ class LyricsWorldSession:
             data["path"] = portable_path(resolved, target_dir)
             references.append(data)
         return {
-            "schema_version": "0.5",
+            "schema_version": "0.6",
             "music_path": self.music_path,
             "audio_map": self.audio_map.model_dump() if self.audio_map else None,
             "mv_timeline": [x.model_dump() for x in self.mv_timeline],
@@ -130,6 +132,7 @@ class LyricsWorldSession:
             "references": references,
             "story_beats": [beat.model_dump(mode="json") for beat in self.story_beats],
             "shots": [shot.model_dump(mode="json") for shot in self.shots],
+            "generation_packs": [pack.model_dump(mode="json") for pack in self.generation_packs],
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -151,6 +154,7 @@ class LyricsWorldSession:
             references=[ReferenceAsset.model_validate(x) for x in data.get("references", [])],
             story_beats=[StoryBeat.model_validate(x) for x in data.get("story_beats", [])],
             shots=[ShotSpec.model_validate(x) for x in data.get("shots", [])],
+            generation_packs=[ManualGenerationPack.model_validate(x) for x in data.get("generation_packs", [])],
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         ReferenceVault(session.references, session.project_dir)

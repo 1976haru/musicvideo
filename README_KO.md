@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 72% (G3 FINAL PASS)
+## 현재 전체 진행률: 78% (G4A FINAL PASS)
 
 ```text
 MUSIC FILE
@@ -81,7 +81,18 @@ mvstudio lyrics-pack lyrics.txt --duration 180
 - G2 project scope는 UI에서 사용할 수 있습니다. Scene/Shot scope는 모델 준비가 완료됐으며 G3 UI에서 실제 ID에 연결됩니다.
 - 세션 열기와 기존 파일 대상 autosave
 
-G3 Story Room + Shot Board FINAL hardening을 완료했습니다. G4/provider/API 작업은 시작하지 않았습니다.
+G3 Story Room + Shot Board FINAL hardening을 완료했습니다. Provider API 작업은 시작하지 않았습니다.
+
+## G4A 완료
+
+- Manual Generation Studio
+- Generic / Higgsfield manual site profile
+- Shot 기반 Main / Motion / Camera / Negative prompt pack
+- Reference / First-Last Frame / Duration / Aspect / Resolution 지침
+- Readiness 검사, 복사, TXT/JSON export
+- Pack snapshot 세션 저장·복원·autosave
+
+G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP generation, 브라우저 자동화를 포함하지 않습니다.
 
 ## Codex / Claude 전환
 
