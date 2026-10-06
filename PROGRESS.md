@@ -36,12 +36,12 @@
   - Beat 시간 구간 gap / overlap 경고
   - Story Beat에서 Shot 생성·시간 분할·복제·삭제
   - Reference ID 연결, World Bible 금지 요소 및 continuity 경고
-  - G3 전체 PASS는 아직 선언하지 않음
+  - G3 FINAL PASS 확정
 
 ### 남은 단계
 
-- G3 Story Room + Shot Board: **72% / FINAL PASS**
-- G4 Provider adapters: **72→83%**
+- G4A Manual Generation Studio: **72→78%**
+- G4B Result / Take Manager: **78→83%**
 - G5 Automated QC: **83→91%**
 - G6 Editor/Render: **91→97%**
 - G7 Packaging/Recovery/Release: **97→100%**
@@ -61,4 +61,4 @@ GitHub + Codex를 시작하기 좋은 첫 시점이다.
 Reference Vault가 안정화되면 Claude Code 적극 병행.
 
 ### 72%
-Provider API 연동부터 로컬 + GitHub를 주 개발환경으로 전환.
+로컬 + GitHub를 주 개발환경으로 전환. 초기 G4는 API가 아니라 Higgsfield 같은 웹사이트에 수동 입력하는 Generation Pack 방식으로 진행.
