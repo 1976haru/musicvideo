@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
@@ -16,13 +17,36 @@ class ReferenceRole(str, Enum):
     TEXTURE_MATERIAL = "texture_material"
 
 
+class ReferenceScope(str, Enum):
+    PROJECT = "project"
+    SCENE = "scene"
+    SHOT = "shot"
+
+
 class ReferenceAsset(BaseModel):
     reference_id: str
     role: ReferenceRole
     path: str
     lock_strength: float = Field(default=0.8, ge=0, le=1)
+    applies_to: ReferenceScope = ReferenceScope.PROJECT
+    scope_id: str | None = None
     notes: str = ""
+    is_master: bool = False
     provider_asset_ids: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_scope(self):
+        if self.applies_to == ReferenceScope.PROJECT and self.scope_id:
+            raise ValueError("project-scoped reference must not have scope_id")
+        if self.applies_to != ReferenceScope.PROJECT and not self.scope_id:
+            raise ValueError("scene/shot-scoped reference requires scope_id")
+        return self
+
+    def file_exists(self, project_dir: str | Path | None = None) -> bool:
+        candidate = Path(self.path)
+        if not candidate.is_absolute() and project_dir is not None:
+            candidate = Path(project_dir) / candidate
+        return candidate.is_file()
 
 
 class LyricLine(BaseModel):
@@ -148,6 +172,7 @@ class WorldBible(BaseModel):
     recurring_motifs: list[str] = Field(default_factory=list)
     forbidden_elements: list[str] = Field(default_factory=list)
     lyric_foundation: list[str] = Field(default_factory=list)
+    source_concept_id: str | None = None
 
 
 class CharacterBible(BaseModel):
@@ -263,3 +288,10 @@ class MusicVideoProject(BaseModel):
 
     def lyric_map(self) -> dict[str, LyricLine]:
         return {x.line_id: x for x in self.lyric_lines}
+
+    @model_validator(mode="after")
+    def validate_reference_ids(self):
+        ids = [item.reference_id for item in self.references]
+        if len(ids) != len(set(ids)):
+            raise ValueError("reference_id values must be unique")
+        return self

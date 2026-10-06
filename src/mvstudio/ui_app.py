@@ -4,11 +4,13 @@ import sys
 from pathlib import Path
 
 try:
-    from PySide6.QtGui import QFont
+    from PySide6.QtCore import QStandardPaths, Qt
+    from PySide6.QtGui import QFont, QPixmap
     from PySide6.QtWidgets import (
-        QApplication, QFileDialog, QFrame, QHBoxLayout, QLabel, QMainWindow,
-        QMessageBox, QPushButton, QScrollArea, QSpinBox, QStackedWidget,
-        QStatusBar, QTextEdit, QVBoxLayout, QWidget,
+        QApplication, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout,
+        QFrame, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMessageBox,
+        QPushButton, QScrollArea, QSpinBox, QStackedWidget, QStatusBar,
+        QTextEdit, QVBoxLayout, QWidget,
     )
 except ImportError as exc:
     raise RuntimeError(
@@ -16,7 +18,10 @@ except ImportError as exc:
     ) from exc
 
 from .music_engine import format_timeline_text
+from .models import ReferenceRole
+from .reference_vault import resolve_reference_path
 from .session import LyricsWorldSession
+from .thumbnail_cache import ThumbnailCache
 
 APP_STYLE = r"""
 QMainWindow { background: #12151a; color: #eef2f7; }
@@ -33,6 +38,7 @@ QPushButton#nav { text-align: left; padding-left: 14px; background: transparent;
 QPushButton#nav[active="true"] { background: #242c38; border: 1px solid #364154; }
 QTextEdit { background: #101319; border: 1px solid #313946; border-radius: 10px; padding: 10px; selection-background-color: #3764c7; }
 QSpinBox { min-height: 40px; background: #101319; border: 1px solid #313946; border-radius: 8px; padding: 0 8px; }
+QLineEdit, QComboBox, QDoubleSpinBox { min-height: 42px; background: #101319; border: 1px solid #313946; border-radius: 8px; padding: 0 10px; }
 QLabel#muted { color: #9aa6b5; }
 QLabel#score { font-size: 24px; font-weight: 800; color: #a9c2ff; }
 QLabel#metric { font-size: 21px; font-weight: 800; color: #dce7ff; }
@@ -83,17 +89,65 @@ class ConceptCard(QFrame):
         self.update()
 
 
+class ReferenceDropArea(QFrame):
+    def __init__(self, on_files):
+        super().__init__()
+        self.on_files = on_files
+        self.setAcceptDrops(True)
+        self.setObjectName("panel")
+        box = QVBoxLayout(self)
+        box.setContentsMargins(22, 22, 22, 22)
+        box.addWidget(_label("이미지/영상 파일을 여기에 놓으세요", "smallTitle"), alignment=Qt.AlignCenter)
+        box.addWidget(_label("원본은 이동·변경·삭제하지 않고 메타데이터만 등록합니다.", "muted"), alignment=Qt.AlignCenter)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls() and any(url.isLocalFile() for url in event.mimeData().urls()):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()]
+        if paths:
+            self.on_files(paths)
+            event.acceptProposedAction()
+
+
+class ReferenceCard(QFrame):
+    def __init__(self, asset, source_path: Path, status: str, on_remove):
+        super().__init__()
+        self.setObjectName("panel")
+        row = QHBoxLayout(self)
+        row.setContentsMargins(16, 16, 16, 16)
+        thumb = QLabel("미리보기 없음")
+        thumb.setAlignment(Qt.AlignCenter)
+        thumb.setFixedSize(150, 100)
+        pixmap = QPixmap(str(source_path)) if status == "available" else QPixmap()
+        if not pixmap.isNull():
+            thumb.setPixmap(pixmap.scaled(150, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        row.addWidget(thumb)
+        details = QVBoxLayout()
+        master = "MASTER" if asset.is_master else "SECONDARY"
+        details.addWidget(_label(f"{asset.reference_id} · {master}", "smallTitle"))
+        details.addWidget(_label(f"역할: {asset.role.value} · 잠금 {asset.lock_strength:.2f}"))
+        details.addWidget(_label(f"범위: {asset.applies_to.value} · 상태: {status}", "muted"))
+        details.addWidget(_label(f"파일: {source_path}", "muted"))
+        details.addWidget(_label(f"메모: {asset.notes or '-'}", "muted"))
+        row.addLayout(details, 1)
+        remove = QPushButton("등록 해제")
+        remove.clicked.connect(lambda: on_remove(asset.reference_id))
+        row.addWidget(remove)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.session = LyricsWorldSession()
         self.concept_cards = {}
-        self.setWindowTitle("MV Director Studio v0.4 — Music + Lyrics Timeline")
+        self.setWindowTitle("MV Director Studio — G2 World Bible + Reference Vault")
         self.resize(1420, 900)
         self.setMinimumSize(1100, 720)
         self.setStyleSheet(APP_STYLE)
         self.setStatusBar(QStatusBar())
-        self.statusBar().showMessage("전체 개발 진행률 45% · G1 Music Ingest 완료 · Codex 병행 준비")
+        self.statusBar().showMessage("G2 작업 중 · World Bible + Reference Vault")
         self._build_ui()
 
     def _build_ui(self):
@@ -117,8 +171,8 @@ class MainWindow(QMainWindow):
             ("01  MUSIC", True),
             ("02  LYRICS & MEANING", True),
             ("03  WORLD LAB", True),
-            ("04  WORLD BIBLE", False),
-            ("05  REFERENCE VAULT", False),
+            ("04  WORLD BIBLE", True),
+            ("05  REFERENCE VAULT", True),
             ("06  STORY ROOM", False),
             ("07  SHOT BOARD", False),
             ("08  GENERATE", False),
@@ -134,13 +188,17 @@ class MainWindow(QMainWindow):
         self.nav_buttons[0].clicked.connect(lambda: self._switch(0))
         self.nav_buttons[1].clicked.connect(lambda: self._switch(1))
         self.nav_buttons[2].clicked.connect(lambda: self._switch(2))
+        self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
+        self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 45% · G1 완료\n이 버전부터 GitHub + Codex 병행 권장", "muted"))
+        side.addWidget(_label("전체 58% · G2\nStory Room은 다음 Gate입니다.", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
         self.pages.addWidget(self._lyrics_page())
         self.pages.addWidget(self._world_page())
+        self.pages.addWidget(self._world_bible_page())
+        self.pages.addWidget(self._reference_page())
         outer.addWidget(sidebar)
         outer.addWidget(self.pages, 1)
         self.setCentralWidget(root)
@@ -307,6 +365,165 @@ class MainWindow(QMainWindow):
         lay.addLayout(actions)
         return page
 
+    def _world_bible_page(self):
+        page = QWidget()
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(28, 24, 28, 24)
+        outer.setSpacing(14)
+        outer.addWidget(_label("WORLD BIBLE", "sectionTitle"))
+        outer.addWidget(_label("선택한 세계관을 변하면 안 되는 제작 규칙으로 정리합니다. 가사 근거 Line ID는 계속 보존됩니다.", "muted"))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        host = QWidget()
+        form = QFormLayout(host)
+        form.setContentsMargins(8, 8, 8, 8)
+        form.setSpacing(13)
+        self.bible_fields = {}
+        labels = [
+            ("premise", "Premise"), ("emotional_thesis", "Emotional thesis"),
+            ("reality_rules", "Reality rules"), ("time_period", "Time period"),
+            ("visual_language", "Visual language"), ("palette", "Palette"),
+            ("material_language", "Materials"), ("weather_rules", "Weather rules"),
+            ("lighting_rules", "Lighting rules"), ("camera_rules", "Camera rules"),
+            ("recurring_motifs", "Recurring motifs"), ("forbidden_elements", "Forbidden elements"),
+            ("lyric_foundation", "Lyric foundation (읽기 전용)"),
+        ]
+        for key, title in labels:
+            editor = QTextEdit()
+            editor.setMinimumHeight(76)
+            if key == "lyric_foundation":
+                editor.setReadOnly(True)
+            self.bible_fields[key] = editor
+            form.addRow(title, editor)
+        scroll.setWidget(host)
+        outer.addWidget(scroll, 1)
+        actions = QHBoxLayout()
+        promote = QPushButton("선택 세계관에서 초안 만들기")
+        promote.clicked.connect(self._promote_world_bible)
+        save = QPushButton("World Bible 변경 저장")
+        save.setObjectName("primary")
+        save.clicked.connect(self._save_world_bible)
+        actions.addStretch(1)
+        actions.addWidget(promote)
+        actions.addWidget(save)
+        outer.addLayout(actions)
+        return page
+
+    def _reference_page(self):
+        page = QWidget()
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(28, 24, 28, 24)
+        outer.setSpacing(14)
+        outer.addWidget(_label("REFERENCE VAULT", "sectionTitle"))
+        outer.addWidget(_label("Reference ID, 역할, 잠금 강도와 적용 범위를 관리합니다. 등록 해제는 원본 파일을 삭제하지 않습니다.", "muted"))
+        controls = QHBoxLayout()
+        self.reference_role = QComboBox()
+        for role in ReferenceRole:
+            self.reference_role.addItem(role.name, role)
+        self.reference_lock = QDoubleSpinBox()
+        self.reference_lock.setRange(0.0, 1.0)
+        self.reference_lock.setSingleStep(0.05)
+        self.reference_lock.setValue(0.8)
+        self.reference_master = QCheckBox("Master")
+        self.reference_master.setMinimumHeight(42)
+        self.reference_notes = QLineEdit()
+        self.reference_notes.setPlaceholderText("메모 (선택)")
+        choose = QPushButton("파일 선택")
+        choose.clicked.connect(self._choose_references)
+        controls.addWidget(_label("역할"))
+        controls.addWidget(self.reference_role)
+        controls.addWidget(_label("잠금"))
+        controls.addWidget(self.reference_lock)
+        controls.addWidget(self.reference_master)
+        controls.addWidget(self.reference_notes, 1)
+        controls.addWidget(choose)
+        outer.addLayout(controls)
+        outer.addWidget(ReferenceDropArea(self._add_reference_paths))
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        self.reference_host = QWidget()
+        self.reference_layout = QVBoxLayout(self.reference_host)
+        self.reference_layout.setContentsMargins(0, 4, 0, 4)
+        self.reference_layout.setSpacing(12)
+        self.reference_layout.addStretch(1)
+        scroll.setWidget(self.reference_host)
+        outer.addWidget(scroll, 1)
+        return page
+
+    def _promote_world_bible(self):
+        try:
+            bible = self.session.promote_selected_concept()
+        except ValueError as exc:
+            QMessageBox.information(self, "World Bible", str(exc))
+            return
+        for key, editor in self.bible_fields.items():
+            value = getattr(bible, key)
+            editor.setPlainText("\n".join(value) if isinstance(value, list) else value)
+        self.statusBar().showMessage(f"World Bible 초안 생성 · {bible.source_concept_id}")
+
+    def _save_world_bible(self):
+        if not self.session.world_bible:
+            QMessageBox.information(self, "World Bible", "먼저 선택 세계관에서 초안을 만드세요.")
+            return
+        list_fields = {
+            "reality_rules", "visual_language", "palette", "material_language", "weather_rules",
+            "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements", "lyric_foundation",
+        }
+        changes = {}
+        for key, editor in self.bible_fields.items():
+            text = editor.toPlainText().strip()
+            changes[key] = [line.strip() for line in text.splitlines() if line.strip()] if key in list_fields else text
+        self.session.world_bible = self.session.world_bible.model_copy(update=changes)
+        self.statusBar().showMessage("World Bible 변경 저장 완료")
+
+    def _choose_references(self):
+        paths, _ = QFileDialog.getOpenFileNames(self, "Reference 파일 선택", "", "Media (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.mp4 *.mov);;All Files (*)")
+        self._add_reference_paths(paths)
+
+    def _add_reference_paths(self, paths):
+        for path in paths:
+            try:
+                self.session.add_reference(
+                    path,
+                    self.reference_role.currentData(),
+                    lock_strength=self.reference_lock.value(),
+                    notes=self.reference_notes.text().strip(),
+                    is_master=self.reference_master.isChecked(),
+                )
+            except (ValueError, OSError) as exc:
+                QMessageBox.warning(self, "Reference 등록 실패", f"{path}\n\n{exc}")
+        self._render_references()
+
+    def _render_references(self):
+        while self.reference_layout.count() > 1:
+            item = self.reference_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        vault = self.session.reference_vault
+        cache_root = Path(QStandardPaths.writableLocation(QStandardPaths.CacheLocation)) / "reference_thumbnails"
+        cache = ThumbnailCache(cache_root)
+        for asset in self.session.references:
+            source = resolve_reference_path(asset, self.session.project_dir)
+            status = vault.status(asset)
+            preview = source
+            if status == "available":
+                pixmap = QPixmap(str(source))
+                if not pixmap.isNull():
+                    target = cache.target_for(source)
+                    if not target.exists():
+                        cache.prepare()
+                        pixmap.scaled(320, 240, Qt.KeepAspectRatio, Qt.SmoothTransformation).save(str(target), "PNG")
+                    preview = target
+            self.reference_layout.insertWidget(
+                self.reference_layout.count() - 1,
+                ReferenceCard(asset, preview, status, self._remove_reference),
+            )
+
+    def _remove_reference(self, reference_id):
+        self.session.remove_reference(reference_id)
+        self._render_references()
+        self.statusBar().showMessage(f"{reference_id} 메타데이터 등록 해제 · 원본 파일 유지")
+
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
             self,
@@ -439,15 +656,12 @@ class MainWindow(QMainWindow):
         if not c:
             QMessageBox.information(self, "세계관 선택", "먼저 세계관을 선택하세요.")
             return
-        QMessageBox.information(
-            self,
-            "세계관 잠금",
-            f"'{c.title}'을 현재 방향으로 잠갔습니다.\n\n다음 G2에서 WORLD BIBLE로 승격하고 Reference Vault와 연결합니다.",
-        )
-        self.statusBar().showMessage(f"WORLD LOCK · {c.title} · 다음 G2 Reference Vault")
+        self._promote_world_bible()
+        self._switch(3)
+        self.statusBar().showMessage(f"WORLD LOCK · {c.title} · World Bible 초안 생성")
 
     def _export(self):
-        if not self.session.analysis and not self.session.audio_map:
+        if not self.session.analysis and not self.session.audio_map and not self.session.world_bible and not self.session.references:
             QMessageBox.information(self, "저장할 내용 없음", "먼저 음악 또는 가사를 분석하세요.")
             return
         path, _ = QFileDialog.getSaveFileName(self, "Music/Lyrics/World 세션 저장", "mv_director_session.json", "JSON (*.json)")

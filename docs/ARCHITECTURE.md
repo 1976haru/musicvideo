@@ -203,6 +203,15 @@ REFERENCE VAULT
 - embedding(optional)
 - provider_asset_id(optional)
 
+### G2 파일 경로 및 원본 보존 정책
+
+- 세션 파일이 저장된 프로젝트 폴더 안의 reference는 POSIX 구분자를 사용한 상대경로로 저장한다.
+- 프로젝트 폴더 밖의 reference는 정규화한 절대경로로 저장한다.
+- 상대경로는 세션 JSON의 부모 폴더를 기준으로 복원한다.
+- 등록/등록 해제는 메타데이터만 변경하며 원본을 이동, 이름 변경, 수정, 삭제하지 않는다.
+- 존재하지 않는 파일도 metadata를 유지하고 `missing` 상태로 표시한다.
+- thumbnail은 원본과 별도의 사용자 cache에 파생 파일로 저장한다.
+
 ---
 
 ## 6. Prompt Compiler
