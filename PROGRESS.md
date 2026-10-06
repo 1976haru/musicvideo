@@ -1,8 +1,15 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 83% (G4B FINAL PASS · G5 준비)
+## 전체 진행률: 약 87% (G5A Technical / Temporal QC + Beginner UI)
 
 ### 완료
+
+- **G5A Technical / Temporal QC + Beginner UI**
+  - read-only 영상 읽기·duration·resolution·fps 검사
+  - near-black / freeze / flicker / coarse motion / instability heuristic
+  - deterministic PASS / REVIEW / REGENERATE / BLOCKED 추천
+  - source fingerprint 기반 QC cache와 schema 0.8 roundtrip
+  - 결론 → 쉬운 이유 → 추천 행동 → 접힌 전문가 정보 UI
 
 - **G4B Result / Take Manager (FINAL PASS)**
   - metadata-only result registration and portable paths
@@ -65,7 +72,7 @@
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
-- G5A Technical / Temporal QC + Beginner UI: **83→87%**
+- G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
 - G5B Visual / Semantic QC: **87→91%**
 - G6 Editor/Render: **91→97%**
 - G7 Packaging/Recovery/Release: **97→100%**

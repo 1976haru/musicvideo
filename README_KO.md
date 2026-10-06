@@ -2,7 +2,7 @@
 
 AI 영상 생성 사이트를 호출하기 전에 **음악과 가사를 실제로 읽고 감독용 타임라인을 만드는 단계**까지 구현한 버전입니다.
 
-## 현재 전체 진행률: 83% (G4B FINAL PASS)
+## 현재 전체 진행률: 약 87% (G5A Technical / Temporal QC)
 
 ```text
 MUSIC FILE
@@ -103,7 +103,19 @@ G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP genera
 - duplicate take_id / multiple accepted 비파괴 audit 및 안전한 mutation 차단
 - stale/missing counter reconciliation과 missing 결과 영상 metadata-only relink
 - 정렬·refresh 후 선택 안정성, 다중 drag & drop 부분 성공 처리
-- G5는 아직 시작하지 않음
+- G4B metadata-only 파일 안전성 정책을 G5A에서도 유지
+
+## G5A Technical / Temporal QC
+
+- 결과 영상 파일 읽기, 길이, 해상도, FPS 확인
+- 검은 화면, 화면 멈춤, 밝기 깜빡임, 움직임과 불안정 징후 검사
+- PASS / REVIEW / REGENERATE / BLOCKED 추천만 제공하며 자동 ACCEPT/REJECT 없음
+- 파일 경로·크기·수정 시각·분석기 버전·옵션 기반 cache 무효화
+- schema 0.8 QC report 저장·복원과 0.7 이하 하위호환
+- 초보자 화면은 “이 영상은 사용해도 될까요?”와 쉬운 이유·추천 행동을 먼저 표시
+- 기술 수치는 기본 화면에서 숨기고 “전문가 정보 보기”에 표시
+
+G5B Visual / Semantic QC와 G6 Editor / Render는 시작하지 않았습니다.
 
 ## Codex / Claude 전환
 
