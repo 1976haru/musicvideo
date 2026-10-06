@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 78% (G4A FINAL PASS)
+## 전체 진행률: 78% (G4A FINAL PASS · G4B 준비)
 
 ### 완료
 
@@ -48,7 +48,7 @@
 ### 남은 단계
 
 - G4A Manual Generation Studio: **78% / FINAL PASS**
-- G4B Result / Take Manager: **78→83%**
+- G4B Result / Take Manager: **78→83% / 다음 단계**
 - G5 Automated QC: **83→91%**
 - G6 Editor/Render: **91→97%**
 - G7 Packaging/Recovery/Release: **97→100%**
