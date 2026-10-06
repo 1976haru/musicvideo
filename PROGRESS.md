@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 약 87% (G5A Technical / Temporal QC + Beginner UI)
+## 전체 진행률: 약 87% (G5A PASS · G5B MEGAGATE 준비)
 
 ### 완료
 
@@ -73,9 +73,9 @@
 - G4A Manual Generation Studio: **78% / FINAL PASS**
 - G4B Result / Take Manager: **83% / FINAL PASS**
 - G5A Technical / Temporal QC + Beginner UI: **약 87% / 1차 구현 완료**
-- G5B Visual / Semantic QC: **87→91%**
-- G6 Editor/Render: **91→97%**
-- G7 Packaging/Recovery/Release: **97→100%**
+- G5B MEGAGATE · Visual/Semantic QC + Director Intelligence + Music Intelligence: **87→92%**
+- G6 Editor/Render: **92→98%**
+- G7 Packaging/Recovery/Release: **98→100%**
 
 ## 지금이 Codex 1차 병행 시점
 
