@@ -25,7 +25,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 
@@ -411,6 +411,52 @@ def smoke_test() -> tuple[bool, dict[str, Any]]:
         "doctor": [asdict(item) for item in checks], "required_failures": required_failures,
     }
     return not required_failures, payload
+
+
+
+def music_analysis_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Exercise the packaged librosa -> scipy analysis path with a real WAV.
+
+    This specifically guards against PyInstaller missing dynamically imported SciPy
+    Array API compatibility modules.
+    """
+    import math
+    import struct
+    import wave
+
+    paths = app_paths()
+    directory = paths.temp / f"music-smoke-{uuid.uuid4().hex}"
+    directory.mkdir()
+    try:
+        audio = directory / "synthetic-music.wav"
+        sample_rate = 22050
+        duration_sec = 2.0
+        frame_count = int(sample_rate * duration_sec)
+        with wave.open(str(audio), "wb") as stream:
+            stream.setnchannels(1)
+            stream.setsampwidth(2)
+            stream.setframerate(sample_rate)
+            frames = bytearray()
+            for index in range(frame_count):
+                value = int(12000 * math.sin(2 * math.pi * 440 * index / sample_rate))
+                frames.extend(struct.pack("<h", value))
+            stream.writeframes(bytes(frames))
+
+        from .music_engine import analyze_audio
+        audio_map = analyze_audio(audio)
+        ok = audio_map.duration_sec >= 1.9 and audio_map.sample_rate > 0
+        return ok, {
+            "music_analysis": "PASS" if ok else "FAIL",
+            "duration_sec": audio_map.duration_sec,
+            "sample_rate": audio_map.sample_rate,
+            "tempo_bpm": audio_map.tempo_bpm,
+            "transitions": len(audio_map.transitions),
+        }
+    except Exception as exc:
+        configure_logging(paths).exception("packaged music analysis smoke failed")
+        return False, {"music_analysis": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def render_smoke_test() -> tuple[bool, dict[str, Any]]:
