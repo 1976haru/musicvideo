@@ -220,3 +220,19 @@ def test_release_files_ci_manifest_and_no_obvious_secret():
     assert "PyInstaller" not in workflow or "package" in workflow
     tracked_text = "\n".join(Path(item).read_text(encoding="utf-8", errors="ignore") for item in required)
     assert "sk-" not in tracked_text and "BEGIN PRIVATE KEY" not in tracked_text
+
+
+def test_release_gate_scripts_are_consistent():
+    workflow = Path(".github/workflows/windows-release.yml").read_text(encoding="utf-8")
+    build = Path("build_windows.ps1").read_text(encoding="utf-8")
+    cli = Path("src/mvstudio/cli.py").read_text(encoding="utf-8")
+    progress = Path("PROGRESS.md").read_text(encoding="utf-8")
+    assert "-ArtifactOnly" in workflow
+    assert "-OutputRoot" not in workflow
+    assert "--music-analysis-smoke-test" in workflow
+    assert "--render-smoke-test" in workflow
+    assert "--release-stress-test" in workflow
+    assert "--release-stress-test" in build
+    assert "root GUI music action" in build
+    assert "MV Director Studio 1.0.0" not in cli
+    assert "1.0.1" in progress
