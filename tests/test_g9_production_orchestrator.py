@@ -325,7 +325,9 @@ def test_director_coverage_warns_without_auto_rewriting_creative_choices(tmp_pat
 
 
 def test_continuity_contract_hash_does_not_depend_on_project_root(tmp_path):
-    session = _base_session(tmp_path / "project_a")
+    project_a = tmp_path / "project_a"
+    project_a.mkdir(parents=True, exist_ok=True)
+    session = _base_session(project_a)
     shot = session.shots[0]
     first = compile_shot_continuity_contract(session, shot)
 
