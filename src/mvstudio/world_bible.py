@@ -61,13 +61,13 @@ def _time_profile(analysis: LyricInterpretation | None) -> tuple[str, list[str],
     ]
     for words, label, palette, lighting in profiles:
         if _contains(source, words):
-            detail = f"현대 · {label}"
+            detail = f"시대 미지정 · {label}"
             if time_phrases:
                 detail += f" · 가사 시간 앵커: {' / '.join(time_phrases)}"
             return detail, palette, lighting
     if time_phrases:
         return (
-            f"현대 · 가사 시간 앵커 {' / '.join(time_phrases)}를 기준으로 하나의 연속된 시간대 유지",
+            f"시대 미지정 · 가사 시간 앵커 {' / '.join(time_phrases)}를 기준으로 하나의 연속된 시간대 유지",
             ["natural neutral base", "restrained warm/cool contrast", "natural skin tone"],
             [
                 f"가사 시간 앵커({' / '.join(time_phrases)})에 맞는 자연광 방향과 색온도를 유지한다.",
