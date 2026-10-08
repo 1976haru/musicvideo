@@ -14,6 +14,7 @@ from mvstudio.models import AudioMap, CameraSpec, ShotSpec, StoryBeat
 from mvstudio.production_orchestrator import (
     ComfyUIBridge,
     GenerationQueue,
+    audit_creative_coverage,
     build_generation_queue,
     build_production_readiness,
     compile_shot_continuity_contract,
@@ -41,6 +42,7 @@ def _base_session(tmp_path: Path) -> LyricsWorldSession:
     session.lyrics_text = "夜明けの海で\n寒くないって笑った\n風の中で少し近づいた"
     session.source_name = "05_寒くないって笑った.txt"
     session.analyze()
+    session.rebuild_mv_timeline()
     session.promote_selected_concept()
     session.initialize_series()
 
@@ -265,3 +267,56 @@ def test_comfyui_upload_image_uses_local_official_route(tmp_path, monkeypatch):
     assert b'name="type"' in captured["body"]
     assert b"input" in captured["body"]
     assert returned == "mvstudio/YOSUMI.png"
+
+
+
+def test_episode_specific_approved_assets_do_not_leak_to_other_shots(tmp_path):
+    from mvstudio.series_studio import SeriesAsset
+
+    session = _base_session(tmp_path)
+    ep1 = tmp_path / "ep1.png"
+    ep1.write_bytes(b"ep1")
+    session.series_assets.append(SeriesAsset(
+        asset_id="ASSET_EP1",
+        path=str(ep1),
+        role="character_sheet",
+        entity_id="YOSUMI",
+        episode_id="EP1",
+        review_status="approved",
+    ))
+
+    shot_ep1 = session.shots[0]
+    assert "ASSET_EP1" in compile_shot_continuity_contract(session, shot_ep1).series_asset_ids
+
+    shot_ep2 = shot_ep1.model_copy(update={"shot_id": "B001-S02", "series_episode_id": "EP2"})
+    assert "ASSET_EP1" not in compile_shot_continuity_contract(session, shot_ep2).series_asset_ids
+
+    shot_no_ep = shot_ep1.model_copy(update={"shot_id": "B001-S03", "series_episode_id": None})
+    assert "ASSET_EP1" not in compile_shot_continuity_contract(session, shot_no_ep).series_asset_ids
+
+
+def test_director_coverage_warns_without_auto_rewriting_creative_choices(tmp_path):
+    session = _base_session(tmp_path)
+    base = session.shots[0]
+    session.shots = [
+        base.model_copy(update={
+            "shot_id": f"B001-S{i+1:02d}",
+            "start_sec": i * 0.5,
+            "end_sec": (i + 1) * 0.5,
+            "action": "same repeated protective action",
+            "lyric_line_ids": [],
+            "series_episode_id": None,
+            "series_entity_ids": [],
+            "lyric_visual_strategy": "literal",
+        })
+        for i in range(8)
+    ]
+    before = [shot.model_dump(mode="json") for shot in session.shots]
+    report = audit_creative_coverage(session)
+    codes = {finding.code for finding in report.findings}
+    assert "LOW_LYRIC_EVIDENCE_COVERAGE" in codes
+    assert "LOW_SERIES_CONTEXT_COVERAGE" in codes
+    assert "LOW_VISUAL_STRATEGY_VARIETY" in codes
+    assert "REPEATED_ACTION_RUN" in codes
+    assert "VERY_FAST_SHOT_RHYTHM" in codes
+    assert [shot.model_dump(mode="json") for shot in session.shots] == before
