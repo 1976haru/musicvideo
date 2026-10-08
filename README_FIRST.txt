@@ -1,4 +1,4 @@
-MV Director Studio 1.0.0 — 처음 시작
+MV Director Studio 1.0.1 — 처음 시작
 
 1. MV Director Studio.exe를 실행합니다.
 2. "뮤직비디오 제작 준비가 되었나요?"에서 필수 항목을 확인합니다.
