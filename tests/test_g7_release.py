@@ -47,7 +47,7 @@ def test_release_version_and_visible_title(monkeypatch):
     from mvstudio.ui_app import MainWindow
     app = QApplication.instance() or QApplication([])
     window = MainWindow()
-    assert "1.0" in window.windowTitle()
+    assert f"MV Director Studio {APP_VERSION}" == window.windowTitle()
     window.close()
 
 
