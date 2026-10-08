@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit,
-    QMessageBox, QPushButton, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
+    QListWidget, QListWidgetItem, QMessageBox, QPushButton, QTabWidget, QTextEdit,
+    QVBoxLayout, QWidget,
 )
 
 from .series_studio import (
-    DownloadWatcher, build_asset_prompt_packs, build_episode_graph,
+    DownloadWatcher, SeriesAsset, build_asset_prompt_packs, build_episode_graph,
     run_series_continuity_qc, suggest_reference_slots,
 )
 
@@ -138,6 +140,7 @@ class SeriesStudioDialog(QDialog):
     def _assets_tab(self):
         page = QWidget()
         layout = QVBoxLayout(page)
+
         controls = QHBoxLayout()
         suggest = QPushButton("Reference Director — Suggest slots")
         suggest.clicked.connect(self._suggest_assets)
@@ -145,14 +148,52 @@ class SeriesStudioDialog(QDialog):
         prompts.clicked.connect(self._build_prompts)
         watch = QPushButton("Watch download folder")
         watch.clicked.connect(self._choose_watch_folder)
+        add_file = QPushButton("기존 이미지 추가")
+        add_file.clicked.connect(self._add_asset_file)
         controls.addWidget(suggest)
         controls.addWidget(prompts)
         controls.addWidget(watch)
+        controls.addWidget(add_file)
         layout.addLayout(controls)
+
+        layout.addWidget(QLabel("등록된 Series Assets · candidate를 확인한 뒤 Approve하면 Shot/Generate에서 사용할 수 있습니다."))
+        self.asset_list = QListWidget()
+        self.asset_list.setMinimumHeight(150)
+        self.asset_list.currentRowChanged.connect(self._load_asset)
+        layout.addWidget(self.asset_list)
+
+        meta_host = QWidget()
+        meta = QFormLayout(meta_host)
+        self.asset_role = QComboBox()
+        for role in (
+            "character_sheet", "action_keyart", "emotion_keyart", "environment_keyart",
+            "prop_master", "color_script", "shape_reference", "unassigned",
+        ):
+            self.asset_role.addItem(role, role)
+        self.asset_entity = QComboBox()
+        self.asset_episode = QComboBox()
+        meta.addRow("Role", self.asset_role)
+        meta.addRow("Entity", self.asset_entity)
+        meta.addRow("Episode", self.asset_episode)
+        layout.addWidget(meta_host)
+
+        review = QHBoxLayout()
+        apply_meta = QPushButton("메타데이터 적용")
+        apply_meta.clicked.connect(self._apply_asset_metadata)
+        approve = QPushButton("Approve")
+        approve.clicked.connect(lambda: self._set_asset_status("approved"))
+        reject = QPushButton("Reject")
+        reject.clicked.connect(lambda: self._set_asset_status("rejected"))
+        unregister = QPushButton("등록 해제")
+        unregister.clicked.connect(self._unregister_asset)
+        for button in (apply_meta, approve, reject, unregister):
+            review.addWidget(button)
+        layout.addLayout(review)
+
         self.asset_output = QTextEdit()
         self.asset_output.setReadOnly(True)
         self.asset_output.setObjectName("assetFactoryOutput")
-        layout.addWidget(self.asset_output)
+        layout.addWidget(self.asset_output, 1)
         return page
 
     def _continuity_tab(self):
@@ -206,6 +247,7 @@ class SeriesStudioDialog(QDialog):
         self.entity_select.blockSignals(False)
         self._load_episode()
         self._load_entity()
+        self._refresh_assets()
         self._refresh_graph()
 
     def _apply_series(self):
@@ -285,6 +327,133 @@ class SeriesStudioDialog(QDialog):
         entity.episode_presence = [x.strip().upper() for x in self.entity_presence.text().split(",") if x.strip()]
         self.on_changed()
 
+    def _refresh_assets(self, select_asset_id: str | None = None):
+        if not hasattr(self, "asset_list"):
+            return
+        current = select_asset_id
+        if current is None and self.asset_list.currentItem():
+            current = self.asset_list.currentItem().data(Qt.UserRole)
+
+        self.asset_entity.blockSignals(True)
+        self.asset_episode.blockSignals(True)
+        self.asset_entity.clear()
+        self.asset_entity.addItem("미지정", None)
+        for entity in self.session.series_entities:
+            self.asset_entity.addItem(f"{entity.display_name} [{entity.entity_type}]", entity.entity_id)
+        self.asset_episode.clear()
+        self.asset_episode.addItem("SERIES / 공통", None)
+        if self.session.series_bible:
+            for episode in sorted(self.session.series_bible.episodes, key=lambda item: item.order):
+                self.asset_episode.addItem(f"{episode.episode_id} · {episode.title}", episode.episode_id)
+        self.asset_entity.blockSignals(False)
+        self.asset_episode.blockSignals(False)
+
+        self.asset_list.blockSignals(True)
+        self.asset_list.clear()
+        restore = -1
+        for index, asset in enumerate(self.session.series_assets):
+            label = (
+                f"{asset.asset_id} · {asset.review_status.upper()} · {asset.role} · "
+                f"{asset.entity_id or 'UNASSIGNED'} · {asset.episode_id or 'SERIES'}\n{Path(asset.path).name}"
+            )
+            item = QListWidgetItem(label)
+            item.setData(Qt.UserRole, asset.asset_id)
+            self.asset_list.addItem(item)
+            if asset.asset_id == current:
+                restore = index
+        self.asset_list.blockSignals(False)
+        if self.asset_list.count():
+            self.asset_list.setCurrentRow(restore if restore >= 0 else 0)
+        else:
+            self._load_asset(-1)
+
+    def _current_asset(self):
+        item = self.asset_list.currentItem() if hasattr(self, "asset_list") else None
+        asset_id = item.data(Qt.UserRole) if item else None
+        return next((asset for asset in self.session.series_assets if asset.asset_id == asset_id), None)
+
+    def _load_asset(self, *_):
+        asset = self._current_asset()
+        enabled = asset is not None
+        for widget in (self.asset_role, self.asset_entity, self.asset_episode):
+            widget.setEnabled(enabled)
+        if not asset:
+            return
+        self.asset_role.setCurrentIndex(max(0, self.asset_role.findData(asset.role)))
+        self.asset_entity.setCurrentIndex(max(0, self.asset_entity.findData(asset.entity_id)))
+        self.asset_episode.setCurrentIndex(max(0, self.asset_episode.findData(asset.episode_id)))
+
+    def _add_asset_file(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Series reference image",
+            str(Path.home() / "Downloads"),
+            "Images (*.png *.jpg *.jpeg *.webp *.tif *.tiff)",
+        )
+        if not path:
+            return
+        resolved = Path(path).expanduser().resolve(strict=False)
+        existing = next(
+            (asset for asset in self.session.series_assets if Path(asset.path).resolve(strict=False) == resolved),
+            None,
+        )
+        if existing:
+            self._refresh_assets(existing.asset_id)
+            self.asset_output.setPlainText("이미 등록된 파일입니다. 원본 파일은 변경하지 않았습니다.")
+            return
+        asset = SeriesAsset(
+            asset_id=f"ASSET_{uuid4().hex[:12].upper()}",
+            path=str(resolved),
+            source="manual",
+            review_status="candidate",
+        )
+        self.session.series_assets.append(asset)
+        self.on_changed()
+        self._refresh_assets(asset.asset_id)
+        self.asset_output.setPlainText("candidate로 등록했습니다. Entity / Episode / Role을 지정한 뒤 Approve하세요.")
+
+    def _apply_asset_metadata(self):
+        asset = self._current_asset()
+        if not asset:
+            return
+        asset.role = self.asset_role.currentData()
+        asset.entity_id = self.asset_entity.currentData()
+        asset.episode_id = self.asset_episode.currentData()
+        self.on_changed()
+        self._refresh_assets(asset.asset_id)
+        self.asset_output.setPlainText("메타데이터를 적용했습니다. 실제 생성 기준으로 사용할 파일이면 Approve하세요.")
+
+    def _set_asset_status(self, status: str):
+        asset = self._current_asset()
+        if not asset:
+            return
+        if status == "approved" and asset.role == "unassigned":
+            QMessageBox.information(self, "Asset 승인", "Approve 전에 Role을 지정하세요.")
+            return
+        asset.review_status = status
+        self.on_changed()
+        self._refresh_assets(asset.asset_id)
+        self.asset_output.setPlainText(
+            f"{asset.asset_id} → {status.upper()}\n"
+            "원본 파일은 이동·변경·삭제하지 않았습니다."
+        )
+
+    def _unregister_asset(self):
+        asset = self._current_asset()
+        if not asset:
+            return
+        answer = QMessageBox.question(
+            self,
+            "등록 해제",
+            "Series Studio 등록 정보만 제거합니다. 원본 이미지 파일은 삭제하지 않습니다. 계속할까요?",
+        )
+        if answer != QMessageBox.Yes:
+            return
+        self.session.series_assets.remove(asset)
+        self.on_changed()
+        self._refresh_assets()
+        self.asset_output.setPlainText("등록 정보만 제거했습니다. 원본 파일은 그대로 유지됩니다.")
+
     def _suggest_assets(self):
         if not self.session.series_bible:
             self.asset_output.setPlainText("Load a Series Bible first.")
@@ -317,7 +486,11 @@ class SeriesStudioDialog(QDialog):
         added = self.watcher.ingest(new_paths, self.session.series_entities, self.session.series_assets)
         if added:
             self.on_changed()
-            self.asset_output.append("\nAUTO-INGEST:\n" + "\n".join(f"{a.asset_id} → {a.entity_id or 'UNASSIGNED'} / {a.episode_id or 'SERIES'} / {a.role}" for a in added))
+            self._refresh_assets(added[-1].asset_id)
+            self.asset_output.append("\nAUTO-INGEST (candidate):\n" + "\n".join(
+                f"{a.asset_id} → {a.entity_id or 'UNASSIGNED'} / {a.episode_id or 'SERIES'} / {a.role}"
+                for a in added
+            ) + "\n검토 후 Approve하세요. 원본 파일은 이동·변경·삭제하지 않습니다.")
 
     def _run_qc(self):
         if not self.session.series_bible:
