@@ -1,6 +1,6 @@
-# MV Director Studio 1.0.1 — Windows에서 뮤직비디오 만들기
+# MV Director Studio 1.0.2 — Windows에서 뮤직비디오 만들기
 
-> **1.0.1 Hotfix:** Windows 배포본에서 첫 음악 분석 시 발생할 수 있던 SciPy Array API 하위 모듈 누락을 수정하고, 배포본 실제 WAV 음악 분석 smoke test를 릴리스 Gate에 추가했습니다.
+> **1.0.2 Hotfix:** World Bible 저장을 실제 Session JSON 저장으로 연결하고, 다크 테마에서 흰 배경으로 보이지 않던 필드 라벨을 수정했습니다. 1.0.1의 packaged music-analysis/release-stress gate도 그대로 유지합니다.
 
 음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 Windows desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
 
@@ -191,7 +191,7 @@ Claude Code는 Reference Vault가 완성되는 58%부터 적극 병행을 권장
 - 모든 원본 파일은 read-only이며 final은 성공 시에만 atomic 교체됩니다.
 
 세션 schema는 1.0이며 0.9 이하 세션도 edit data 없이 정상 로드됩니다.
-# MV Director Studio 1.0.1 — Windows에서 뮤직비디오 만들기
+# MV Director Studio 1.0.2 — Windows에서 뮤직비디오 만들기
 
 음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
 
