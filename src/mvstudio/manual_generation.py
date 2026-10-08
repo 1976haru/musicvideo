@@ -324,7 +324,6 @@ def compile_manual_pack(
         f"WORLD LOCK: {'; '.join(_dedupe(world_chunks))}" if world_chunks else "",
         f"SERIES EPISODE: {shot.series_episode_id}" if shot.series_episode_id else "",
         ("SERIES ENTITY LOCKS:\n" + "\n".join(series_locks)) if series_locks else "",
-        continuity_contract.prompt_block,
         f"SHOT PURPOSE: {shot.narrative_function}",
         f"SUBJECT: {shot.subject}",
         f"ACTION: {shot.action}",
@@ -336,6 +335,11 @@ def compile_manual_pack(
         f"LYRIC INTENT ({shot.lyric_visual_strategy}): {shot.lyric_intent}" if shot.lyric_intent else "",
         f"WORLD RULE REFERENCES: {'; '.join(rule_summary)}" if rule_summary else "",
     ])
+    # _dedupe intentionally normalizes whitespace; the contract is a structured multiline
+    # block, so append it after dedupe to preserve its exact human-readable form.
+    if continuity_contract.prompt_block:
+        insert_at = min(3, len(main_parts))
+        main_parts.insert(insert_at, continuity_contract.prompt_block)
     motion_parts = _dedupe([
         f"SUBJECT MOTION: {shot.action}",
         f"PACE / STRENGTH: {shot.camera.movement_strength}",
