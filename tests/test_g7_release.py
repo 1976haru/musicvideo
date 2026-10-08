@@ -40,8 +40,8 @@ def _shot():
 
 
 def test_release_version_and_visible_title(monkeypatch):
-    assert APP_VERSION == "1.0.1"
-    assert 'version = "1.0.1"' in Path("pyproject.toml").read_text(encoding="utf-8")
+    assert APP_VERSION == "1.0.2"
+    assert 'version = "1.0.2"' in Path("pyproject.toml").read_text(encoding="utf-8")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
     from mvstudio.ui_app import MainWindow
@@ -214,7 +214,7 @@ def test_music_analysis_smoke_exercises_real_librosa_scipy_path(tmp_path, monkey
 
 def test_release_files_ci_manifest_and_no_obvious_secret():
     required = ["build_windows.ps1", "MV_Director_Studio.spec", "README_FIRST.txt", "CHANGELOG.md",
-                "docs/RELEASE_NOTES_1.0.1.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
+                "docs/RELEASE_NOTES_1.0.2.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
     assert all(Path(item).is_file() for item in required)
     workflow = Path(required[-1]).read_text(encoding="utf-8")
     assert "PyInstaller" not in workflow or "package" in workflow
@@ -235,4 +235,80 @@ def test_release_gate_scripts_are_consistent():
     assert "--release-stress-test" in build
     assert "root GUI music action" in build
     assert "MV Director Studio 1.0.0" not in cli
-    assert "1.0.1" in progress
+    assert "1.0.2" in progress
+
+
+def test_world_bible_first_save_persists_to_json(tmp_path, monkeypatch):
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
+    from mvstudio.ui_app import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.session.lyrics_text = "寒い朝に笑った\n近くでいい\n波の音を聞いていた"
+    window.session.duration_sec = 30.0
+    window.session.analyze()
+    window.session.promote_selected_concept()
+    window._refresh_from_session()
+
+    expected = "저장 테스트 감정 논지"
+    window.bible_fields["emotional_thesis"].setPlainText(expected)
+    target = tmp_path / "프로젝트 日本語 session.json"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(target), "JSON (*.json)"))
+    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: None)
+    monkeypatch.setattr(QMessageBox, "critical", lambda *args, **kwargs: None)
+
+    window._save_world_bible()
+
+    assert target.is_file()
+    assert window.session.session_path == target.resolve()
+    reopened = LyricsWorldSession.import_file(target)
+    assert reopened.world_bible is not None
+    assert reopened.world_bible.emotional_thesis == expected
+    assert "세션 저장 완료" in window.statusBar().currentMessage()
+    window.close()
+    app.processEvents()
+
+
+def test_world_bible_dark_form_and_visible_labels(monkeypatch):
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication, QLabel, QWidget
+    from mvstudio.ui_app import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    host = window.findChild(QWidget, "worldBibleHost")
+    labels = window.findChildren(QLabel, "formLabel")
+    assert host is not None
+    assert len(labels) == 13
+    assert any(label.text() == "Premise" for label in labels)
+    assert any(label.text() == "Forbidden elements" for label in labels)
+    assert "QWidget#worldBibleHost" in window.styleSheet()
+    assert "QLabel#formLabel" in window.styleSheet()
+    assert any(f"Release {APP_VERSION}" in label.text() for label in window.findChildren(QLabel))
+    window.close()
+    app.processEvents()
+
+
+def test_world_bible_cancel_does_not_claim_disk_save(monkeypatch):
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
+    from mvstudio.ui_app import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.session.lyrics_text = "寒い朝\n近くでいい"
+    window.session.duration_sec = 20.0
+    window.session.analyze()
+    window.session.promote_selected_concept()
+    window._refresh_from_session()
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *args, **kwargs: ("", ""))
+    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: None)
+
+    window._save_world_bible()
+
+    assert window.session.session_path is None
+    assert "ファイル" not in window.statusBar().currentMessage()
+    assert "파일 저장이 취소" in window.statusBar().currentMessage()
+    window.close()
+    app.processEvents()
