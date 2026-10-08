@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -17,3 +18,13 @@ def tmp_path(request) -> Path:
     target = root / f"{request.node.name}-{uuid.uuid4().hex}"
     target.mkdir()
     return target
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """CI-only: preserve pytest's real result, then skip unsafe native DLL teardown."""
+    if os.environ.get("MVSTUDIO_RELEASE_PYTEST_HARD_EXIT") != "1":
+        return
+    sys.stdout.write(f"\n[release-pytest] completed with exitstatus={int(exitstatus)}\n")
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(int(exitstatus))
