@@ -233,70 +233,401 @@ def resolve_entity_variant(
 
 
 def seed_the_fifth_verdict() -> tuple[SeriesBible, list[SeriesEntity]]:
-    episode_titles = [
-        "EP1 — The Margin", "EP2 — The Bell", "EP3 — The Archive",
-        "EP4 — Hollow Testimony", "EP5 — The Fifth Verdict",
-    ]
-    episodes = [EpisodeBible(episode_id=f"EP{i}", title=title, order=i) for i, title in enumerate(episode_titles, 1)]
-    chains = [
-        CluePayoffLink(chain_id="CHAIN_STAMP", clue="A verdict stamp appears incomplete", setup_episode="EP1", payoff_episode="EP5", progression=["EP1", "EP3", "EP5"]),
-        CluePayoffLink(chain_id="CHAIN_GWAN", clue="The GWAN symbol changes orientation", setup_episode="EP2", payoff_episode="EP4", progression=["EP2", "EP3", "EP4"]),
-    ]
-    bible = SeriesBible(
-        series_id="THE_FIFTH_VERDICT", title="THE FIFTH VERDICT", episode_titles=episode_titles,
-        series_logline="Five linked verdicts expose who controls memory inside the Margin City archive.",
-        common_world_rules=["Records can alter civic memory but cannot create a person", "Every verdict leaves a physical trace"],
-        common_visual_rules=["One dominant action per shot", "Geometric silhouettes remain readable in wide shots", "Episode changes may layer onto but never replace entity masters"],
-        recurring_motifs=["margin line", "verdict stamp", "rotating GWAN symbol", "missing page"],
-        forbidden_elements=["unmotivated modern logos", "shape-changing faces", "ornamental fantasy armor"],
-        color_system={"base": ["ink black", "paper ivory"], "clue": ["verdict red"], "archive": ["oxidized cyan"], "hollow": ["ash violet"]},
-        clue_payoff_chain=chains, episodes=episodes,
-    )
-    all_eps = [f"EP{i}" for i in range(1, 6)]
-    def lock(parts, silhouette, forbidden, material=None):
-        return ShapeGrammarLock(locked_parts=parts, silhouette_rules=silhouette, material_rules=material or [], forbidden_mutations=forbidden, lock_strength=1.0)
-    entities = [
-        SeriesEntity(entity_id="YOSUMI", display_name="YOSUMI", entity_type="character", role="primary witness", episode_presence=all_eps,
-            silhouette_rules=["four-corner coat hem", "narrow upright torso"], palette_rules=["ink black", "verdict red accent"], motion_rules=["measured turns", "hands remain close to body"], forbidden_rules=["rounded coat silhouette"],
-            shape_grammar=lock(["four-corner coat", "single red cuff"], ["four distinct lower corners visible"], ["cape", "rounded hem", "extra cuffs"]),
-            text_master="YOSUMI is a narrow upright witness defined by a four-corner coat hem and one red cuff; facial and body proportions remain constant.",
-            variants=[
-                EntityVariant(variant_id="YOSUMI_EP5", kind="episode", episode_id="EP5", appearance_delta=["paper dust on unchanged coat"], palette_delta=["red cuff becomes brighter"]),
-                EntityVariant(variant_id="YOSUMI_STAMP_ACTION", kind="action", episode_id="EP1", trigger="stamp", motion_delta=["one controlled vertical stamp action"]),
-                EntityVariant(variant_id="YOSUMI_DOUBT", kind="emotional", episode_id="EP2", trigger="doubt", appearance_delta=["chin lowers while the four-corner silhouette remains unchanged"]),
-            ]),
-        SeriesEntity(entity_id="SUZUGARA", display_name="SUZUGARA", entity_type="character", role="bell-bearing guide", episode_presence=all_eps,
-            silhouette_rules=["bell-shaped shoulder line", "long split sleeves"], palette_rules=["paper ivory", "oxidized cyan"], motion_rules=["pendulum-like pauses"], forbidden_rules=["visible modern jewelry"],
-            shape_grammar=lock(["bell shoulders", "split sleeves"], ["shoulders form a stable bell trapezoid"], ["round shoulders", "short sleeves"]),
-            text_master="SUZUGARA has a bell-trapezoid shoulder silhouette, long split sleeves, and a deliberate pendulum motion rhythm."),
-        SeriesEntity(entity_id="TOJI", display_name="TOJI", entity_type="character", role="archive adjudicator", episode_presence=["EP2", "EP3", "EP4", "EP5"],
-            silhouette_rules=["rectangular collar frame", "asymmetric ledger block"], palette_rules=["charcoal", "aged brass"], motion_rules=["straight-line movement"], forbidden_rules=["flowing robe"],
-            shape_grammar=lock(["rectangular collar", "left ledger block"], ["rigid rectangular upper frame"], ["symmetrical ledger", "soft collar"]),
-            text_master="TOJI is locked by a rigid rectangular collar and an asymmetric ledger block carried on the left."),
-        SeriesEntity(entity_id="THE_ARCHIVE", display_name="THE ARCHIVE", entity_type="location", role="recurring memory institution", episode_presence=all_eps,
-            silhouette_rules=["stacked horizontal strata", "one vertical index void"], palette_rules=["paper ivory", "oxidized cyan", "ink black"], motion_rules=["architecture never flexes"], forbidden_rules=["open sky inside archive"],
-            shape_grammar=lock(["horizontal strata", "index void"], ["mass reads as layered records"], ["gothic spires", "organic walls"], ["paper", "oxidized metal", "black glass"]),
-            text_master="THE ARCHIVE is a layered horizontal record-mass cut by one vertical index void; materials are paper, oxidized metal, and black glass."),
-        SeriesEntity(entity_id="HOLLOW", display_name="HOLLOW", entity_type="system", role="absence made visible", episode_presence=["EP3", "EP4", "EP5"],
-            silhouette_rules=["negative-space human aperture", "no facial features"], palette_rules=["ash violet", "absolute black"], motion_rules=["surroundings move; aperture does not"], forbidden_rules=["eyes", "mouth", "solid skin"],
-            shape_grammar=lock(["featureless aperture", "unbroken rim"], ["human-scale negative space"], ["face", "limbs detached from aperture", "glowing eyes"]),
-            text_master="HOLLOW is a human-scale negative-space aperture with an unbroken rim and no face, eyes, mouth, or solid skin."),
-        SeriesEntity(entity_id="STAMP", display_name="Verdict Stamp", entity_type="prop", role="verdict mechanism", episode_presence=all_eps,
-            silhouette_rules=["square head", "short cylindrical handle"], palette_rules=["verdict red", "aged brass"], motion_rules=["single vertical strike"], forbidden_rules=["round seal"], text_master="A square verdict stamp with a short cylindrical aged-brass handle and red ink."),
-        SeriesEntity(entity_id="GWAN_SYMBOL", display_name="GWAN Symbol", entity_type="system", role="clue orientation system", episode_presence=all_eps,
-            silhouette_rules=["three unequal nested angles"], palette_rules=["oxidized cyan"], motion_rules=["rotates only between episodes"], forbidden_rules=["circular glyph"], text_master="Three unequal nested angles; orientation changes only as a deliberate episode clue."),
-        SeriesEntity(entity_id="MARGIN_CITY_LOCATIONS", display_name="Margin City Locations", entity_type="location", role="shared exterior system", episode_presence=all_eps,
-            silhouette_rules=["buildings align to visible margin grids"], palette_rules=["ink black", "paper ivory", "episode accent"], motion_rules=["traffic follows ruled lines"], forbidden_rules=["generic neon cyberpunk"], text_master="A city organized by visible page margins and ruled transit lines, never generic neon cyberpunk."),
-    ]
-    lookup = {e.entity_id: e for e in entities}
-    lookup["YOSUMI"].relationships = [RelationshipEdge(target_entity_id="SUZUGARA", relation="trust moves from distance to alliance", episode_ids=all_eps), RelationshipEdge(target_entity_id="TOJI", relation="witness versus adjudicator", episode_ids=["EP2", "EP3", "EP5"])]
-    lookup["SUZUGARA"].relationships = [RelationshipEdge(target_entity_id="THE_ARCHIVE", relation="former guide of", episode_ids=all_eps)]
-    for episode in bible.episodes:
-        episode.entity_ids = [e.entity_id for e in entities if episode.episode_id in e.episode_presence]
-        episode.clue_ids = [c.chain_id for c in chains if c.setup_episode == episode.episode_id]
-        episode.payoff_ids = [c.chain_id for c in chains if c.payoff_episode == episode.episode_id]
-    return bible, entities
+    """Return the production seed from THE FIFTH VERDICT FINAL PROJECT BIBLE v3.0.
 
+    This seed is intentionally conservative: where the project bible has not locked an
+    exact visual geometry (for example the final GWAN glyph), the seed preserves the
+    narrative constraint instead of inventing a new design.
+    """
+    episode_titles = [
+        "MUTE BELL",
+        "DOORLESS ROAD",
+        "SILENT WITNESS",
+        "MUTINY OF THE UNWRITTEN",
+        "GWAN: THE UNWRITTEN VERDICT",
+    ]
+    episodes = [
+        EpisodeBible(
+            episode_id="EP1", title=episode_titles[0], order=1,
+            logline="A bell that has never rung is sentenced for a sound it did not make.",
+            world_overrides=[
+                "An un-rung transparent bell is falsely marked as dangerous.",
+                "YOSUMI learns that removing a possible action also removes a small personal memory.",
+            ],
+            visual_overrides=["Folded alley/road geometry", "black square STAMP fracture", "silent-bell protection space"],
+        ),
+        EpisodeBible(
+            episode_id="EP2", title=episode_titles[1], order=2,
+            logline="The road keeps removing every choice made to escape.",
+            world_overrides=[
+                "The DOORLESS ROAD erases routes as choices are made.",
+                "TOJI appears hostile but is preserving deleted choices from dispersing.",
+            ],
+            visual_overrides=["Doorless road", "erased signs", "footsteps that have not happened yet"],
+        ),
+        EpisodeBible(
+            episode_id="EP3", title=episode_titles[2], order=3,
+            logline="A testimony is recorded before anyone exists to speak.",
+            world_overrides=[
+                "THE ARCHIVE generates testimony after STAMP in order to justify an already-fixed verdict.",
+                "A missing lullaby note from YOSUMI's memory appears inside fabricated testimony.",
+            ],
+            visual_overrides=["Empty witness chair", "paper witness without a body", "record windows and black square seals"],
+        ),
+        EpisodeBible(
+            episode_id="EP4", title=episode_titles[3], order=4,
+            logline="The condemned refuse to disappear for a crime they have not committed.",
+            world_overrides=[
+                "THE ARCHIVE attempts to remove all HOLLOW entities.",
+                "YOSUMI refuses the destruction order and first redirects danger without deleting a choice.",
+            ],
+            visual_overrides=["Mass black STAMP field", "HOLLOW clusters protecting one another's erased paths", "unfinished G _ A N clause"],
+        ),
+        EpisodeBible(
+            episode_id="EP5", title=episode_titles[4], order=5,
+            logline="To protect someone, the world must stop deciding what they will become.",
+            world_overrides=[
+                "Destroying THE ARCHIVE only multiplies STAMP, so YOSUMI changes the verdict condition instead.",
+                "GWAN blocks present danger without assigning a guilty identity to an unwritten future.",
+            ],
+            visual_overrides=["Open white palm", "multiple restored paths", "SUZUGARA rings in the present", "EP1 image returns with changed meaning"],
+        ),
+    ]
+
+    chains = [
+        CluePayoffLink(
+            chain_id="CHAIN_BELL_SILENCE",
+            clue="EP1: SUZUGARA has not rung.",
+            setup_episode="EP1", payoff_episode="EP5",
+            progression=["EP1 silent bell", "EP2 unheard future footsteps", "EP5 bell rings in the present"],
+        ),
+        CluePayoffLink(
+            chain_id="CHAIN_STAMP_CAUSALITY",
+            clue="EP1: the black square STAMP appears before the apparent crime.",
+            setup_episode="EP1", payoff_episode="EP5",
+            progression=["EP1 STAMP before collapse", "EP3 testimony generated after STAMP", "EP5 STAMP is revealed as the intervention that distorted events"],
+        ),
+        CluePayoffLink(
+            chain_id="CHAIN_LULLABY_MEMORY",
+            clue="EP1: one lullaby note disappears when YOSUMI strikes.",
+            setup_episode="EP1", payoff_episode="EP3",
+            progression=["EP1 memory note lost", "EP3 same note found inside witness record"],
+        ),
+        CluePayoffLink(
+            chain_id="CHAIN_TOJI_ALLY",
+            clue="EP2: TOJI first appears to block escape.",
+            setup_episode="EP2", payoff_episode="EP4",
+            progression=["EP2 preserves erased choices", "EP3 removes the sentence-ending period", "EP4 choice-preservation becomes necessary to resist mass deletion"],
+        ),
+        CluePayoffLink(
+            chain_id="CHAIN_GWAN_NAME",
+            clue="EP4: the empty clause reads G _ A N.",
+            setup_episode="EP4", payoff_episode="EP5",
+            progression=["EP1 five points inside SUZUGARA", "EP4 G _ A N", "EP5 GWAN = Guard Without Assigning Names"],
+        ),
+        CluePayoffLink(
+            chain_id="CHAIN_DOORLESS_PATH",
+            clue="EP1: a broken road opens without a door.",
+            setup_episode="EP1", payoff_episode="EP5",
+            progression=["EP1 road opens", "EP2–EP4 evidence is collected in sequence", "EP5 resolution depends on the original rescue"],
+        ),
+    ]
+
+    bible = SeriesBible(
+        series_id="THE_FIFTH_VERDICT",
+        title="THE FIFTH VERDICT",
+        episode_titles=episode_titles,
+        series_logline=(
+            "A guardian who deletes possibilities to protect a city discovers that the system "
+            "which declares predicted evil guilty is creating the very anomalies it condemns."
+        ),
+        common_world_rules=[
+            "Observation alone is not guilt; only STAMP forces an uncertain prediction into a fixed fact and cuts away alternatives.",
+            "STAMP is not perfect prophecy; it reduces risk by coercing the future toward one selected outcome.",
+            "Deleted possibilities are pushed into UNWRITTEN; when they aggregate, they become HOLLOW.",
+            "YOSUMI's strike does not destroy flesh; it removes one possible action and costs YOSUMI a small personal memory.",
+            "An innocent entity can be harmed by a false STAMP, while an actually occurring dangerous act may still be stopped.",
+            "Evidence recovered in one episode opens the next locked record; episode order is causally meaningful.",
+            "The ending is not a time reset: past harm remains, but automatic guilt based only on prediction stops.",
+        ],
+        common_visual_rules=[
+            "Original non-human 2.5D ink-and-paper fantasy animation with subtle 3D depth, matte surfaces, and physical camera movement.",
+            "Violence is visualized through spatial gaps, missing tempo, erased text, and collapsing paths rather than blood or dismemberment.",
+            "Recurring geography across five episodes includes the same street corner, empty bridge, archive window, bell tower, witness stone, and ring plaza.",
+            "One dominant action per shot; character topology and geographic continuity outrank spectacle.",
+            "Each episode may add only one auxiliary accent color while preserving the shared base palette.",
+        ],
+        recurring_motifs=[
+            "black square STAMP",
+            "five-note musical motif",
+            "missing/erased path",
+            "open versus striking hand",
+            "five-part/incomplete GWAN clue",
+        ],
+        forbidden_elements=[
+            "live-action human faces",
+            "recognizable celebrities or existing franchise characters",
+            "fox ears or animal ears",
+            "yokai masks or generic traditional-yokai decoration",
+            "torii or shrine motifs added by default",
+            "swords or decorative fantasy weapons",
+            "crowns",
+            "realistic human fingers added to abstract entities",
+            "changing body topology",
+            "logos or watermarks",
+            "generic neon cyberpunk styling",
+        ],
+        color_system={
+            "base": ["deep ink navy #162432", "dark teal #0B7D80", "aged paper #E9E5DA"],
+            "episode_rule": ["preserve the base palette; add at most one episode-specific auxiliary color"],
+        },
+        clue_payoff_chain=chains,
+        episodes=episodes,
+    )
+
+    all_eps = [f"EP{i}" for i in range(1, 6)]
+
+    def lock(parts, silhouette, forbidden, material=None):
+        return ShapeGrammarLock(
+            locked_parts=parts,
+            silhouette_rules=silhouette,
+            material_rules=material or [],
+            forbidden_mutations=forbidden,
+            lock_strength=1.0,
+        )
+
+    entities = [
+        SeriesEntity(
+            entity_id="YOSUMI", display_name="YOSUMI", entity_type="character",
+            role="guardian protagonist who learns to protect without deleting choice",
+            episode_presence=all_eps,
+            silhouette_rules=[
+                "exactly three clearly separated black ink brushstroke ribbons",
+                "perfectly rectangular empty opening centered in the chest",
+                "only YOSUMI's anatomical left hand is solid matte white",
+                "headless, faceless, nonhuman abstract guardian",
+            ],
+            palette_rules=["deep ink navy #162432", "dark teal #0B7D80", "aged paper #E9E5DA", "no other white body part"],
+            motion_rules=[
+                "disciplined, economical martial movement",
+                "early strikes remove a possible action",
+                "open white left palm becomes the non-destructive GWAN gesture",
+            ],
+            forbidden_rules=[
+                "human face", "eyes", "mouth", "hair", "realistic fingers", "extra hands", "extra limbs",
+                "fourth ribbon", "extra ribbon fragments", "armor", "clothing", "sword", "crown",
+                "animal ears", "fox mask", "yokai motifs", "torii", "shrine motifs",
+            ],
+            shape_grammar=lock(
+                ["three black ink ribbons", "centered rectangular hollow chest", "matte white left hand only"],
+                [
+                    "three principal ribbons remain countable in every view",
+                    "rectangular chest opening stays clean, vertical, visible, and unobstructed",
+                    "no head shape appears above the upper ribbon",
+                ],
+                [
+                    "fourth ribbon", "extra appendage", "topology drift", "covered chest rectangle",
+                    "white right hand", "additional white body part", "realistic hand anatomy",
+                ],
+                ["handmade paper fiber", "matte ink pigment", "subtle dimensional layering"],
+            ),
+            text_master=(
+                "YOSUMI is a singular headless and faceless non-human guardian made from EXACTLY THREE "
+                "separated black ink brushstroke ribbons, with one perfectly rectangular empty chest opening "
+                "and ONLY the anatomical LEFT hand in solid matte white. Preserve this topology over mood or spectacle."
+            ),
+            variants=[
+                EntityVariant(
+                    variant_id="YOSUMI_EP4_OPEN_HAND", kind="episode", episode_id="EP4",
+                    trigger="unfinished GWAN",
+                    motion_delta=["first incomplete open-hand redirection that changes attack direction without deleting a choice"],
+                ),
+                EntityVariant(
+                    variant_id="YOSUMI_EP5_GWAN", kind="episode", episode_id="EP5",
+                    trigger="GWAN",
+                    motion_delta=["fully open white left palm maintains multiple possibilities while blocking present danger"],
+                ),
+                EntityVariant(
+                    variant_id="YOSUMI_PROTECTIVE_REALIZATION", kind="emotional", episode_id="EP1",
+                    trigger="protective realization",
+                    motion_delta=["hesitation becomes a protective non-aggressive stance"],
+                ),
+            ],
+        ),
+        SeriesEntity(
+            entity_id="SUZUGARA", display_name="SUZUGARA", entity_type="character",
+            role="silent bell carrying a sound that has not yet happened",
+            episode_presence=all_eps,
+            silhouette_rules=[
+                "transparent bell form",
+                "no clapper",
+                "two short legs",
+                "thin internal line of light/vibration",
+            ],
+            palette_rules=["transparent/aged-paper body", "subtle dark teal internal vibration"],
+            motion_rules=["small restrained vibration", "does not ring until the present-time payoff in EP5"],
+            forbidden_rules=["clapper", "human face", "human arms", "ornamental shrine-bell conversion"],
+            shape_grammar=lock(
+                ["transparent bell body", "no clapper", "two short legs", "thin internal vibration light"],
+                ["bell silhouette stays transparent and immediately readable", "internal vibration remains thin and contained"],
+                ["added clapper", "human face", "extra legs", "opaque metal body"],
+            ),
+            text_master=(
+                "SUZUGARA is a transparent non-human bell with NO CLAPPER, exactly two short legs, "
+                "and a thin internal light vibration that carries a sound which has not yet rung."
+            ),
+            variants=[
+                EntityVariant(
+                    variant_id="SUZUGARA_EP5_PRESENT_RING", kind="episode", episode_id="EP5",
+                    motion_delta=["rings for the first time in the present rather than as a predicted sound"],
+                ),
+            ],
+        ),
+        SeriesEntity(
+            entity_id="TOJI", display_name="TOJI", entity_type="character",
+            role="keeper that prevents erased choices from dispersing",
+            episode_presence=["EP2", "EP3", "EP4", "EP5"],
+            silhouette_rules=[
+                "exactly two closed bracket forms facing one another",
+                "golden gap between the brackets",
+                "no face or expression",
+            ],
+            palette_rules=["ink/paper body", "restrained gold only in the central gap"],
+            motion_rules=["contains and holds paths rather than destroying them"],
+            forbidden_rules=["human face", "eyes", "mouth", "third bracket", "decorative robe"],
+            shape_grammar=lock(
+                ["two facing closed brackets", "single golden gap"],
+                ["the two brackets remain independently countable", "central gap remains visible"],
+                ["third bracket", "merged bracket mass", "face", "limb anatomy"],
+            ),
+            text_master=(
+                "TOJI is an abstract entity made of EXACTLY TWO closed bracket forms facing each other, "
+                "with one restrained golden gap and no face, eyes, mouth, or human expression."
+            ),
+        ),
+        SeriesEntity(
+            entity_id="THE_ARCHIVE", display_name="THE ARCHIVE", entity_type="system",
+            role="preventive record institution whose automatic verdict logic creates the anomaly",
+            episode_presence=all_eps,
+            silhouette_rules=[
+                "countless rotating window frames",
+                "black square STAMP mechanism",
+                "no human face",
+            ],
+            palette_rules=["deep ink navy #162432", "dark teal #0B7D80", "aged paper #E9E5DA", "black square STAMP"],
+            motion_rules=["window frames rotate and classify", "system persists through structure rather than a humanoid body"],
+            forbidden_rules=["human face", "single humanoid villain body", "gothic castle styling"],
+            shape_grammar=lock(
+                ["rotating window-frame system", "black square STAMP interface"],
+                ["reads as an institutional structure, never as a human character"],
+                ["human face", "human hands", "ornamental throne", "gothic spires"],
+                ["aged paper", "matte ink", "dark structural frames"],
+            ),
+            text_master=(
+                "THE ARCHIVE is a non-human institutional structure of innumerable rotating window frames "
+                "and black square STAMP mechanisms; it has no human face and must not become a humanoid villain."
+            ),
+        ),
+        SeriesEntity(
+            entity_id="HOLLOW", display_name="HOLLOW", entity_type="system",
+            role="aggregate of deleted possibilities wrongly perceived as monsters",
+            episode_presence=["EP4", "EP5"],
+            silhouette_rules=[
+                "cluster of geometric forms with hollow centers",
+                "shared ring motif across varied textures",
+                "no single human face",
+            ],
+            palette_rules=["shared series base palette", "texture may vary without losing the hollow-center/ring grammar"],
+            motion_rules=["clusters support one another's disappearing paths"],
+            forbidden_rules=["solid filled center", "human face", "glowing monster eyes", "generic demon anatomy"],
+            shape_grammar=lock(
+                ["hollow-centered geometric bodies", "shared ring motif"],
+                ["center remains visibly empty", "cluster members may vary in texture but share the ring grammar"],
+                ["filled center", "human face", "horned demon silhouette", "glowing eyes"],
+            ),
+            text_master=(
+                "HOLLOW is a collective of varied geometric forms whose centers are visibly empty; "
+                "all members share a recurring ring motif and must never collapse into a generic demon or human figure."
+            ),
+        ),
+        SeriesEntity(
+            entity_id="STAMP", display_name="STAMP", entity_type="prop",
+            role="black square certainty mark that fixes one predicted future as fact",
+            episode_presence=all_eps,
+            silhouette_rules=["black square mark/seal", "visually cuts away nearby branching paths after activation"],
+            palette_rules=["absolute/matte black against the shared paper-and-ink world"],
+            motion_rules=["appears as a decisive square imprint before alternatives disappear"],
+            forbidden_rules=["round seal", "decorative calligraphy stamp", "logo-like branding"],
+            text_master=(
+                "STAMP is a stark BLACK SQUARE certainty mark. It is not prophecy itself: when applied, "
+                "it forces one uncertain prediction into fact and visibly erases nearby alternatives."
+            ),
+        ),
+        SeriesEntity(
+            entity_id="GWAN_SYMBOL", display_name="GWAN / Guard Without Assigning Names",
+            entity_type="system", role="new protection principle completed in EP5",
+            episode_presence=["EP1", "EP4", "EP5"],
+            silhouette_rules=[
+                "five-part/incomplete-to-complete clue structure",
+                "EP1 five points and EP4 G _ A N foreshadow completion",
+                "final exact glyph geometry remains design-lock pending and must not be invented by the seed",
+            ],
+            palette_rules=["uses the shared base palette; meaning comes from completion, not decorative glow"],
+            motion_rules=["paired with the transition from striking fist to open white left palm"],
+            forbidden_rules=["invented occult sigil", "generic magic rune", "unmotivated circular glyph"],
+            text_master=(
+                "GWAN means Guard Without Assigning Names: block immediate danger without fixing identity or future guilt. "
+                "Preserve the five-part clue progression; do not invent a final ornamental glyph until separately design-locked."
+            ),
+        ),
+        SeriesEntity(
+            entity_id="MARGIN_CITY_LOCATIONS", display_name="MARGIN CITY / recurring locations",
+            entity_type="location", role="shared geography for the five-episode series",
+            episode_presence=all_eps,
+            silhouette_rules=[
+                "recurring street corner",
+                "empty bridge",
+                "archive window",
+                "bell tower",
+                "witness stone",
+                "ring plaza",
+                "folded roads and thin layered surfaces of possible futures",
+            ],
+            palette_rules=["deep ink navy #162432", "dark teal #0B7D80", "aged paper #E9E5DA", "one auxiliary accent color per episode maximum"],
+            motion_rules=["subtle 2.5D parallax", "physical camera movement", "geography remains recognizable across episodes"],
+            forbidden_rules=["generic neon cyberpunk", "default shrine/torii scenery", "unreadable decorative signage"],
+            text_master=(
+                "MARGIN CITY is a 2.5D ink-and-paper city built on thin overlapping layers of possible futures, "
+                "with recurring street corner, empty bridge, archive window, bell tower, witness stone, and ring plaza geography."
+            ),
+        ),
+    ]
+
+    lookup = {entity.entity_id: entity for entity in entities}
+    lookup["YOSUMI"].relationships = [
+        RelationshipEdge(
+            target_entity_id="SUZUGARA",
+            relation="misjudged as dangerous in EP1, then protected; SUZUGARA later contributes the present-time sound needed for GWAN",
+            episode_ids=all_eps,
+        ),
+        RelationshipEdge(
+            target_entity_id="TOJI",
+            relation="initially mistaken for an obstructing pursuer, later recognized as a keeper of deleted choices",
+            episode_ids=["EP2", "EP3", "EP4", "EP5"],
+        ),
+        RelationshipEdge(
+            target_entity_id="HOLLOW",
+            relation="initially treated as a threat category, later recognized as condemned unwritten futures protecting one another",
+            episode_ids=["EP4", "EP5"],
+        ),
+    ]
+
+    for episode in bible.episodes:
+        episode.entity_ids = [entity.entity_id for entity in entities if episode.episode_id in entity.episode_presence]
+        episode.clue_ids = [chain.chain_id for chain in chains if chain.setup_episode == episode.episode_id]
+        episode.payoff_ids = [chain.chain_id for chain in chains if chain.payoff_episode == episode.episode_id]
+
+    return bible, entities
 
 def suggest_reference_slots(series: SeriesBible, entities: list[SeriesEntity], assets: list[SeriesAsset]) -> list[ReferenceSlot]:
     approved = {(a.entity_id, a.episode_id, a.role) for a in assets if a.review_status == "approved"}
