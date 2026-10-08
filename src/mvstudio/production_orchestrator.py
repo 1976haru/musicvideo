@@ -154,6 +154,11 @@ def _contract_payload(contract: ShotContinuityContract) -> dict[str, Any]:
     data = contract.model_dump(mode="json")
     data.pop("contract_hash", None)
     data.pop("contract_id", None)
+    # Absolute filesystem roots are transport details, not creative identity. Keeping
+    # IDs plus missing-file blockers makes project moves stable while still invalidating
+    # a pack when a required asset disappears.
+    data.pop("reference_paths", None)
+    data.pop("series_asset_paths", None)
     return data
 
 
