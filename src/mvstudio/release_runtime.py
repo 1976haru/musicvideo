@@ -26,7 +26,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 
@@ -591,8 +591,21 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
 
         app = QApplication.instance() or QApplication([])
         window = MainWindow(); window.resize(1100, 720); window.show(); app.processEvents()
-        window.session.lyrics_text = "차가운 밤을 걷는다\n다시 빛을 향해 간다\n새벽의 문을 연다"
+        from .models import AudioMap, AudioTransition
+        window.session.lyrics_text = "차가운 밤을 걷는다\n바람과 파도 소리를 듣는다\n다시 빛을 향해 간다\n새벽의 문을 연다"
         window.session.duration_sec = 30.0
+        window.session.audio_map = AudioMap(
+            source_path="synthetic-world-bible.wav",
+            duration_sec=30.0,
+            sample_rate=44100,
+            tempo_bpm=92.3,
+            transitions=[
+                AudioTransition(
+                    transition_id="AT001", time_sec=14.0, strength=0.8,
+                    character="energy_rise", reasons=["world bible smoke"],
+                )
+            ],
+        )
         window.session.analyze(); window.session.promote_selected_concept(); window._refresh_from_session()
 
         dialog_calls = 0
@@ -639,8 +652,21 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         window._switch(3); app.processEvents()
         color = host.palette().color(QPalette.Window) if host else None
         dark_host = bool(color and max(color.red(), color.green(), color.blue()) < 80)
+        editable_keys = (
+            "premise", "emotional_thesis", "reality_rules", "time_period",
+            "visual_language", "palette", "material_language", "weather_rules",
+            "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
+        )
+        generated_complete = all(bool(getattr(window.session.world_bible, key)) for key in editable_keys)
+        camera_uses_music = any(
+            ("모든 비트" in rule or "음악 변화점" in rule or "dolly" in rule or "medium" in rule)
+            for rule in window.session.world_bible.camera_rules
+        )
         payload = {
             "world_bible": "PASS", "file": target.name,
+            "generated_fields": sum(bool(getattr(window.session.world_bible, key)) for key in editable_keys),
+            "generated_complete": generated_complete,
+            "camera_uses_music": camera_uses_music,
             "first_save_exists": first_exists, "first_save_preserved": first_preserved,
             "same_json_resave": second_preserved and dialog_calls == 1, "dialog_calls": dialog_calls,
             "cancel_safe": cancel_safe, "cancel_message": cancel_message, "label_count": len(labels),
@@ -654,6 +680,7 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         ok = payload["label_count"] == 13 and all(payload[key] for key in (
             "first_save_exists", "first_save_preserved", "same_json_resave", "cancel_safe",
             "labels_complete", "dark_host", "usable_1100x720", "window_title", "sidebar_release",
+            "generated_complete", "camera_uses_music",
         ))
         payload["world_bible"] = "PASS" if ok else "FAIL"
         return ok, payload
