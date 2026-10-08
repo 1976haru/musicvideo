@@ -7,10 +7,11 @@ import pytest
 
 
 def main() -> None:
-    # Run the complete suite. On Windows CI, PySide6/OpenCV/SciPy native destructors can
-    # crash after pytest has already completed successfully. Exit immediately only after
-    # pytest returns its real result code, preserving every test and failure.
+    # Run the complete suite. The guarded pytest_sessionfinish hook exits with pytest's
+    # real status before Windows native-extension interpreter teardown can crash.
+    os.environ["MVSTUDIO_RELEASE_PYTEST_HARD_EXIT"] = "1"
     code = int(pytest.main(["-q"]))
+    # Fallback for environments where the hook is not loaded.
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(code)
