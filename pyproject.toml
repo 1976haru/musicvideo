@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mv-director-studio"
-version = "1.0.2"
+version = "1.0.3"
 description = "Worldbuilding-first AI music video pre-production and prompt orchestration."
 requires-python = ">=3.11"
 dependencies = [
