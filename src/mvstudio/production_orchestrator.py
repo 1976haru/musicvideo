@@ -537,19 +537,14 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
     stages.append(_stage("prompts", "08 GENERATE / CONTRACT", prompt_issues, pack_ready_count, len(session.shots)))
     stages.append(_stage("takes", "RESULT / TAKES", take_issues, accepted_count, len(session.shots)))
 
-    # Adjacent visual QC is read-only; unreadable/missing files are already caught elsewhere.
-    if accepted_count >= 2:
-        try:
-            from .semantic_qc import adjacent_visual_findings
-            for finding in adjacent_visual_findings(session):
-                qc_issues.append(ProductionIssue(
-                    code=finding.finding_id,
-                    severity="warning" if finding.status == "REVIEW" else "info",
-                    stage_id="qc",
-                    message=finding.summary_ko,
-                ))
-        except (OSError, ValueError, ImportError):
-            qc_issues.append(ProductionIssue(code="SEQUENCE_VISUAL_QC_SKIPPED", severity="warning", stage_id="qc", message="인접 Shot 시각 연속성 검사를 완료하지 못했습니다.", action="파일/선택 기능 상태 확인"))
+    # Keep Production Readiness fast: use persisted QC reports only. Heavy frame analysis
+    # remains an explicit action in the QC page instead of running when this dialog opens.
+    if accepted_count >= 2 and not session.semantic_qc_reports:
+        qc_issues.append(ProductionIssue(
+            code="SEQUENCE_VISUAL_QC_NOT_RUN", severity="warning", stage_id="qc",
+            message="accepted Take가 여러 개 있지만 고급 시각/인접 Shot QC 결과가 없습니다.",
+            action="09 QC에서 필요할 때 시각 연속성 검사",
+        ))
     stages.append(_stage("qc", "09 QC / SEQUENCE", qc_issues, qc_ready_count, len(session.shots)))
 
     # Edit/render.
@@ -1059,31 +1054,32 @@ def _sample_render_health(path: Path, max_samples: int = 120) -> tuple[float | N
         capture.release()
         return None, None
     frame_count = max(1, int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 1))
-    stride = max(1, frame_count // max(2, max_samples))
+    sample_count = min(max(2, max_samples), frame_count)
+    positions = sorted({
+        int(round(index * (frame_count - 1) / max(1, sample_count - 1)))
+        for index in range(sample_count)
+    })
     black = 0
     frozen = 0
     sampled = 0
     previous = None
-    index = 0
-    while True:
+    for frame_index in positions:
+        capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
         ok, frame = capture.read()
         if not ok:
-            break
-        if index % stride == 0:
-            small = cv2.resize(frame, (160, 90), interpolation=cv2.INTER_AREA)
-            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-            sampled += 1
-            if float(np.mean(gray)) < 8.0:
-                black += 1
-            if previous is not None and float(np.mean(cv2.absdiff(previous, gray))) < 0.45:
-                frozen += 1
-            previous = gray
-        index += 1
+            continue
+        small = cv2.resize(frame, (160, 90), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+        sampled += 1
+        if float(np.mean(gray)) < 8.0:
+            black += 1
+        if previous is not None and float(np.mean(cv2.absdiff(previous, gray))) < 0.45:
+            frozen += 1
+        previous = gray
     capture.release()
     if not sampled:
         return None, None
     return black / sampled, frozen / max(1, sampled - 1)
-
 
 def _scene_cut_count(path: Path) -> int | None:
     try:
