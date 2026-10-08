@@ -28,7 +28,7 @@ class ProductionControlDialog(QDialog):
         super().__init__(parent)
         self.session_getter = session_getter
         self.on_changed = on_changed or (lambda: None)
-        self.queue = GenerationQueue()
+        self.queue = GenerationQueue(self.session.generation_jobs)
         self.settings = QSettings("MVDirectorStudio", "ProductionControl")
         self.workflow_template: dict | None = None
         self.setWindowTitle("PRODUCTION CONTROL · 전체 제작 점검")
@@ -241,6 +241,8 @@ class ProductionControlDialog(QDialog):
     def _build_queue(self):
         adapter = self.adapter.currentData()
         created = build_generation_queue(self.session, self.queue, adapter)
+        if created:
+            self.on_changed()
         self.queue_detail.setPlainText(
             f"생성 큐 {len(created)}개 준비 · accepted Take가 없고 현재 Prompt Contract가 최신인 Shot만 추가했습니다."
         )
@@ -314,6 +316,7 @@ class ProductionControlDialog(QDialog):
         pack = next((item for item in self.session.generation_packs if item.pack_id == job.pack_id), None)
         if not pack:
             self.queue.fail(job.job_id, "Prompt Pack을 찾을 수 없습니다.")
+            self.on_changed()
             self._refresh_queue()
             return
         try:
@@ -323,8 +326,10 @@ class ProductionControlDialog(QDialog):
             self.queue.start(job.job_id, prompt_id)
         except Exception as exc:
             self.queue.fail(job.job_id, str(exc))
+            self.on_changed()
             self.queue_detail.setPlainText(f"ComfyUI 전송 실패\n{exc}")
         else:
+            self.on_changed()
             self.queue_detail.setPlainText(f"ComfyUI에 전송했습니다.\nprompt_id={prompt_id}\nShot={job.shot_id}")
         self._refresh_queue()
 
@@ -355,7 +360,7 @@ class ProductionControlDialog(QDialog):
                                 registered.append(take.take_id)
                         except Exception:
                             pass
-        if registered:
+        if registered or any(job.status == "DONE" for job in self.queue.jobs):
             self.on_changed()
         self.queue_detail.setPlainText(
             "결과 확인 완료" + (f"\n새 candidate Take: {', '.join(registered)}" if registered else "")
