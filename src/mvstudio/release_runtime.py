@@ -711,6 +711,88 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         shutil.rmtree(directory, ignore_errors=True)
 
 
+def series_studio_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Exercise G8 session persistence, planning services, QC, graph, and Qt UI."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    paths = app_paths()
+    directory = paths.temp / f"series-studio-smoke-{uuid.uuid4().hex}"
+    directory.mkdir(parents=True)
+    try:
+        from PySide6.QtWidgets import QApplication
+        from .g8_ui import SeriesStudioDialog
+        from .session import LyricsWorldSession
+        from .series_studio import (
+            EntityContinuityState, EpisodeContinuitySnapshot,
+            build_asset_prompt_packs, build_episode_graph,
+            resolve_entity_variant, run_series_continuity_qc,
+            suggest_reference_slots,
+        )
+
+        session = LyricsWorldSession()
+        session.initialize_series()
+        target = directory / "THE_FIFTH_VERDICT_시리즈.json"
+        session.export(target)
+        reopened = LyricsWorldSession.import_file(target)
+        bible = reopened.series_bible
+        entities = reopened.series_entities
+        required = {
+            "YOSUMI", "SUZUGARA", "TOJI", "THE_ARCHIVE", "HOLLOW",
+            "STAMP", "GWAN_SYMBOL", "MARGIN_CITY_LOCATIONS",
+        }
+        locked = {"YOSUMI", "SUZUGARA", "TOJI", "THE_ARCHIVE", "HOLLOW"}
+        slots = suggest_reference_slots(bible, entities, reopened.series_assets)
+        packs = build_asset_prompt_packs(bible, entities, slots)
+        graph = build_episode_graph(bible)
+        yosumi = next(entity for entity in entities if entity.entity_id == "YOSUMI")
+        resolved = resolve_entity_variant(yosumi, "EP5")
+        snapshots = [
+            EpisodeContinuitySnapshot(episode_id="EP1", clues_set_up=["CHAIN_STAMP"], motifs=["margin line"], entities=[
+                EntityContinuityState(entity_id="YOSUMI", shape_tokens=list(yosumi.shape_grammar.locked_parts), colors=["ink black"]),
+            ]),
+            EpisodeContinuitySnapshot(episode_id="EP5", payoffs=["CHAIN_STAMP"], motifs=["margin line"], entities=[
+                EntityContinuityState(entity_id="YOSUMI", shape_tokens=list(yosumi.shape_grammar.locked_parts), colors=["ink black"]),
+            ]),
+        ]
+        qc = run_series_continuity_qc(bible, entities, snapshots)
+        app = QApplication.instance() or QApplication([])
+        dialog = SeriesStudioDialog(reopened)
+        dialog.show(); app.processEvents()
+        tab_names = [dialog.tabs.tabText(i) for i in range(dialog.tabs.count())]
+        payload = {
+            "series_studio": "PASS",
+            "session_round_trip": target.is_file() and bible is not None,
+            "five_episodes": bool(bible and len(bible.episodes) == 5),
+            "required_entities": {entity.entity_id for entity in entities} == required,
+            "shape_grammar_locked": all(entity.shape_grammar.lock_strength == 1.0 and entity.shape_grammar.locked_parts for entity in entities if entity.entity_id in locked),
+            "text_masters": all(entity.text_master for entity in entities),
+            "variant_lock_preserved": resolved.shape_grammar == yosumi.shape_grammar,
+            "reference_slots": len(slots),
+            "prompt_packs": len(packs),
+            "asset_factory_roles": sorted({pack.kind for pack in packs}),
+            "episode_graph_nodes": len(graph.nodes),
+            "episode_graph_edges": len(graph.edges),
+            "continuity_qc_executed": isinstance(qc.passed, bool),
+            "ui_tabs": tab_names,
+            "ui_entities": dialog.entity_select.count(),
+        }
+        dialog.close(); app.processEvents()
+        ok = all(payload[key] for key in (
+            "session_round_trip", "five_episodes", "required_entities",
+            "shape_grammar_locked", "text_masters", "variant_lock_preserved",
+            "continuity_qc_executed",
+        )) and payload["reference_slots"] > 0 and payload["prompt_packs"] == payload["reference_slots"] \
+            and payload["episode_graph_nodes"] == 5 and payload["episode_graph_edges"] >= 2 \
+            and tab_names == ["Series", "Episode", "Character", "Assets", "Continuity", "Episode Graph"] \
+            and payload["ui_entities"] == 8
+        payload["series_studio"] = "PASS" if ok else "FAIL"
+        return ok, payload
+    except Exception as exc:
+        configure_logging(paths).exception("Series Studio packaged smoke failed")
+        return False, {"series_studio": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def release_stress_test() -> tuple[bool, dict[str, Any]]:
     """Packaged, real-dependency release exercise. No media-analysis mocks."""
     paths = app_paths()

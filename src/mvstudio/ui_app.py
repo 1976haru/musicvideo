@@ -25,6 +25,7 @@ from .g4_ui import ManualGenerationStudioPage
 from .g4b_ui import ResultTakesPage
 from .g5a_ui import TechnicalQCPage
 from .g6_ui import EditorRenderPage
+from .g8_ui import SeriesStudioDialog
 from .release_ui import ReleaseDoctorDialog
 from .release_runtime import APP_VERSION, log_uncaught, should_show_startup_doctor
 from .reference_vault import resolve_reference_path
@@ -194,6 +195,10 @@ class MainWindow(QMainWindow):
         doctor_button = QPushButton("제작 준비 / 진단")
         doctor_button.clicked.connect(self._show_release_doctor)
         side.addWidget(doctor_button)
+        series_button = QPushButton("SERIES STUDIO")
+        series_button.setObjectName("seriesStudioButton")
+        series_button.clicked.connect(self._show_series_studio)
+        side.addWidget(series_button)
 
         self.nav_buttons = []
         steps = [
@@ -288,6 +293,10 @@ class MainWindow(QMainWindow):
             b.setProperty("active", i == index)
             b.style().unpolish(b)
             b.style().polish(b)
+
+    def _show_series_studio(self):
+        dialog = SeriesStudioDialog(self.session, self._schedule_autosave, self)
+        dialog.exec()
 
     def _music_page(self):
         page = QWidget()
