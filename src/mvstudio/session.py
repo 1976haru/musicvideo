@@ -108,10 +108,22 @@ class LyricsWorldSession:
             raise ValueError(f"Unknown concept_id: {concept_id}")
         self.selected_concept_id = concept_id
 
-    def promote_selected_concept(self) -> WorldBible:
+    def promote_selected_concept(self, fill_missing_only: bool = False) -> WorldBible:
         if not self.selected_concept:
             raise ValueError("먼저 World Lab에서 세계관을 선택하세요.")
-        self.world_bible = promote_world_concept(self.selected_concept, self.analysis, self.audio_map)
+        generated = promote_world_concept(self.selected_concept, self.analysis, self.audio_map)
+        if fill_missing_only and self.world_bible is not None:
+            updates = {}
+            for key in WorldBible.model_fields:
+                if key == "source_concept_id":
+                    continue
+                current = getattr(self.world_bible, key)
+                if not current:
+                    updates[key] = getattr(generated, key)
+            updates["source_concept_id"] = generated.source_concept_id
+            self.world_bible = self.world_bible.model_copy(update=updates)
+        else:
+            self.world_bible = generated
         return self.world_bible
 
     @property
