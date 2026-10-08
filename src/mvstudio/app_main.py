@@ -5,8 +5,8 @@ import sys
 
 from .release_runtime import (
     APP_VERSION, begin_run, configure_logging, end_run, log_uncaught,
-    g3_dark_ui_smoke_test, gui_music_test, music_analysis_smoke_test, release_stress_test,
-    render_smoke_test, series_studio_smoke_test, smoke_test, world_bible_smoke_test,
+    g3_dark_ui_smoke_test, gui_music_test, music_analysis_smoke_test, production_megagate_test,
+    release_stress_test, render_smoke_test, series_studio_smoke_test, smoke_test, world_bible_smoke_test,
 )
 
 
@@ -47,6 +47,10 @@ def main() -> int:
         ok, payload = g3_dark_ui_smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 9
+    if "--production-megagate-test" in sys.argv:
+        ok, payload = production_megagate_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 10
     previous_unclean = begin_run()
     sys.excepthook = log_uncaught
     try:
