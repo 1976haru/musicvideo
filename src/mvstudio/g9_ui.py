@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QThread, Signal
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDialog, QFileDialog, QFrame, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, QMessageBox, QPushButton, QTabWidget, QTextEdit,
@@ -19,6 +19,21 @@ from .production_orchestrator import (
     materialize_comfyui_workflow,
     verify_final_render,
 )
+
+
+class FinalVerifyWorker(QThread):
+    completed = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, session, parent=None):
+        super().__init__(parent)
+        self.session = session
+
+    def run(self):
+        try:
+            self.completed.emit(verify_final_render(self.session))
+        except Exception as exc:
+            self.failed.emit(str(exc))
 
 
 class ProductionControlDialog(QDialog):
@@ -186,10 +201,10 @@ class ProductionControlDialog(QDialog):
         note.setObjectName("muted")
         layout.addWidget(note)
         actions = QHBoxLayout()
-        verify = QPushButton("최종 영상 자동 검증")
-        verify.setObjectName("primary")
-        verify.clicked.connect(self._verify_final)
-        actions.addWidget(verify)
+        self.final_verify_button = QPushButton("최종 영상 자동 검증")
+        self.final_verify_button.setObjectName("primary")
+        self.final_verify_button.clicked.connect(self._verify_final)
+        actions.addWidget(self.final_verify_button)
         actions.addStretch(1)
         layout.addLayout(actions)
         self.final_result = QTextEdit()
@@ -395,7 +410,25 @@ class ProductionControlDialog(QDialog):
         self.refresh()
 
     def _verify_final(self):
-        report = verify_final_render(self.session)
+        if hasattr(self, "_final_worker") and self._final_worker.isRunning():
+            return
+        self.final_verify_button.setEnabled(False)
+        self.final_verify_button.setText("최종 영상 검증 중…")
+        self.final_result.setPlainText("최종 영상을 검사하고 있습니다. 원본 파일은 변경하지 않습니다.")
+        self._final_worker = FinalVerifyWorker(self.session, self)
+        self._final_worker.completed.connect(self._show_final_report)
+        self._final_worker.failed.connect(self._show_final_error)
+        self._final_worker.finished.connect(self._final_worker_finished)
+        self._final_worker.start()
+
+    def _final_worker_finished(self):
+        self.final_verify_button.setEnabled(True)
+        self.final_verify_button.setText("최종 영상 자동 검증")
+
+    def _show_final_error(self, message: str):
+        self.final_result.setPlainText(f"⛔ 최종 영상 검증 실패\n{message}")
+
+    def _show_final_report(self, report):
         lines = [
             f"상태: {report.status}",
             f"파일: {report.path or '-'}",
