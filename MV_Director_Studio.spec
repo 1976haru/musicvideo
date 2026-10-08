@@ -1,7 +1,23 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_submodules
 
-hidden = collect_submodules("mvstudio") + ["cv2", "librosa", "soundfile", "numpy"]
+def _collect_optional_submodules(name):
+    try:
+        return collect_submodules(name)
+    except Exception:
+        return []
+
+hidden = collect_submodules("mvstudio") + ["cv2", "librosa", "soundfile", "numpy", "scipy"]
+# SciPy's Array API compatibility layer is imported dynamically by recent SciPy/librosa
+# builds. PyInstaller can miss these vendored namespaces, so collect both layouts used
+# across supported SciPy versions plus the standalone compatibility package.
+for _pkg in (
+    "scipy._external.array_api_compat",
+    "scipy._lib.array_api_compat",
+    "array_api_compat",
+):
+    hidden += _collect_optional_submodules(_pkg)
+hidden = list(dict.fromkeys(hidden))
 
 a = Analysis(
     ["mvstudio_app.py"], pathex=["src"], binaries=[], datas=[], hiddenimports=hidden,
