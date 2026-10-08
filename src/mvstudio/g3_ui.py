@@ -42,6 +42,8 @@ def _time(value: float = 0.0) -> QDoubleSpinBox:
 
 def _pane(title: str, child: QWidget) -> QWidget:
     pane = QWidget()
+    pane.setObjectName("g3Pane")
+    pane.setAutoFillBackground(False)
     layout = QVBoxLayout(pane)
     layout.setContentsMargins(14, 12, 14, 12)
     layout.setSpacing(10)
@@ -55,6 +57,7 @@ def _pane(title: str, child: QWidget) -> QWidget:
 class StoryRoomPage(QWidget):
     def __init__(self, session_getter, on_change):
         super().__init__()
+        self.setObjectName("g3StoryRoom")
         self.session_getter = session_getter
         self.on_change = on_change
         self._build()
@@ -71,16 +74,25 @@ class StoryRoomPage(QWidget):
         self.chain_label.setObjectName("muted")
         outer.addWidget(self.chain_label)
         splitter = QSplitter(Qt.Horizontal)
+        splitter.setObjectName("g3Splitter")
         self.evidence = QListWidget()
+        self.evidence.setObjectName("g3EvidenceList")
         self.beat_list = QListWidget()
+        self.beat_list.setObjectName("g3BeatList")
         splitter.addWidget(_pane("음악 + 가사 근거", self.evidence))
         splitter.addWidget(_pane("Story Beat 순서", self.beat_list))
 
         detail_host = QWidget()
+        detail_host.setObjectName("g3DetailHost")
+        detail_host.setAutoFillBackground(False)
         detail_outer = QVBoxLayout(detail_host)
         detail_scroll = QScrollArea()
+        detail_scroll.setObjectName("g3Scroll")
         detail_scroll.setWidgetResizable(True)
+        detail_scroll.viewport().setAutoFillBackground(False)
         form_host = QWidget()
+        form_host.setObjectName("g3FormHost")
+        form_host.setAutoFillBackground(False)
         form = QFormLayout(form_host)
         form.setSpacing(8)
         self.start = _time()
@@ -300,6 +312,7 @@ class StoryRoomPage(QWidget):
 class ShotBoardPage(QWidget):
     def __init__(self, session_getter, on_change):
         super().__init__()
+        self.setObjectName("g3ShotBoard")
         self.session_getter = session_getter
         self.on_change = on_change
         self._building = False
@@ -317,13 +330,21 @@ class ShotBoardPage(QWidget):
         self.beat_combo.setMinimumHeight(44)
         outer.addWidget(self.beat_combo)
         splitter = QSplitter(Qt.Horizontal)
+        splitter.setObjectName("g3Splitter")
         self.shot_list = QListWidget()
+        self.shot_list.setObjectName("g3ShotList")
         splitter.addWidget(_pane("Storyboard 순서", self.shot_list))
         detail_host = QWidget()
+        detail_host.setObjectName("g3DetailHost")
+        detail_host.setAutoFillBackground(False)
         detail_layout = QVBoxLayout(detail_host)
         detail_scroll = QScrollArea()
+        detail_scroll.setObjectName("g3Scroll")
         detail_scroll.setWidgetResizable(True)
+        detail_scroll.viewport().setAutoFillBackground(False)
         form_host = QWidget()
+        form_host.setObjectName("g3FormHost")
+        form_host.setAutoFillBackground(False)
         form = QFormLayout(form_host)
         form.setSpacing(8)
         self.start, self.end = _time(), _time()
