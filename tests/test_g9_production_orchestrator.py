@@ -27,6 +27,7 @@ from mvstudio.session import LyricsWorldSession
 
 
 def _base_session(tmp_path: Path) -> LyricsWorldSession:
+    tmp_path.mkdir(parents=True, exist_ok=True)
     session = LyricsWorldSession(project_dir=tmp_path)
     music = tmp_path / "05 - 寒くないって笑った.wav"
     music.write_bytes(b"synthetic-audio-placeholder")
@@ -325,7 +326,6 @@ def test_director_coverage_warns_without_auto_rewriting_creative_choices(tmp_pat
 
 def test_continuity_contract_hash_does_not_depend_on_project_root(tmp_path):
     session = _base_session(tmp_path / "project_a")
-    (tmp_path / "project_a").mkdir(parents=True, exist_ok=True)
     shot = session.shots[0]
     first = compile_shot_continuity_contract(session, shot)
 
