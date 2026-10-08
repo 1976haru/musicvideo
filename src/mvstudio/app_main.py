@@ -43,6 +43,10 @@ def main() -> int:
         ok, payload = series_studio_smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 8
+    if "--g3-dark-ui-smoke-test" in sys.argv:
+        ok, payload = g3_dark_ui_smoke_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 9
     previous_unclean = begin_run()
     sys.excepthook = log_uncaught
     try:

@@ -40,8 +40,8 @@ def _shot():
 
 
 def test_release_version_and_visible_title(monkeypatch):
-    assert APP_VERSION == "1.0.3"
-    assert 'version = "1.0.3"' in Path("pyproject.toml").read_text(encoding="utf-8")
+    assert APP_VERSION == "1.0.4"
+    assert 'version = "1.0.4"' in Path("pyproject.toml").read_text(encoding="utf-8")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
     from mvstudio.ui_app import MainWindow
@@ -214,7 +214,7 @@ def test_music_analysis_smoke_exercises_real_librosa_scipy_path(tmp_path, monkey
 
 def test_release_files_ci_manifest_and_no_obvious_secret():
     required = ["build_windows.ps1", "MV_Director_Studio.spec", "README_FIRST.txt", "CHANGELOG.md",
-                "docs/RELEASE_NOTES_1.0.3.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
+                "docs/RELEASE_NOTES_1.0.4.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
     assert all(Path(item).is_file() for item in required)
     workflow = Path(required[-1]).read_text(encoding="utf-8")
     assert "PyInstaller" not in workflow or "package" in workflow
@@ -232,10 +232,13 @@ def test_release_gate_scripts_are_consistent():
     assert "--music-analysis-smoke-test" in workflow
     assert "--render-smoke-test" in workflow
     assert "--release-stress-test" in workflow
+    assert "--g3-dark-ui-smoke-test" in workflow
     assert "--release-stress-test" in build
+    assert "packaged G3 dark UI" in build
+    assert "root G3 dark UI" in build
     assert "root GUI music action" in build
     assert "MV Director Studio 1.0.0" not in cli
-    assert "1.0.3" in progress
+    assert "1.0.4" in progress
 
 
 def test_world_bible_first_save_persists_to_json(tmp_path, monkeypatch):

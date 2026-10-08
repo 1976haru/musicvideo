@@ -62,7 +62,7 @@ if (-not $NoBundleFFmpeg) {
 $commit = (git rev-parse HEAD 2>$null)
 if (-not $commit) { $commit = "unknown" }
 [ordered]@{
-    app_version = "1.0.3"; session_schema = "1.0"; git_commit = $commit.Trim()
+    app_version = "1.0.4"; session_schema = "1.0"; git_commit = $commit.Trim()
     build_time_utc = [DateTime]::UtcNow.ToString("o")
     python = (python --version 2>&1 | Out-String).Trim(); platform = [Environment]::OSVersion.VersionString
     packaging = "PyInstaller ONEDIR"; ffmpeg_strategy = $ffmpegStrategy; entrypoint = "MV Director Studio.exe"
@@ -77,6 +77,7 @@ Invoke-ExeGate "packaged render" $stagedExe @("--render-smoke-test")
 Invoke-ExeGate "release stress" $stagedExe @("--release-stress-test")
 Invoke-ExeGate "packaged World Bible save/UI" $stagedExe @("--world-bible-smoke-test")
 Invoke-ExeGate "packaged Series Studio" $stagedExe @("--series-studio-smoke-test")
+Invoke-ExeGate "packaged G3 dark UI" $stagedExe @("--g3-dark-ui-smoke-test")
 if ($ArtifactOnly) { Write-Host "ARTIFACT READY (root deploy skipped): $artifact"; exit 0 }
 
 Assert-AppNotRunning
@@ -97,6 +98,7 @@ try {
     Invoke-ExeGate "root GUI music action" $rootExe @("--gui-music-test")
     Invoke-ExeGate "root World Bible save/UI" $rootExe @("--world-bible-smoke-test")
     Invoke-ExeGate "root Series Studio" $rootExe @("--series-studio-smoke-test")
+    Invoke-ExeGate "root G3 dark UI" $rootExe @("--g3-dark-ui-smoke-test")
 
     foreach ($path in @((Join-Path $repo "dist"), (Join-Path $repo "build"), (Join-Path $repo "release"))) {
         if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force }
