@@ -608,6 +608,25 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         )
         window.session.analyze(); window.session.promote_selected_concept(); window._refresh_from_session()
 
+        # Simulate a 1.0.2 partial World Bible: preserve user edits and fill only missing fields.
+        manual_thesis = "사용자가 직접 수정한 기존 감정 논지"
+        window.session.world_bible.emotional_thesis = manual_thesis
+        window.session.world_bible.time_period = ""
+        window.session.world_bible.palette = []
+        window.session.world_bible.material_language = []
+        window.session.world_bible.weather_rules = []
+        window.session.world_bible.lighting_rules = []
+        window.session.world_bible.camera_rules = []
+        window._refresh_from_session()
+        partial_button = window.world_bible_draft_button.text()
+        partial_fill_ok = window._promote_world_bible()
+        partial_preserved = (
+            partial_fill_ok
+            and window.session.world_bible.emotional_thesis == manual_thesis
+            and not window._world_bible_missing_keys()
+            and "빈 항목 자동 보강" in partial_button
+        )
+
         dialog_calls = 0
         original_dialog = QFileDialog.getSaveFileName
         original_information = QMessageBox.information
@@ -667,6 +686,7 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
             "generated_fields": sum(bool(getattr(window.session.world_bible, key)) for key in editable_keys),
             "generated_complete": generated_complete,
             "camera_uses_music": camera_uses_music,
+            "partial_fill_preserved": partial_preserved,
             "first_save_exists": first_exists, "first_save_preserved": first_preserved,
             "same_json_resave": second_preserved and dialog_calls == 1, "dialog_calls": dialog_calls,
             "cancel_safe": cancel_safe, "cancel_message": cancel_message, "label_count": len(labels),
@@ -680,7 +700,7 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         ok = payload["label_count"] == 13 and all(payload[key] for key in (
             "first_save_exists", "first_save_preserved", "same_json_resave", "cancel_safe",
             "labels_complete", "dark_host", "usable_1100x720", "window_title", "sidebar_release",
-            "generated_complete", "camera_uses_music",
+            "generated_complete", "camera_uses_music", "partial_fill_preserved",
         ))
         payload["world_bible"] = "PASS" if ok else "FAIL"
         return ok, payload
