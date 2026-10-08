@@ -111,7 +111,7 @@ class LyricsWorldSession:
     def promote_selected_concept(self) -> WorldBible:
         if not self.selected_concept:
             raise ValueError("먼저 World Lab에서 세계관을 선택하세요.")
-        self.world_bible = promote_world_concept(self.selected_concept)
+        self.world_bible = promote_world_concept(self.selected_concept, self.analysis, self.audio_map)
         return self.world_bible
 
     @property
