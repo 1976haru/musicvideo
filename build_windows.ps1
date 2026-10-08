@@ -16,7 +16,7 @@ if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
 $artifact = Join-Path $dist "MV_Director_Studio"
 New-Item -ItemType Directory -Force -Path (Join-Path $artifact "tools\ffmpeg\bin") | Out-Null
 Copy-Item README_FIRST.txt, CHANGELOG.md -Destination $artifact -Force
-Copy-Item docs\RELEASE_NOTES_1.0.0.md, docs\KNOWN_LIMITATIONS.md -Destination $artifact -Force
+Copy-Item docs\RELEASE_NOTES_1.0.1.md, docs\KNOWN_LIMITATIONS.md -Destination $artifact -Force
 $ffmpegStrategy = "app-local tools/ffmpeg/bin, then PATH"
 if (-not $NoBundleFFmpeg) {
     $ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue).Source
