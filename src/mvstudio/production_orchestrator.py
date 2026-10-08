@@ -905,6 +905,8 @@ class ComfyUIBridge:
         if source.suffix.casefold() not in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}:
             raise ValueError(f"Unsupported ComfyUI reference image: {source.suffix}")
 
+        file_bytes = source.read_bytes()
+        upload_name = f"mvstudio_{hashlib.sha256(file_bytes).hexdigest()[:16]}{source.suffix.casefold()}"
         boundary = f"----MVStudio{uuid4().hex}"
         mime = mimetypes.guess_type(source.name)[0] or "application/octet-stream"
         chunks: list[bytes] = []
@@ -919,9 +921,9 @@ class ComfyUIBridge:
 
         chunks.extend([
             f"--{boundary}\r\n".encode(),
-            f'Content-Disposition: form-data; name="image"; filename="{source.name}"\r\n'.encode("utf-8"),
+            f'Content-Disposition: form-data; name="image"; filename="{upload_name}"\r\n'.encode("ascii"),
             f"Content-Type: {mime}\r\n\r\n".encode(),
-            source.read_bytes(),
+            file_bytes,
             b"\r\n",
         ])
         field("type", "input")
