@@ -118,6 +118,12 @@ def test_cover_contain_and_cache_invalidation(tmp_path):
 def test_ffprobe_fallback_and_unavailable_are_graceful(tmp_path, monkeypatch):
     media = tmp_path / "영상.mp4"; media.write_bytes(b"bad")
     monkeypatch.setattr("mvstudio.editor.shutil.which", lambda name: None)
+    # The source tree can sit beside the deployed root runtime; isolate this
+    # explicit unavailable-renderer assertion from app-local FFmpeg discovery.
+    monkeypatch.setattr(
+        "mvstudio.editor.discover_ffmpeg",
+        lambda: types.SimpleNamespace(ffmpeg_path="", ffprobe_path=""),
+    )
     fake_cv = types.SimpleNamespace(
         CAP_PROP_FPS=1, CAP_PROP_FRAME_COUNT=2, CAP_PROP_FRAME_WIDTH=3, CAP_PROP_FRAME_HEIGHT=4,
         VideoCapture=lambda path: types.SimpleNamespace(

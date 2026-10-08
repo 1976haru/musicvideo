@@ -75,6 +75,7 @@ Invoke-ExeGate "packaged smoke" $stagedExe @("--smoke-test")
 Invoke-ExeGate "packaged music analysis" $stagedExe @("--music-analysis-smoke-test")
 Invoke-ExeGate "packaged render" $stagedExe @("--render-smoke-test")
 Invoke-ExeGate "release stress" $stagedExe @("--release-stress-test")
+Invoke-ExeGate "packaged World Bible save/UI" $stagedExe @("--world-bible-smoke-test")
 if ($ArtifactOnly) { Write-Host "ARTIFACT READY (root deploy skipped): $artifact"; exit 0 }
 
 Assert-AppNotRunning
@@ -93,6 +94,7 @@ try {
     Invoke-ExeGate "root render" $rootExe @("--render-smoke-test")
     Invoke-ExeGate "root release stress" $rootExe @("--release-stress-test")
     Invoke-ExeGate "root GUI music action" $rootExe @("--gui-music-test")
+    Invoke-ExeGate "root World Bible save/UI" $rootExe @("--world-bible-smoke-test")
 
     foreach ($path in @((Join-Path $repo "dist"), (Join-Path $repo "build"), (Join-Path $repo "release"))) {
         if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force }

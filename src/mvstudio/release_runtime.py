@@ -576,6 +576,94 @@ def gui_music_test(audio_path: str | Path) -> tuple[bool, dict[str, Any]]:
         return False, {"gui_music": "FAIL", "file": path.name, "error": str(exc)}
 
 
+def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Exercise the real World Bible save button path and dark form UI."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    paths = app_paths()
+    directory = paths.temp / f"world-bible-smoke-{uuid.uuid4().hex}"
+    directory.mkdir(parents=True)
+    target = directory / "05_寒くないって笑った_session.json"
+    try:
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication, QFileDialog, QLabel, QMessageBox, QWidget
+        from .session import LyricsWorldSession
+        from .ui_app import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow(); window.resize(1100, 720); window.show(); app.processEvents()
+        window.session.lyrics_text = "차가운 밤을 걷는다\n다시 빛을 향해 간다\n새벽의 문을 연다"
+        window.session.duration_sec = 30.0
+        window.session.analyze(); window.session.promote_selected_concept(); window._refresh_from_session()
+
+        dialog_calls = 0
+        original_dialog = QFileDialog.getSaveFileName
+        original_information = QMessageBox.information
+        original_critical = QMessageBox.critical
+        def choose_target(*args, **kwargs):
+            nonlocal dialog_calls
+            dialog_calls += 1
+            return str(target), "JSON (*.json)"
+        QFileDialog.getSaveFileName = choose_target
+        QMessageBox.information = lambda *args, **kwargs: None
+        QMessageBox.critical = lambda *args, **kwargs: None
+        try:
+            first_value = "패키지 첫 저장 감정 원칙"
+            window.bible_fields["emotional_thesis"].setPlainText(first_value)
+            window._save_world_bible()
+            first_exists = target.is_file() and window.session.session_path == target.resolve()
+            first_reopen = LyricsWorldSession.import_file(target)
+            first_preserved = bool(first_reopen.world_bible and first_reopen.world_bible.emotional_thesis == first_value)
+            second_value = "같은 JSON 재저장 감정 원칙"
+            window.bible_fields["emotional_thesis"].setPlainText(second_value)
+            window._save_world_bible()
+            second_reopen = LyricsWorldSession.import_file(target)
+            second_preserved = bool(second_reopen.world_bible and second_reopen.world_bible.emotional_thesis == second_value)
+            window.session.session_path = None
+            QFileDialog.getSaveFileName = lambda *args, **kwargs: ("", "")
+            window.bible_fields["emotional_thesis"].setPlainText("메모리에만 남는 변경")
+            window._save_world_bible()
+            cancel_message = window.statusBar().currentMessage()
+            cancel_safe = "저장 완료" not in cancel_message and "파일 저장이 취소" in cancel_message
+        finally:
+            QFileDialog.getSaveFileName = original_dialog
+            QMessageBox.information = original_information
+            QMessageBox.critical = original_critical
+
+        expected_labels = {
+            "Premise", "Emotional thesis", "Reality rules", "Time period", "Visual language",
+            "Palette", "Materials", "Weather rules", "Lighting rules", "Camera rules",
+            "Recurring motifs", "Forbidden elements", "Lyric foundation (읽기 전용)",
+        }
+        host = window.findChild(QWidget, "worldBibleHost")
+        labels = window.findChildren(QLabel, "formLabel")
+        window._switch(3); app.processEvents()
+        color = host.palette().color(QPalette.Window) if host else None
+        dark_host = bool(color and max(color.red(), color.green(), color.blue()) < 80)
+        payload = {
+            "world_bible": "PASS", "file": target.name,
+            "first_save_exists": first_exists, "first_save_preserved": first_preserved,
+            "same_json_resave": second_preserved and dialog_calls == 1, "dialog_calls": dialog_calls,
+            "cancel_safe": cancel_safe, "cancel_message": cancel_message, "label_count": len(labels),
+            "labels_complete": {label.text() for label in labels} == expected_labels,
+            "dark_host": dark_host, "usable_1100x720": window.width() >= 1100 and window.height() >= 720,
+            "window_title": window.windowTitle() == f"MV Director Studio {APP_VERSION}",
+            "sidebar_release": any(f"Release {APP_VERSION}" in label.text() for label in window.findChildren(QLabel)),
+            "session_schema": SESSION_SCHEMA,
+        }
+        window.close(); app.processEvents()
+        ok = payload["label_count"] == 13 and all(payload[key] for key in (
+            "first_save_exists", "first_save_preserved", "same_json_resave", "cancel_safe",
+            "labels_complete", "dark_host", "usable_1100x720", "window_title", "sidebar_release",
+        ))
+        payload["world_bible"] = "PASS" if ok else "FAIL"
+        return ok, payload
+    except Exception as exc:
+        configure_logging(paths).exception("World Bible packaged smoke failed")
+        return False, {"world_bible": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def release_stress_test() -> tuple[bool, dict[str, Any]]:
     """Packaged, real-dependency release exercise. No media-analysis mocks."""
     paths = app_paths()
