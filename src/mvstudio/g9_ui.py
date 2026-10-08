@@ -262,7 +262,6 @@ class ProductionControlDialog(QDialog):
         return ComfyUIBridge(endpoint, timeout_sec=2.5)
 
     def _check_comfy(self):
-        QApplication.setOverrideCursor(Qt.WaitCursor) if False else None
         state = self._bridge().status()
         self.comfy_state.setText(f"{state.state} · {state.detail[:100]}")
         if state.state != "AVAILABLE":
