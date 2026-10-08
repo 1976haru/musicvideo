@@ -49,6 +49,10 @@ QPushButton#productionControlButton { text-align: left; font-weight: 800; backgr
 QPushButton#productionControlButton:hover { background: #376ad0; }
 QPushButton#nav { text-align: left; padding-left: 14px; background: transparent; border: none; }
 QPushButton#nav[active="true"] { background: #242c38; border: 1px solid #364154; }
+QTabWidget::pane { background: #12151a; border: 1px solid #303744; border-radius: 8px; top: -1px; }
+QTabBar::tab { background: #1b212a; color: #aeb8c6; border: 1px solid #303744; padding: 10px 16px; min-height: 26px; }
+QTabBar::tab:selected { background: #293a5c; color: #ffffff; border-color: #4d78d7; font-weight: 700; }
+QTabBar::tab:hover:!selected { background: #242c38; color: #eef2f7; }
 QTextEdit { background: #101319; border: 1px solid #313946; border-radius: 10px; padding: 10px; selection-background-color: #3764c7; }
 QListWidget, QListView, QTreeView, QTableView {
     background: #101319;
