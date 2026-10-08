@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 100% (MV Director Studio 1.0.4 G3 DARK UI HOTFIX)
+## 전체 진행률: 100% (MV Director Studio 1.1.0 G9 PRODUCTION ORCHESTRATOR — VALIDATION PENDING)
 
 ### 완료
 
@@ -188,3 +188,26 @@ G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니�
 - explicit dark QListWidget/ListView, splitter, scroll viewport and form host styling
 - packaged/root rendered G3 dark UI smoke gate
 - Series Studio and Session schema 1.0 unchanged
+
+
+## G8 SERIES STUDIO
+- THE FIFTH VERDICT 5부작 Series Bible / Episode Bible
+- YOSUMI / SUZUGARA / TOJI / THE ARCHIVE / HOLLOW Shape Grammar
+- 다중 Reference Director / Asset Factory / 승인 workflow
+- Shot → Generate Series Episode/Entity/Variant/approved Asset 연결
+- Episode Graph / Series Continuity QC
+
+## G9 PRODUCTION ORCHESTRATOR — 1.1.0
+- 전체 workflow Production Readiness / blocker / next-action
+- deterministic Shot Continuity Contract + hash
+- World/Character/Reference 변경 시 stale Prompt Pack 차단
+- Director Coverage 창작 보조 진단
+- persistent Generation Queue
+- optional localhost ComfyUI API workflow + up to 4 approved image references
+- Final Render Verification + optional PySceneDetect
+- main UI / Production Control UI contract
+- pytest stress target: 200 Shots / 1000 jobs / 10 session roundtrips
+- packaged/root Production Megagate target: 50 Shots / 500 jobs / 5 session roundtrips + real FFmpeg final
+- Session schema remains 1.0
+- 기존 01~10 page index 유지
+- root 실행본은 모든 기존 gate + Production Megagate PASS 후에만 교체
