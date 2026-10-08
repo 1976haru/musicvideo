@@ -378,6 +378,7 @@ class ProductionControlDialog(QDialog):
         bridge = self._bridge()
         output_root = Path(self.comfy_output.text()).expanduser().resolve(strict=False) if self.comfy_output.text().strip() else None
         registered = []
+        completed_now = 0
         for job in list(self.queue.jobs):
             if job.status != "RUNNING" or not job.provider_job_id:
                 continue
@@ -391,6 +392,7 @@ class ProductionControlDialog(QDialog):
                 continue
             paths = [str((output_root / name).resolve(strict=False)) if output_root else name for name in filenames]
             self.queue.complete(job.job_id, paths)
+            completed_now += 1
             if output_root:
                 for item in paths:
                     path = Path(item)
@@ -401,7 +403,7 @@ class ProductionControlDialog(QDialog):
                                 registered.append(take.take_id)
                         except Exception:
                             pass
-        if registered or any(job.status == "DONE" for job in self.queue.jobs):
+        if completed_now:
             self.on_changed()
         self.queue_detail.setPlainText(
             "결과 확인 완료" + (f"\n새 candidate Take: {', '.join(registered)}" if registered else "")
