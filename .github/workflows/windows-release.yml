@@ -20,7 +20,7 @@ jobs:
         run: python -m pip install -e ".[ui,music-basic,media,dev]"
       - name: Test and package
         shell: powershell
-        run: .\build_windows.ps1 -OutputRoot release
+        run: .\build_windows.ps1 -ArtifactOnly
       - name: Packaged smoke
         shell: powershell
         run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --smoke-test'
