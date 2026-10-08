@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -19,12 +18,8 @@ def tmp_path(request) -> Path:
     target.mkdir()
     return target
 
-
 def pytest_sessionfinish(session, exitstatus):
-    """CI-only: preserve pytest's real result, then skip unsafe native DLL teardown."""
-    if os.environ.get("MVSTUDIO_RELEASE_PYTEST_HARD_EXIT") != "1":
+    """CI child reports pytest's authoritative result before native DLL teardown."""
+    if os.environ.get("MVSTUDIO_RELEASE_PYTEST_CHILD") != "1":
         return
-    sys.stdout.write(f"\n[release-pytest] completed with exitstatus={int(exitstatus)}\n")
-    sys.stdout.flush()
-    sys.stderr.flush()
-    os._exit(int(exitstatus))
+    print(f"MVSTUDIO_PYTEST_RESULT={int(exitstatus)}", flush=True)
