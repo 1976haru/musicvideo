@@ -390,19 +390,54 @@ class ProductionControlDialog(QDialog):
                 continue
             if not filenames:
                 continue
-            paths = [str((output_root / name).resolve(strict=False)) if output_root else name for name in filenames]
-            self.queue.complete(job.job_id, paths)
-            completed_now += 1
-            if output_root:
-                for item in paths:
-                    path = Path(item)
-                    if path.is_file() and path.suffix.casefold() in {".mp4", ".mov", ".webm", ".mkv", ".m4v"}:
-                        try:
-                            if not any(Path(t.output_path).name == path.name and t.shot_id == job.shot_id for t in self.session.generation_takes):
-                                take = self.session.take_manager.register(path, job.shot_id, job.pack_id)
-                                registered.append(take.take_id)
-                        except Exception:
-                            pass
+            video_names = [
+                name for name in filenames
+                if Path(name).suffix.casefold() in {".mp4", ".mov", ".webm", ".mkv", ".m4v"}
+            ]
+            if not video_names:
+                self.queue.fail(job.job_id, "ComfyUI 결과에 지원되는 video output이 없습니다.")
+                completed_now += 1
+                continue
+            if output_root is None:
+                self.queue_detail.setPlainText(
+                    "ComfyUI 작업은 완료됐지만 Output 폴더가 지정되지 않았습니다. "
+                    "ComfyUI/output 폴더를 선택한 뒤 다시 '실행 결과 확인'을 누르세요."
+                )
+                continue
+
+            safe_paths = []
+            for name in video_names:
+                candidate = (output_root / name).resolve(strict=False)
+                try:
+                    candidate.relative_to(output_root)
+                except ValueError:
+                    continue
+                if candidate.is_file():
+                    safe_paths.append(candidate)
+            if not safe_paths:
+                self.queue_detail.setPlainText(
+                    "ComfyUI history에는 video가 있지만 지정한 Output 폴더에서 파일을 찾지 못했습니다. "
+                    "Output 폴더가 실제 ComfyUI/output인지 확인하세요."
+                )
+                continue
+
+            registration_ok = True
+            for path in safe_paths:
+                if any(
+                    Path(t.output_path).name == path.name and t.shot_id == job.shot_id
+                    for t in self.session.generation_takes
+                ):
+                    continue
+                try:
+                    take = self.session.take_manager.register(path, job.shot_id, job.pack_id)
+                    registered.append(take.take_id)
+                except Exception as exc:
+                    registration_ok = False
+                    self.queue_detail.setPlainText(f"결과 video 등록 실패\n{exc}")
+                    break
+            if registration_ok:
+                self.queue.complete(job.job_id, [str(path) for path in safe_paths])
+                completed_now += 1
         if completed_now:
             self.on_changed()
         self.queue_detail.setPlainText(
