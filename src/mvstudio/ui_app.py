@@ -53,6 +53,10 @@ QLabel#metric { font-size: 21px; font-weight: 800; color: #dce7ff; }
 QLabel#sectionTitle { font-size: 22px; font-weight: 800; }
 QLabel#smallTitle { font-size: 16px; font-weight: 750; }
 QScrollArea { border: none; background: transparent; }
+QScrollArea#worldBibleScroll { background: #12151a; border: none; }
+QScrollArea#worldBibleScroll > QWidget > QWidget { background: #12151a; }
+QWidget#worldBibleHost { background: #12151a; }
+QLabel#formLabel { color: #cbd5e1; background: transparent; font-weight: 700; padding-top: 8px; min-width: 170px; }
 QStatusBar { background: #15191f; color: #aab3c0; }
 """
 
@@ -161,7 +165,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 720)
         self.setStyleSheet(APP_STYLE)
         self.setStatusBar(QStatusBar())
-        self.statusBar().showMessage("G2 작업 중 · World Bible + Reference Vault")
+        self.statusBar().showMessage(f"MV Director Studio {APP_VERSION} · MUSIC에서 새 프로젝트를 시작하세요")
         self._build_ui()
 
     def _build_ui(self):
@@ -217,7 +221,7 @@ class MainWindow(QMainWindow):
         self.nav_buttons[3].clicked.connect(lambda: self._switch(3))
         self.nav_buttons[4].clicked.connect(lambda: self._switch(4))
         side.addStretch(1)
-        side.addWidget(_label("전체 100% · Release 1.0.0\nEditor / Render 포함", "muted"))
+        side.addWidget(_label(f"전체 100% · Release {APP_VERSION}\nEditor / Render 포함", "muted"))
 
         self.pages = QStackedWidget()
         self.pages.addWidget(self._music_page())
@@ -448,11 +452,17 @@ class MainWindow(QMainWindow):
         outer.addWidget(_label("WORLD BIBLE", "sectionTitle"))
         outer.addWidget(_label("선택한 세계관을 변하면 안 되는 제작 규칙으로 정리합니다. 가사 근거 Line ID는 계속 보존됩니다.", "muted"))
         scroll = QScrollArea()
+        scroll.setObjectName("worldBibleScroll")
         scroll.setWidgetResizable(True)
+        scroll.viewport().setAutoFillBackground(False)
         host = QWidget()
+        host.setObjectName("worldBibleHost")
+        host.setAutoFillBackground(False)
         form = QFormLayout(host)
-        form.setContentsMargins(8, 8, 8, 8)
+        form.setContentsMargins(14, 10, 14, 10)
         form.setSpacing(13)
+        form.setLabelAlignment(Qt.AlignLeft | Qt.AlignTop)
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         self.bible_fields = {}
         labels = [
             ("premise", "Premise"), ("emotional_thesis", "Emotional thesis"),
@@ -469,13 +479,16 @@ class MainWindow(QMainWindow):
             if key == "lyric_foundation":
                 editor.setReadOnly(True)
             self.bible_fields[key] = editor
-            form.addRow(title, editor)
+            label = _label(title, "formLabel")
+            label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            label.setMinimumWidth(170)
+            form.addRow(label, editor)
         scroll.setWidget(host)
         outer.addWidget(scroll, 1)
         actions = QHBoxLayout()
         promote = QPushButton("선택 세계관에서 초안 만들기")
         promote.clicked.connect(self._promote_world_bible)
-        save = QPushButton("World Bible 변경 저장")
+        save = QPushButton("World Bible + 세션 저장")
         save.setObjectName("primary")
         save.clicked.connect(self._save_world_bible)
         actions.addStretch(1)
@@ -551,8 +564,44 @@ class MainWindow(QMainWindow):
             text = editor.toPlainText().strip()
             changes[key] = [line.strip() for line in text.splitlines() if line.strip()] if key in list_fields else text
         self.session.world_bible = self.session.world_bible.model_copy(update=changes)
-        self.statusBar().showMessage("World Bible 변경 저장 완료")
-        self._schedule_autosave()
+
+        # The button must mean a real disk save, not an in-memory-only update.
+        target = self.session.session_path
+        if target is None:
+            path, _ = QFileDialog.getSaveFileName(
+                self,
+                "World Bible / 프로젝트 세션 저장",
+                "mv_director_session.json",
+                "MV Director Session (*.json);;JSON (*.json)",
+            )
+            if not path:
+                self.statusBar().showMessage(
+                    "World Bible 변경은 현재 실행 중에만 반영됨 · 파일 저장이 취소되었습니다.",
+                    10000,
+                )
+                QMessageBox.information(
+                    self,
+                    "파일 저장 필요",
+                    "World Bible 변경 내용은 현재 세션에는 반영됐지만 아직 파일로 저장되지 않았습니다.\n"
+                    "프로그램을 종료해도 보존하려면 다시 저장 버튼을 눌러 JSON 파일을 선택하세요.",
+                )
+                return
+            target = Path(path)
+
+        try:
+            saved = self.session.export(target)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "World Bible 저장 실패",
+                f"기존 세션 파일은 유지되었습니다.\n\n{exc}",
+            )
+            self.statusBar().showMessage("World Bible 저장 실패 · 기존 파일 유지", 10000)
+            return
+
+        self.autosave_timer.stop()
+        self._refresh_from_session()
+        self.statusBar().showMessage(f"World Bible + 세션 저장 완료 · {saved}", 10000)
 
     def _choose_references(self):
         paths, _ = QFileDialog.getOpenFileNames(self, "Reference 파일 선택", "", "Media (*.png *.jpg *.jpeg *.webp *.bmp *.gif *.mp4 *.mov);;All Files (*)")
