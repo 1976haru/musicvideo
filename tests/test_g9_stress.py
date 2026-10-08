@@ -83,7 +83,7 @@ def test_g9_stress_200_shots_contract_pack_roundtrip_and_1000_queue_jobs(tmp_pat
     assert len(report.shots) == 200
     assert all(not state.stale_pack for state in report.shots)
 
-    queue = GenerationQueue()
+    queue = GenerationQueue(session.generation_jobs)
     for i in range(1000):
         queue.add(f"S{i:04d}", f"P{i:04d}", "MANUAL")
     assert queue.counts()["PENDING"] == 1000
@@ -92,6 +92,13 @@ def test_g9_stress_200_shots_contract_pack_roundtrip_and_1000_queue_jobs(tmp_pat
         queue.complete(job.job_id)
     assert queue.counts()["DONE"] == 250
     assert queue.counts()["PENDING"] == 750
+
+    queue_target = tmp_path / "stress_queue_session.json"
+    session.export(queue_target)
+    queue_reopened = LyricsWorldSession.import_file(queue_target)
+    persisted = GenerationQueue(queue_reopened.generation_jobs)
+    assert persisted.counts() == queue.counts()
+    assert len(persisted.jobs) == 1000
 
 
 def test_g9_ui_contract_at_1100x720(tmp_path, monkeypatch):
