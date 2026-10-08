@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 — 2026-10-08
+
+- G9 Production Orchestrator 및 초보자용 PRODUCTION CONTROL 추가
+- Music/World/Series/Story/Shot/Prompt/Take/QC/Edit 전체 Production Readiness와 다음 행동 안내
+- World/Character/Variant/Reference를 deterministic Shot Continuity Contract로 컴파일하고 hash로 stale Prompt Pack 자동 감지
+- Director Coverage: 가사 근거, 주요 음악 변화점, Series context, visual strategy/action 반복, Shot 호흡 경고
+- Session에 생성 Queue 상태 저장/복원
+- 선택형 localhost ComfyUI bridge: API workflow placeholder, 최대 4개 승인 Reference upload, 결과 candidate Take 회수
+- Final Render Verification: duration/audio/size/fps + sampled black/freeze + optional PySceneDetect cut 분석
+- UI code contract 및 1100×720 Production Control 검사
+- pytest 200-Shot / 1000-job stress와 packaged/root 50-Shot / 500-job Production Megagate 추가
+- Session schema 1.0 유지, 기존 01~10 페이지 인덱스 유지
+
+
 ## 1.0.4 — 2026-10-08
 
 - STORY ROOM / SHOT BOARD에서 Windows 기본 흰색 배경이 노출되던 테마 회귀 수정
