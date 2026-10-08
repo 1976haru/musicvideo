@@ -321,8 +321,31 @@ class ProductionControlDialog(QDialog):
             return
         try:
             template = self._load_workflow()
-            workflow = materialize_comfyui_workflow(template, pack)
-            prompt_id = self._bridge().queue_workflow(workflow)
+            bridge = self._bridge()
+            candidates = []
+            candidates.extend(pack.series_asset_paths)
+            candidates.extend(
+                instruction.path
+                for instruction in pack.reference_instructions
+                if not instruction.missing and instruction.eligible
+            )
+            uploaded = []
+            seen = set()
+            for raw in candidates:
+                path = Path(raw).expanduser()
+                if not path.is_absolute() and self.session.project_dir:
+                    path = self.session.project_dir / path
+                path = path.resolve(strict=False)
+                if path in seen or not path.is_file():
+                    continue
+                seen.add(path)
+                if path.suffix.casefold() not in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}:
+                    continue
+                uploaded.append(bridge.upload_image(path))
+                if len(uploaded) >= 4:
+                    break
+            workflow = materialize_comfyui_workflow(template, pack, reference_names=uploaded)
+            prompt_id = bridge.queue_workflow(workflow)
             self.queue.start(job.job_id, prompt_id)
         except Exception as exc:
             self.queue.fail(job.job_id, str(exc))
@@ -330,7 +353,10 @@ class ProductionControlDialog(QDialog):
             self.queue_detail.setPlainText(f"ComfyUI 전송 실패\n{exc}")
         else:
             self.on_changed()
-            self.queue_detail.setPlainText(f"ComfyUI에 전송했습니다.\nprompt_id={prompt_id}\nShot={job.shot_id}")
+            self.queue_detail.setPlainText(
+                f"ComfyUI에 전송했습니다.\nprompt_id={prompt_id}\nShot={job.shot_id}\n"
+                f"업로드 Reference={len(uploaded)}개"
+            )
         self._refresh_queue()
 
     def _poll_jobs(self):
