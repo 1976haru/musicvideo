@@ -552,29 +552,89 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
         ))
     stages.append(_stage("qc", "09 QC / SEQUENCE", qc_issues, qc_ready_count, len(session.shots)))
 
-    # Edit/render.
+    # Edit/render metadata-only readiness. Heavy media probing is intentionally left to
+    # the explicit EDIT/QC/Final Verification actions so opening Production Control stays fast.
     edit_issues: list[ProductionIssue] = []
-    if session.edit_timeline is None:
-        edit_issues.append(ProductionIssue(code="NO_EDIT_TIMELINE", severity="blocker", stage_id="edit", message="자동 편집 Timeline이 없습니다.", action="10 EDIT / RENDER에서 자동 편집 만들기"))
+    try:
+        from .editor import ffmpeg_status
+        if ffmpeg_status() != "AVAILABLE":
+            edit_issues.append(ProductionIssue(
+                code="FFMPEG_UNAVAILABLE", severity="blocker", stage_id="edit",
+                message="영상 내보내기 도구(FFmpeg)를 찾을 수 없습니다.",
+                action="제작 준비 / 진단에서 FFmpeg 상태 확인",
+            ))
+    except Exception:
+        edit_issues.append(ProductionIssue(
+            code="FFMPEG_STATUS_ERROR", severity="warning", stage_id="edit",
+            message="FFmpeg 상태를 빠른 검사에서 확인하지 못했습니다.",
+            action="제작 준비 / 진단에서 다시 확인",
+        ))
+
+    timeline = session.edit_timeline
+    if timeline is None:
+        edit_issues.append(ProductionIssue(
+            code="NO_EDIT_TIMELINE", severity="blocker", stage_id="edit",
+            message="자동 편집 Timeline이 없습니다.",
+            action="10 EDIT / RENDER에서 자동 편집 만들기",
+        ))
     else:
-        try:
-            from .editor import check_readiness
-            ready = check_readiness(session, session.edit_timeline, session.render_settings)
-            for item in ready.issues:
+        clip_shots = {clip.shot_id for clip in timeline.clips}
+        accepted_shots = {
+            take.shot_id for take in session.generation_takes if take.status == "accepted"
+        }
+        for shot_id in sorted(accepted_shots - clip_shots):
+            edit_issues.append(ProductionIssue(
+                code="ROUGH_CUT_MISSING_CLIP", severity="blocker", stage_id="edit",
+                message=f"{shot_id}: accepted Take가 있지만 Rough Cut clip이 없습니다.",
+                action="자동 편집 다시 만들기", shot_id=shot_id,
+            ))
+        for left, right in timeline.overlaps:
+            edit_issues.append(ProductionIssue(
+                code="SHOT_OVERLAP", severity="blocker", stage_id="edit",
+                message=f"{left} / {right}: Shot 시간이 겹칩니다.",
+                action="Shot Board 시간 확인",
+            ))
+        for clip in timeline.clips:
+            if clip.fit_status == "unresolved_short":
                 edit_issues.append(ProductionIssue(
-                    code=item.code,
-                    severity=item.severity,
-                    stage_id="edit",
-                    message=item.message,
-                    action=item.action,
-                    shot_id=item.shot_id,
+                    code="SHORT_TAKE_UNRESOLVED", severity="blocker", stage_id="edit",
+                    message=f"{clip.shot_id}: Take 길이가 Shot보다 짧고 해결 방법이 없습니다.",
+                    action="다른 Take / hold-last / Shot 길이 조정", shot_id=clip.shot_id,
                 ))
-        except Exception as exc:
-            edit_issues.append(ProductionIssue(code="EDIT_READINESS_ERROR", severity="blocker", stage_id="edit", message=f"편집 준비 검사를 완료할 수 없습니다: {exc}", action="EDIT / RENDER 상태 확인"))
+            elif clip.fit_status == "hold_last":
+                edit_issues.append(ProductionIssue(
+                    code="HOLD_LAST_USED", severity="warning", stage_id="edit",
+                    message=f"{clip.shot_id}: 마지막 프레임 hold가 사용됩니다.",
+                    action="의도한 선택인지 확인", shot_id=clip.shot_id,
+                ))
+        for gap in timeline.gaps:
+            if gap.resolution == "unresolved":
+                edit_issues.append(ProductionIssue(
+                    code="GAP_UNRESOLVED", severity="blocker", stage_id="edit",
+                    message=f"{gap.start_sec:.2f}–{gap.end_sec:.2f}s 편집 공백이 해결되지 않았습니다.",
+                    action="black 또는 hold previous를 명시적으로 선택",
+                ))
+            elif gap.resolution == "black":
+                edit_issues.append(ProductionIssue(
+                    code="BLACK_GAP_USED", severity="warning", stage_id="edit",
+                    message=f"{gap.start_sec:.2f}–{gap.end_sec:.2f}s black gap이 사용됩니다.",
+                    action="의도한 연출인지 확인",
+                ))
+        expected_duration = session.audio_map.duration_sec if session.audio_map else session.duration_sec or 0.0
+        if expected_duration and timeline.duration_sec > expected_duration + 0.05:
+            edit_issues.append(ProductionIssue(
+                code="TIMELINE_LONGER_THAN_MUSIC", severity="blocker", stage_id="edit",
+                message=f"편집 Timeline({timeline.duration_sec:.2f}s)이 음악({expected_duration:.2f}s)보다 깁니다.",
+                action="Shot/편집 길이 조정",
+            ))
+
     final_exists = bool(session.final_path and _portable_resolve(session.final_path, session.project_dir).is_file())
-    if session.edit_timeline is not None and not final_exists:
-        edit_issues.append(ProductionIssue(code="NO_FINAL_RENDER", severity="warning", stage_id="edit", message="최종 렌더 파일이 아직 없습니다.", action="최종 영상 내보내기"))
-    stages.append(_stage("edit", "10 EDIT / RENDER", edit_issues, 1 if session.edit_timeline else 0, 1))
+    if timeline is not None and not final_exists:
+        edit_issues.append(ProductionIssue(
+            code="NO_FINAL_RENDER", severity="warning", stage_id="edit",
+            message="최종 렌더 파일이 아직 없습니다.", action="최종 영상 내보내기",
+        ))
+    stages.append(_stage("edit", "10 EDIT / RENDER", edit_issues, 1 if timeline else 0, 1))
 
     all_issues = [issue for stage in stages for issue in stage.issues]
     blockers = sum(issue.severity == "blocker" for issue in all_issues)
