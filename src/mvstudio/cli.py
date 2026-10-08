@@ -17,7 +17,7 @@ from .lyrics_engine import (
 )
 from .music_engine import analyze_audio, build_mv_timeline, format_timeline_text
 
-app = typer.Typer(help="MV Director Studio 1.0.4 — Music + Lyrics Director Timeline")
+app = typer.Typer(help="MV Director Studio 1.1.0 — Music + Lyrics Director Timeline")
 
 
 def load_project(path: Path) -> MusicVideoProject:
@@ -26,7 +26,7 @@ def load_project(path: Path) -> MusicVideoProject:
 
 @app.command()
 def demo():
-    print("[bold]MV Director Studio 1.0.4[/bold]")
+    print("[bold]MV Director Studio 1.1.0[/bold]")
     print("Music + Lyrics → director timeline → world concepts → shots → provider prompts.")
     print("Try: mvstudio music-pack song.wav")
     print("Try: mvstudio timeline-pack song.wav --lyrics lyrics.srt")

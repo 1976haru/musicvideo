@@ -1,222 +1,118 @@
-# MV Director Studio 1.0.3 — Windows에서 뮤직비디오 만들기
+# MV Director Studio 1.1.0
 
-> **1.0.3 Upgrade:** 선택한 세계관에 가사 앵커·감정곡선·음악 구조를 결합해 World Bible의 12개 제작 필드를 전체 자동 초안으로 생성합니다. 재생성은 사용자 수정 내용을 덮어쓰기 전에 확인합니다.
+Windows에서 음악과 가사를 분석하고, 세계관·시리즈·캐릭터·Story Beat·Shot을 설계한 뒤 생성 결과를 QC하고 최종 MP4까지 만드는 로컬 뮤직비디오 제작 스튜디오입니다.
 
-음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 Windows desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
+실행 파일은 항상:
 
-## Windows 실행과 전체 workflow
+`D:\03 musicvideo\MV Director Studio.exe`
 
-배포 폴더의 `MV Director Studio.exe`를 실행합니다. 소스에서 실행할 때는 `RUN_WINDOWS.bat`를 사용합니다. 첫 실행의 **“뮤직비디오 제작 준비가 되었나요?”** 화면에서 필수 도구와 선택 기능을 확인하세요.
+하나만 사용합니다.
 
-1. MUSIC — 원곡과 가사를 불러와 분석합니다.
-2. WORLD — 해석과 World Bible을 정합니다.
-3. REFERENCES — 캐릭터·장소·색감 자료를 등록합니다.
-4. STORY — Story Beat와 가사 근거를 만듭니다.
-5. SHOTS — Shot 시간과 카메라를 확인합니다.
-6. GENERATE — manual website용 prompt pack을 복사합니다.
-7. RESULTS — 생성 영상을 Take로 등록하고 하나를 ACCEPT합니다.
-8. QC — 기술·시각 QC 권고를 확인합니다.
-9. EDIT / RENDER — Rough Cut, preview, final MP4를 만듭니다.
+## 기본 제작 흐름
 
-### FFmpeg
+1. **01 MUSIC** — 음악 분석과 MV Director Timeline
+2. **02 LYRICS & MEANING** — 가사 Line ID, 의미, 감정, 시각 앵커
+3. **03 WORLD LAB** — 가사 기반 세계관 후보
+4. **04 WORLD BIBLE** — 12개 제작 규칙 전체 초안/잠금
+5. **05 REFERENCE VAULT** — 캐릭터·장소·색/빛·소품 Reference
+6. **06 STORY ROOM** — Story Beat와 가사/음악 근거
+7. **07 SHOT BOARD** — Shot, 카메라, continuity, Series Entity/Variant
+8. **08 GENERATE** — Continuity Contract가 포함된 Prompt Pack
+9. **RESULT / TAKES** — 생성 결과 등록 및 Shot당 accepted Take 1개
+10. **09 QC** — 기술 QC와 선택형 시각/의미 QC
+11. **10 EDIT / RENDER** — Rough Cut, Preview, Final MP4, Edit Plan/OTIO
 
-Final Render에는 H.264(libx264)와 AAC를 지원하는 FFmpeg/FFprobe가 필요합니다. 탐지 순서는 앱 설정, `tools/ffmpeg/bin`, 시스템 PATH입니다. 프로그램은 FFmpeg를 백그라운드에서 내려받지 않습니다.
+5부작 프로젝트는 별도 **SERIES STUDIO**에서 Series Bible, Episode, Entity/Shape Grammar, Asset, Continuity, Episode Graph를 관리합니다.
 
-### 프로젝트 저장과 복구
+## 1.1.0 Production Control
 
-Session JSON은 사용자가 고른 위치에 저장됩니다. 기존 정상 세션은 사용자 AppData recovery에 최대 5개 보관하고, 비정상 종료 뒤에는 검증된 복구본을 선택해 열 수 있습니다.
+사이드바의 **PRODUCTION CONTROL**은 기존 페이지 번호를 바꾸지 않고 전체 제작 상태를 한 번에 검사합니다.
 
-### 캐시
+- 음악/가사/World/Series/Story/Shot/Prompt/Take/QC/Edit 상태
+- Shot별 deterministic Continuity Contract
+- World/Character/Reference 변경 뒤 오래된 Prompt Pack 자동 감지
+- Director Coverage: 가사 근거, 주요 음악 변화점, Series context, 반복 action/visual strategy, Shot 호흡
+- 생성 Queue 상태 저장/재열기
+- Final Render의 길이·오디오·해상도·FPS·검은 프레임·Freeze·컷 구조 검증
 
-`제작 준비 / 진단`에서 프로그램 소유 cache 크기를 확인하고 정리할 수 있습니다. Music, Take, Reference, Session, Final 파일은 정리 대상이 아닙니다.
+## THE FIFTH VERDICT
 
-### 선택 기능과 알려진 제한
+내장 Series seed는 다섯 편을 사용합니다.
 
-OpenCLIP, Beat This, Functional Structure, OpenTimelineIO는 선택 기능입니다. AI 영상 생성은 manual website workflow 중심입니다. Semantic QC는 보조 판단이며 정확한 얼굴 identity를 보장하지 않습니다. 긴 렌더 속도는 PC와 FFmpeg 성능에 따라 달라지고 OTIO 호환성은 외부 편집기/plugin에 따라 다릅니다. 자세한 내용은 [Known Limitations](docs/KNOWN_LIMITATIONS.md)을 참고하세요.
+1. MUTE BELL
+2. DOORLESS ROAD
+3. SILENT WITNESS
+4. MUTINY OF THE UNWRITTEN
+5. GWAN: THE UNWRITTEN VERDICT
+
+YOSUMI, SUZUGARA, TOJI, THE ARCHIVE, HOLLOW, STAMP, GWAN_SYMBOL, MARGIN_CITY_LOCATIONS를 Series Entity로 관리합니다. Hard Shape Grammar는 Asset Factory, Shot Board, Generate Continuity Contract까지 이어집니다.
+
+## 생성 방법
+
+### Manual
+기존 방식입니다. Prompt Pack을 복사해 외부 웹 생성 도구에 사용하고 결과를 Take로 등록합니다.
+
+### Local ComfyUI — 선택 기능
+외부 유료 API 없이 사용자가 직접 실행한 **localhost ComfyUI**에 연결할 수 있습니다.
+
+- ComfyUI 자동 설치/모델 다운로드 없음
+- 기본적으로 localhost/127.0.0.1만 허용
+- API-format workflow JSON은 사용자가 준비
+- Prompt placeholder 자동 치환
+- 최대 4개의 승인 Reference 이미지를 ComfyUI input으로 업로드
+- 실행 결과를 확인해 video output을 candidate Take로 등록 가능
+- Queue/PROMPT ID 상태는 Session JSON에 저장
+
+지원 placeholder 예:
 
 ```text
-MUSIC FILE
-  ↓
-Beat / Onset / Energy / Spectral Change
-  ↓
-Audio Change Candidates
-  +
-LYRICS
-  ↓
-POV / Conflict / Emotion / Repetition / Visual Anchors
-  ↓
-MV DIRECTOR TIMELINE
-  ↓
-WORLD LAB
-  ↓
-WORLD BIBLE + REFERENCE VAULT
-  ↓
-STORY ROOM + SHOT BOARD (1차 구현 중)
+{{MV_MAIN_PROMPT}}
+{{MV_MOTION_PROMPT}}
+{{MV_CAMERA_PROMPT}}
+{{MV_NEGATIVE_PROMPT}}
+{{MV_SHOT_ID}}
+{{MV_DURATION}}
+{{MV_ASPECT_RATIO}}
+{{MV_OUTPUT_PREFIX}}
+{{MV_FIRST_REFERENCE}}
+{{MV_REFERENCE_1}}
+{{MV_REFERENCE_2}}
+{{MV_REFERENCE_3}}
+{{MV_REFERENCE_4}}
 ```
 
-## v0.4 핵심 기능
+## 파일 안전성
 
-- WAV / MP3 / FLAC / OGG 중심 음악 읽기
-- Tempo BPM
-- Beat time
-- Onset
-- RMS Energy
-- Spectral centroid / bandwidth 변화
-- 음악 변화점 후보
-- Audio section 후보
-- 4 / 8 / 16 beats 컷 cadence 참고값
-- 가사 Line ID와 음악 변화 결합
-- 반복 가사의 setup → transformation → payoff cue
-- MV Director Timeline
-- MUSIC 데스크톱 UI 탭
-- Music/Lyrics/World 세션 JSON 저장 및 다시 열기
-- 명시적으로 저장하거나 기존 세션을 연 뒤 1초 debounce autosave
+- Music, Take, Reference, Series Asset 원본은 프로그램이 임의 이동·삭제·변경하지 않습니다.
+- Session JSON은 atomic 저장하고 정상본을 recovery에 회전 백업합니다.
+- 프로그램 cache 정리는 AppData의 프로그램 소유 cache만 대상으로 합니다.
+- Final Render는 임시 파일을 완성한 뒤 성공했을 때만 교체합니다.
 
-## 가장 중요한 원칙
+## Final Render
 
-프로그램은 음악만 보고 Verse/Chorus를 확정하지 않습니다.
-오디오 분석은 `section_candidate`를 만들고, 향후 가사 반복/LLM/사용자 확인으로 의미적 Section을 확정합니다.
+H.264(libx264)와 AAC를 지원하는 FFmpeg/FFprobe가 필요합니다. 탐지 순서는 앱 설정 → `tools/ffmpeg/bin` → PATH입니다.
 
-또한 Beat가 있다고 매번 화면을 자르지 않습니다.
-Timeline의 Priority는 **연출을 바꿀 만한 우선순위**이지 자동 컷 명령이 아닙니다.
+1.1.0 Final Verification은 media probe와 샘플 프레임 검사에 더해 PySceneDetect가 설치된 경우 실제 장면 전환 수를 보조 검사합니다. Scene cut 결과는 창작 판단을 대신하지 않고 경고로만 사용합니다.
 
-## Windows 실행
+## 선택 기능
 
-`RUN_WINDOWS.bat` 더블클릭.
+기본 제작/렌더는 아래 기능이 없어도 동작해야 합니다.
 
-최초 실행 시 `.venv`를 만들고 `PySide6 + librosa + soundfile`을 설치합니다.
+- OpenCLIP — prompt/reference semantic QC
+- Beat This — beat/downbeat 보조 분석
+- Functional Structure — 음악 구조 보조 분석
+- OpenTimelineIO — NLE 교환
+- ComfyUI — 로컬 생성 자동화
 
-## CLI
+선택 기능이 없거나 실패해도 앱 전체가 시작 불가 상태가 되어서는 안 됩니다.
 
-```bash
-mvstudio music-pack song.wav
-mvstudio timeline-pack song.wav --lyrics lyrics.srt
-mvstudio lyrics-pack lyrics.txt --duration 180
-```
+## Release Gate
 
-## G2 완료
+Windows root 실행본은 기존 모든 packaged/root gate와 함께 **G9 Production Megagate**를 통과해야 교체됩니다.
 
-- 선택한 세계관을 실제 World Bible로 잠금
-- Character Master
-- Wardrobe
-- Location Master
-- Prop Master
-- Color / Light
-- Composition
-- Camera Motion
-- Texture / Material
-- drag & drop reference management
-- reference lock strength
-- Project scope Reference 등록
-- G2 project scope는 UI에서 사용할 수 있습니다. Scene/Shot scope는 모델 준비가 완료됐으며 G3 UI에서 실제 ID에 연결됩니다.
-- 세션 열기와 기존 파일 대상 autosave
+Production Megagate는 합성 5부작 프로젝트에서 Continuity Contract, 50 Shot Prompt Pack, stale detection, 500-job Queue, Session round-trip, 1100×720 UI contract, ComfyUI workflow materialization, 실제 FFmpeg final media verification을 검사합니다.
 
-G3 Story Room + Shot Board FINAL hardening을 완료했습니다. Provider API 작업은 시작하지 않았습니다.
-
-## G4A 완료
-
-- Manual Generation Studio
-- Generic / Higgsfield manual site profile
-- Shot 기반 Main / Motion / Camera / Negative prompt pack
-- Reference / First-Last Frame / Duration / Aspect / Resolution 지침
-- Readiness 검사, 복사, TXT/JSON export
-- Pack snapshot 세션 저장·복원·autosave
-
-G4A는 수동 웹사이트 입력 workflow만 지원하며 API, SDK, HTTP generation, 브라우저 자동화를 포함하지 않습니다.
-
-## G4B FINAL PASS
-
-- 외부 사이트에서 생성한 결과 영상을 Shot에 metadata-only로 등록
-- ManualGenerationPack → GenerationTake 추적성
-- Take A/B/C, candidate / accepted / rejected, Shot당 FINAL TAKE 1개
-- 원본 영상 이동·이름 변경·삭제·변환 없음
-- duplicate take_id / multiple accepted 비파괴 audit 및 안전한 mutation 차단
-- stale/missing counter reconciliation과 missing 결과 영상 metadata-only relink
-- 정렬·refresh 후 선택 안정성, 다중 drag & drop 부분 성공 처리
-- G4B metadata-only 파일 안전성 정책을 G5A에서도 유지
-
-## G5A Technical / Temporal QC
-
-- 결과 영상 파일 읽기, 길이, 해상도, FPS 확인
-- 검은 화면, 화면 멈춤, 밝기 깜빡임, 움직임과 불안정 징후 검사
-- PASS / REVIEW / REGENERATE / BLOCKED 추천만 제공하며 자동 ACCEPT/REJECT 없음
-- 파일 경로·크기·수정 시각·분석기 버전·옵션 기반 cache 무효화
-- schema 0.8 QC report 저장·복원과 0.7 이하 하위호환
-- 초보자 화면은 “이 영상은 사용해도 될까요?”와 쉬운 이유·추천 행동을 먼저 표시
-- 기술 수치는 기본 화면에서 숨기고 “전문가 정보 보기”에 표시
-
-## G5B MEGAGATE FINAL PASS
-
-- Prompt Pack과 영상의 의미 비교를 위한 optional OpenCLIP adapter
-- Shot scope에 맞는 레퍼런스만 사용하는 시각 유사도 비교
-- palette drift, accepted Take 경계 continuity, 인접 Shot redundancy 경고
-- API 없이 외부 AI와 교환하는 Director Intelligence JSON proposal workflow
-- lyric line ID, Beat ID, 시간 범위, enum과 evidence 검증
-- Interpretation / World Concept / Story Beat 제안의 명시적 선택 반영
-- LIBROSA_BASIC fallback과 optional Beat/Functional Structure backend 계층
-- 반복 Chorus를 setup → transformation → payoff로 발전시키는 timeline fusion
-- schema 0.9 및 기존 0.8 이하 하위호환
-
-Provider API, 브라우저 자동화, 자동 ACCEPT/REJECT, Editor / Render는 구현하지 않았습니다.
-
-### 선택형 Music Intelligence 설치
-
-고급 음악 패키지는 Windows/Python/PyTorch 조합에 따라 설치 조건이 달라 기본 extras에 넣지 않았습니다.
-
-- Beat This: `pip install beat-this`
-  - 모델 파일을 수동으로 내려받은 뒤 `MVSTUDIO_BEAT_THIS_CHECKPOINT`에 로컬 checkpoint 경로를 지정합니다.
-  - 앱은 이름 기반 checkpoint를 요청하거나 자동 다운로드하지 않습니다.
-- Functional Structure: PyTorch와 Windows용 NATTEN을 먼저 준비한 뒤 `pip install allin1`
-  - 로컬 모델 준비를 확인한 환경에서만 `MVSTUDIO_FUNCTIONAL_STRUCTURE_READY=1`을 지정합니다.
-
-두 backend 모두 CPU를 기본으로 사용하며, 설치·모델 준비·API 호출 중 문제가 발생하면 기본 librosa 분석으로 돌아갑니다.
-
-## Codex / Claude 전환
-
-**v0.4 / 45%가 첫 Codex 병행 시점입니다.**
-
-`docs/G2_CODEX_HANDOFF.md`의 지시문을 그대로 사용하세요.
-Claude Code는 Reference Vault가 완성되는 58%부터 적극 병행을 권장합니다.
-# G6 Editor / Render
-
-`10 EDIT / RENDER`에서 accepted Take만으로 Rough Cut을 만들고, 문제 Shot을 해결한 뒤 미리보기와 최종 MP4를 내보낼 수 있습니다.
-
-- 긴 Take는 필요한 길이만 비파괴 trim합니다.
-- 짧은 Take와 timeline gap은 사용자가 해결 방법을 명시적으로 선택합니다.
-- overlap은 Shot Board에서 해결하기 전까지 render를 차단합니다.
-- YouTube 1080p/4K, Vertical, Square preset을 제공합니다.
-- 원곡은 `session.music_path`에서 시작하며 Take 내부 오디오는 제거합니다.
-- FFmpeg가 없어도 앱은 정상 실행되고 내보내기만 사용할 수 없습니다.
-- Edit Plan JSON은 항상 지원하고 OTIO는 OpenTimelineIO 설치 시에만 지원합니다.
-- 모든 원본 파일은 read-only이며 final은 성공 시에만 atomic 교체됩니다.
-
-세션 schema는 1.0이며 0.9 이하 세션도 edit data 없이 정상 로드됩니다.
-# MV Director Studio 1.0.2 — Windows에서 뮤직비디오 만들기
-
-음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
-
-## Windows 실행과 처음 시작
-
-배포 폴더의 `MV Director Studio.exe`를 실행합니다. 소스에서 실행할 때는 `RUN_WINDOWS.bat`를 사용합니다. 첫 실행의 **“뮤직비디오 제작 준비가 되었나요?”** 화면에서 필수 도구와 선택 기능을 확인하세요.
-
-## 전체 workflow
-
-1. MUSIC — 원곡과 가사를 불러와 분석합니다.
-2. WORLD — 해석과 World Bible을 정합니다.
-3. REFERENCES — 캐릭터·장소·색감 자료를 등록합니다.
-4. STORY — Story Beat와 가사 근거를 만듭니다.
-5. SHOTS — Shot 시간, 카메라, continuity를 확인합니다.
-6. GENERATE — manual website용 prompt pack을 복사합니다.
-7. RESULTS — 생성 영상을 Take로 등록하고 하나를 ACCEPT합니다.
-8. QC — 기술·시각 QC 권고를 확인합니다.
-9. EDIT / RENDER — Rough Cut, preview, final MP4를 만듭니다.
-
-## FFmpeg, 프로젝트, 복구, 캐시
-
-Final Render에는 H.264(libx264)와 AAC를 지원하는 FFmpeg/FFprobe가 필요합니다. 탐지 순서는 앱 설정, `tools/ffmpeg/bin`, 시스템 PATH입니다. 프로그램은 FFmpeg를 몰래 다운로드하지 않습니다.
-
-Session JSON은 사용자가 고른 위치에 atomic 저장되고 이전 정상본은 사용자 AppData recovery에 최대 5개 보관됩니다. 비정상 종료 후에는 검증된 복구본만 안내합니다. 캐시 정리는 프로그램 소유 AppData cache만 삭제하며 Music, Take, Reference, Session, Final은 삭제하지 않습니다.
-
-## 선택 기능과 제한
-
-OpenCLIP, Beat This, Functional Structure, OpenTimelineIO는 선택 기능입니다. 자세한 제한은 [Known Limitations](docs/KNOWN_LIMITATIONS.md), 변경 내용은 [Changelog](CHANGELOG.md)를 참고하세요.
+더 자세한 내용:
+- `docs/G8_SERIES_STUDIO.md`
+- `docs/G9_PRODUCTION_ORCHESTRATOR_MEGAGATE.md`
+- `docs/KNOWN_LIMITATIONS.md`

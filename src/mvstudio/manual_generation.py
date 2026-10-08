@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from .models import ReferenceAsset, ShotSpec
 from .reference_vault import resolve_reference_path
 from .story_engine import reference_is_eligible, shot_warnings
+from .production_orchestrator import compile_shot_continuity_contract
 
 if TYPE_CHECKING:
     from .session import LyricsWorldSession
@@ -69,6 +70,9 @@ class ManualGenerationPack(BaseModel):
     series_lock_summary: list[str] = Field(default_factory=list)
     series_asset_ids: list[str] = Field(default_factory=list)
     series_asset_paths: list[str] = Field(default_factory=list)
+    continuity_contract_id: str = ""
+    continuity_contract_hash: str = ""
+    continuity_contract_block: str = ""
     first_frame_ref: str | None = None
     last_frame_ref: str | None = None
     duration_sec: float
@@ -311,6 +315,7 @@ def compile_manual_pack(
         series_locks, series_negatives, series_continuity, series_warnings,
         series_asset_ids, series_asset_paths,
     ) = _series_lock_bundle(session, shot)
+    continuity_contract = compile_shot_continuity_contract(session, shot)
 
     world_chunks = []
     if bible:
@@ -330,6 +335,11 @@ def compile_manual_pack(
         f"LYRIC INTENT ({shot.lyric_visual_strategy}): {shot.lyric_intent}" if shot.lyric_intent else "",
         f"WORLD RULE REFERENCES: {'; '.join(rule_summary)}" if rule_summary else "",
     ])
+    # _dedupe intentionally normalizes whitespace; the contract is a structured multiline
+    # block, so append it after dedupe to preserve its exact human-readable form.
+    if continuity_contract.prompt_block:
+        insert_at = min(3, len(main_parts))
+        main_parts.insert(insert_at, continuity_contract.prompt_block)
     motion_parts = _dedupe([
         f"SUBJECT MOTION: {shot.action}",
         f"PACE / STRENGTH: {shot.camera.movement_strength}",
@@ -361,7 +371,7 @@ def compile_manual_pack(
         if not getattr(shot, field_name).strip():
             warnings.append(f"Empty required prompt field: {field_name}")
 
-    blockers: list[str] = []
+    blockers: list[str] = list(continuity_contract.blockers)
     if not shot.beat_id or not any(beat.beat_id == shot.beat_id for beat in session.story_beats):
         blockers.append("Shot has no valid beat_id")
     if shot.end_sec <= shot.start_sec:
@@ -394,7 +404,7 @@ def compile_manual_pack(
             "Higgsfield settings are model-dependent; verify duration, aspect ratio, resolution, "
             "first/last frame, negative prompt, and generation-mode support for the selected model."
         )
-    warnings = _dedupe([*blockers, *series_warnings, *warnings])
+    warnings = _dedupe([*blockers, *continuity_contract.warnings, *series_warnings, *warnings])
     readiness = "BLOCKED" if blockers else "READY_WITH_WARNINGS" if warnings else "READY"
 
     duration_hint = generation_duration_hint if generation_duration_hint is not None else _nearest_duration(shot.duration_sec, profile.duration_options)
@@ -446,6 +456,9 @@ def compile_manual_pack(
         series_lock_summary=series_locks,
         series_asset_ids=series_asset_ids,
         series_asset_paths=series_asset_paths,
+        continuity_contract_id=continuity_contract.contract_id,
+        continuity_contract_hash=continuity_contract.contract_hash,
+        continuity_contract_block=continuity_contract.prompt_block,
         first_frame_ref=shot.first_frame_ref, last_frame_ref=shot.last_frame_ref,
         duration_sec=shot.duration_sec, generation_duration_hint=duration_hint,
         aspect_ratio=aspect, resolution_hint=resolution, camera_preset_recommendation=preset,

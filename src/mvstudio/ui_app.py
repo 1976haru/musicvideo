@@ -26,6 +26,7 @@ from .g4b_ui import ResultTakesPage
 from .g5a_ui import TechnicalQCPage
 from .g6_ui import EditorRenderPage
 from .g8_ui import SeriesStudioDialog
+from .g9_ui import ProductionControlDialog
 from .release_ui import ReleaseDoctorDialog
 from .release_runtime import APP_VERSION, log_uncaught, should_show_startup_doctor
 from .reference_vault import resolve_reference_path
@@ -43,8 +44,15 @@ QPushButton { min-height: 44px; border: 1px solid #384150; border-radius: 9px; p
 QPushButton:hover { background: #2b3440; }
 QPushButton:disabled { color: #647080; background: #171b21; border-color: #262d36; }
 QPushButton#primary { background: #3764c7; border: 1px solid #4d78d7; font-weight: 700; }
+QPushButton#seriesStudioButton { text-align: left; font-weight: 700; background: #202733; border-color: #3a4658; }
+QPushButton#productionControlButton { text-align: left; font-weight: 800; background: #2f5fbf; border-color: #507edb; }
+QPushButton#productionControlButton:hover { background: #376ad0; }
 QPushButton#nav { text-align: left; padding-left: 14px; background: transparent; border: none; }
 QPushButton#nav[active="true"] { background: #242c38; border: 1px solid #364154; }
+QTabWidget::pane { background: #12151a; border: 1px solid #303744; border-radius: 8px; top: -1px; }
+QTabBar::tab { background: #1b212a; color: #aeb8c6; border: 1px solid #303744; padding: 10px 16px; min-height: 26px; }
+QTabBar::tab:selected { background: #293a5c; color: #ffffff; border-color: #4d78d7; font-weight: 700; }
+QTabBar::tab:hover:!selected { background: #242c38; color: #eef2f7; }
 QTextEdit { background: #101319; border: 1px solid #313946; border-radius: 10px; padding: 10px; selection-background-color: #3764c7; }
 QListWidget, QListView, QTreeView, QTableView {
     background: #101319;
@@ -227,10 +235,15 @@ class MainWindow(QMainWindow):
         doctor_button = QPushButton("제작 준비 / 진단")
         doctor_button.clicked.connect(self._show_release_doctor)
         side.addWidget(doctor_button)
-        series_button = QPushButton("SERIES STUDIO")
-        series_button.setObjectName("seriesStudioButton")
-        series_button.clicked.connect(self._show_series_studio)
-        side.addWidget(series_button)
+        self.series_button = QPushButton("SERIES STUDIO")
+        self.series_button.setObjectName("seriesStudioButton")
+        self.series_button.clicked.connect(self._show_series_studio)
+        side.addWidget(self.series_button)
+        self.production_control_button = QPushButton("PRODUCTION CONTROL")
+        self.production_control_button.setObjectName("productionControlButton")
+        self.production_control_button.setProperty("primary", True)
+        self.production_control_button.clicked.connect(self._show_production_control)
+        side.addWidget(self.production_control_button)
 
         self.nav_buttons = []
         steps = [
@@ -329,6 +342,14 @@ class MainWindow(QMainWindow):
     def _show_series_studio(self):
         dialog = SeriesStudioDialog(self.session, self._schedule_autosave, self)
         dialog.exec()
+
+    def _show_production_control(self):
+        self.production_control_dialog = ProductionControlDialog(
+            lambda: self.session,
+            self._schedule_autosave,
+            self,
+        )
+        self.production_control_dialog.exec()
 
     def _music_page(self):
         page = QWidget()
@@ -869,6 +890,8 @@ class MainWindow(QMainWindow):
         self.result_takes_page.refresh()
         self.technical_qc_page.refresh()
         self.editor_render_page.refresh()
+        if hasattr(self, "production_control_dialog") and self.production_control_dialog.isVisible():
+            self.production_control_dialog.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(

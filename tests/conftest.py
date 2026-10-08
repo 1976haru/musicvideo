@@ -17,3 +17,9 @@ def tmp_path(request) -> Path:
     target = root / f"{request.node.name}-{uuid.uuid4().hex}"
     target.mkdir()
     return target
+
+def pytest_sessionfinish(session, exitstatus):
+    """CI child reports pytest's authoritative result before native DLL teardown."""
+    if os.environ.get("MVSTUDIO_RELEASE_PYTEST_CHILD") != "1":
+        return
+    print(f"MVSTUDIO_PYTEST_RESULT={int(exitstatus)}", flush=True)

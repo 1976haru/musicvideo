@@ -31,6 +31,7 @@ from .director_intelligence import DirectorIntelligenceResult
 from .music_intelligence import EnhancedMusicStructure
 from .editor import EditTimeline, RenderRecord, RenderSettings
 from .release_runtime import backup_session, configure_logging
+from .production_orchestrator import GenerationJob
 from .series_studio import (
     EpisodeContinuitySnapshot, SeriesAsset, SeriesBible, SeriesEntity,
     seed_the_fifth_verdict,
@@ -70,6 +71,7 @@ class LyricsWorldSession:
     series_entities: list[SeriesEntity] = field(default_factory=list)
     series_assets: list[SeriesAsset] = field(default_factory=list)
     episode_continuity: list[EpisodeContinuitySnapshot] = field(default_factory=list)
+    generation_jobs: list[GenerationJob] = field(default_factory=list)
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -187,6 +189,21 @@ class LyricsWorldSession:
             data["path"] = portable_path(source.resolve(strict=False), target_dir)
             series_assets.append(data)
 
+        generation_jobs = []
+        for job in self.generation_jobs:
+            data = job.model_dump(mode="json")
+            output_paths = []
+            for stored in job.output_paths:
+                candidate = Path(stored).expanduser()
+                if not candidate.is_absolute() and self.project_dir is not None:
+                    candidate = self.project_dir / candidate
+                if candidate.is_absolute():
+                    output_paths.append(portable_path(candidate, target_dir))
+                else:
+                    output_paths.append(candidate.as_posix())
+            data["output_paths"] = output_paths
+            generation_jobs.append(data)
+
         return {
             "schema_version": "1.0",
             "music_path": self.music_path,
@@ -220,6 +237,7 @@ class LyricsWorldSession:
             "series_entities": [entity.model_dump(mode="json") for entity in self.series_entities],
             "series_assets": series_assets,
             "episode_continuity": [item.model_dump(mode="json") for item in self.episode_continuity],
+            "generation_jobs": generation_jobs,
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -257,6 +275,7 @@ class LyricsWorldSession:
             series_entities=[SeriesEntity.model_validate(x) for x in data.get("series_entities", [])],
             series_assets=[SeriesAsset.model_validate(x) for x in data.get("series_assets", [])],
             episode_continuity=[EpisodeContinuitySnapshot.model_validate(x) for x in data.get("episode_continuity", [])],
+            generation_jobs=[GenerationJob.model_validate(x) for x in data.get("generation_jobs", [])],
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         reconcile_take_counters(session.generation_takes, session.take_id_counters)
