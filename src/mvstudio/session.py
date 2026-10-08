@@ -178,6 +178,15 @@ class LyricsWorldSession:
             data = take.model_dump(mode="json")
             data["output_path"] = portable_take_path(resolve_take_path(take, self.project_dir), target_dir)
             takes.append(data)
+        series_assets = []
+        for asset in self.series_assets:
+            data = asset.model_dump(mode="json")
+            source = Path(asset.path).expanduser()
+            if not source.is_absolute() and self.project_dir:
+                source = self.project_dir / source
+            data["path"] = portable_path(source.resolve(strict=False), target_dir)
+            series_assets.append(data)
+
         return {
             "schema_version": "1.0",
             "music_path": self.music_path,
@@ -209,7 +218,7 @@ class LyricsWorldSession:
             "final_path": self.final_path,
             "series_bible": self.series_bible.model_dump(mode="json") if self.series_bible else None,
             "series_entities": [entity.model_dump(mode="json") for entity in self.series_entities],
-            "series_assets": [asset.model_dump(mode="json") for asset in self.series_assets],
+            "series_assets": series_assets,
             "episode_continuity": [item.model_dump(mode="json") for item in self.episode_continuity],
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
