@@ -25,7 +25,7 @@ function Assert-AppNotRunning {
     $running = Get-Process -Name "MV Director Studio" -ErrorAction SilentlyContinue | Where-Object {
         try { [IO.Path]::GetFullPath($_.Path) -eq $resolved } catch { $false }
     }
-    if ($running) { throw "MV Director Studio를 종료한 뒤 업데이트해주세요." }
+    if ($running) { throw "Close MV Director Studio before updating." }
 }
 function Copy-Runtime([string]$From, [string]$To) {
     foreach ($name in $runtimeNames) {
