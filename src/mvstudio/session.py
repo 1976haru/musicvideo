@@ -192,10 +192,16 @@ class LyricsWorldSession:
         generation_jobs = []
         for job in self.generation_jobs:
             data = job.model_dump(mode="json")
-            data["output_paths"] = [
-                portable_path(_path if Path(_path).is_absolute() else ((self.project_dir / _path) if self.project_dir else _path), target_dir)
-                for _path in job.output_paths
-            ]
+            output_paths = []
+            for stored in job.output_paths:
+                candidate = Path(stored).expanduser()
+                if not candidate.is_absolute() and self.project_dir is not None:
+                    candidate = self.project_dir / candidate
+                if candidate.is_absolute():
+                    output_paths.append(portable_path(candidate, target_dir))
+                else:
+                    output_paths.append(candidate.as_posix())
+            data["output_paths"] = output_paths
             generation_jobs.append(data)
 
         return {
