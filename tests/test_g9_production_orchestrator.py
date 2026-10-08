@@ -129,11 +129,11 @@ def test_old_generation_pack_schema_still_loads_without_contract_fields(tmp_path
     assert report.shots[0].stale_pack
 
 
-def test_generation_queue_is_deduplicated_and_stateful(tmp_path):
+def test_generation_queue_is_deduplicated_stateful_and_persistent(tmp_path):
     session = _base_session(tmp_path)
     pack = compile_manual_pack(session, session.shots[0], pack_id="PACK-Q", created_at="q")
     session.generation_packs = [pack]
-    queue = GenerationQueue()
+    queue = GenerationQueue(session.generation_jobs)
     jobs = build_generation_queue(session, queue, "COMFYUI_LOCAL")
     assert len(jobs) == 1
     assert build_generation_queue(session, queue, "COMFYUI_LOCAL")[0].job_id == jobs[0].job_id
@@ -147,6 +147,14 @@ def test_generation_queue_is_deduplicated_and_stateful(tmp_path):
     with pytest.raises(ValueError):
         queue.cancel(job.job_id)
 
+    target = tmp_path / "queue_session.json"
+    session.export(target)
+    reopened = LyricsWorldSession.import_file(target)
+    assert len(reopened.generation_jobs) == 1
+    assert reopened.generation_jobs[0].status == "DONE"
+    assert reopened.generation_jobs[0].provider_job_id == "prompt-2"
+    assert reopened.generation_jobs[0].output_paths == ["output/test.mp4"]
+
 
 def test_comfyui_workflow_materialization_and_local_endpoint_safety(tmp_path):
     session = _base_session(tmp_path)
@@ -156,11 +164,16 @@ def test_comfyui_workflow_materialization_and_local_endpoint_safety(tmp_path):
         "2": {"inputs": {"negative": "{{MV_NEGATIVE_PROMPT}}", "prefix": "{{MV_OUTPUT_PREFIX}}"}},
         "3": {"inputs": {"shot": "{{MV_SHOT_ID}}", "duration": "{{MV_DURATION}}"}},
     }
-    result = materialize_comfyui_workflow(template, pack)
+    template["4"] = {"inputs": {"image": "{{MV_REFERENCE_1}}", "second": "{{MV_REFERENCE_2}}"}}
+    result = materialize_comfyui_workflow(
+        template, pack, reference_names=["mvstudio/ref1.png", "mvstudio/ref2.png"]
+    )
     assert "{{MV_" not in str(result)
     assert "YOSUMI" in result["1"]["inputs"]["text"]
     assert result["3"]["inputs"]["shot"] == "B001-S01"
     assert "B001-S01" in result["2"]["inputs"]["prefix"]
+    assert result["4"]["inputs"]["image"] == "mvstudio/ref1.png"
+    assert result["4"]["inputs"]["second"] == "mvstudio/ref2.png"
 
     bridge = ComfyUIBridge("http://example.com:8188")
     status = bridge.status()
@@ -223,3 +236,32 @@ def test_final_render_verification_checks_delivery_contract(tmp_path, monkeypatc
     assert failed.status == "FAIL"
     codes = {finding.code for finding in failed.findings}
     assert {"DURATION_MISMATCH", "NO_AUDIO", "OUTPUT_SIZE_MISMATCH"}.issubset(codes)
+
+
+
+def test_comfyui_upload_image_uses_local_official_route(tmp_path, monkeypatch):
+    image = tmp_path / "YOSUMI 日本語.png"
+    image.write_bytes(b"png-bytes")
+    captured = {}
+
+    class Response:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            return b'{"name":"YOSUMI.png","subfolder":"mvstudio","type":"input"}'
+
+    def fake_urlopen(request, timeout=0):
+        captured["url"] = request.full_url
+        captured["content_type"] = request.headers.get("Content-type") or request.headers.get("Content-Type")
+        captured["body"] = request.data
+        return Response()
+
+    monkeypatch.setattr("mvstudio.production_orchestrator.urllib.request.urlopen", fake_urlopen)
+    bridge = ComfyUIBridge("http://127.0.0.1:8188")
+    returned = bridge.upload_image(image)
+    assert captured["url"].endswith("/upload/image")
+    assert "multipart/form-data" in captured["content_type"]
+    assert b"png-bytes" in captured["body"]
+    assert b'name="type"' in captured["body"]
+    assert b"input" in captured["body"]
+    assert returned == "mvstudio/YOSUMI.png"
