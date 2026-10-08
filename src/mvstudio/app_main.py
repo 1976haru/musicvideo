@@ -5,7 +5,7 @@ import sys
 
 from .release_runtime import (
     APP_VERSION, begin_run, configure_logging, end_run, log_uncaught,
-    render_smoke_test, smoke_test,
+    music_analysis_smoke_test, render_smoke_test, smoke_test,
 )
 
 
@@ -16,6 +16,10 @@ def main() -> int:
         ok, payload = smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 2
+    if "--music-analysis-smoke-test" in sys.argv:
+        ok, payload = music_analysis_smoke_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 4
     if "--render-smoke-test" in sys.argv:
         ok, payload = render_smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
