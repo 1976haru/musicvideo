@@ -629,43 +629,207 @@ def seed_the_fifth_verdict() -> tuple[SeriesBible, list[SeriesEntity]]:
 
     return bible, entities
 
-def suggest_reference_slots(series: SeriesBible, entities: list[SeriesEntity], assets: list[SeriesAsset]) -> list[ReferenceSlot]:
-    approved = {(a.entity_id, a.episode_id, a.role) for a in assets if a.review_status == "approved"}
+def suggest_reference_slots(
+    series: SeriesBible,
+    entities: list[SeriesEntity],
+    assets: list[SeriesAsset],
+) -> list[ReferenceSlot]:
+    """Plan multiple reference assets per entity instead of assuming one master image."""
+    approved = {
+        (asset.entity_id, asset.episode_id, asset.role)
+        for asset in assets
+        if asset.review_status == "approved"
+    }
     slots: list[ReferenceSlot] = []
+    seen: set[str] = set()
+
+    def add(slot: ReferenceSlot) -> None:
+        if slot.slot_id not in seen:
+            seen.add(slot.slot_id)
+            slots.append(slot)
+
     for entity in entities:
-        base_role = "character_sheet" if entity.entity_type == "character" else ("environment_keyart" if entity.entity_type == "location" else "prop_master")
-        if (entity.entity_id, None, base_role) not in approved:
-            slots.append(ReferenceSlot(slot_id=f"SLOT_{entity.entity_id}_BASE", role=base_role, entity_id=entity.entity_id,
-                reason="Lock base form before episode production", covered_by_text_master=bool(entity.text_master)))
+        if entity.entity_type == "character":
+            base_roles = [
+                ("character_sheet", True, "Lock the official base design/topology before episode production."),
+                ("action_keyart", False, "Verify the same identity under one readable action pose."),
+                ("emotion_keyart", False, "Verify the same identity inside a narrative/emotional scene."),
+            ]
+        elif entity.entity_type == "location":
+            base_roles = [
+                ("environment_keyart", True, "Lock recurring geography, material and lighting anchors."),
+            ]
+        elif entity.entity_type == "prop":
+            base_roles = [
+                ("prop_master", True, "Lock the recurring prop silhouette, material and state."),
+            ]
+        else:
+            base_roles = [
+                ("shape_reference", True, "Lock the non-character system/entity shape grammar before production."),
+            ]
+
+        for role, required, reason in base_roles:
+            if (entity.entity_id, None, role) not in approved:
+                add(ReferenceSlot(
+                    slot_id=f"SLOT_{entity.entity_id}_{role.upper()}",
+                    role=role,
+                    entity_id=entity.entity_id,
+                    reason=reason,
+                    required=required,
+                    covered_by_text_master=bool(entity.text_master),
+                ))
+
         for variant in entity.variants:
-            role = {"episode": "character_sheet", "action": "action_keyart", "emotional": "emotion_keyart"}[variant.kind]
+            role = {
+                "episode": "character_sheet" if entity.entity_type == "character" else "shape_reference",
+                "action": "action_keyart",
+                "emotional": "emotion_keyart",
+            }[variant.kind]
             if (entity.entity_id, variant.episode_id, role) not in approved:
-                slots.append(ReferenceSlot(slot_id=f"SLOT_{variant.variant_id}", role=role, entity_id=entity.entity_id, episode_id=variant.episode_id,
-                    reason=f"Reference for {variant.kind} variant {variant.variant_id}", covered_by_text_master=False))
+                add(ReferenceSlot(
+                    slot_id=f"SLOT_{variant.variant_id}",
+                    role=role,
+                    entity_id=entity.entity_id,
+                    episode_id=variant.episode_id,
+                    reason=f"Lock {variant.kind} variant {variant.variant_id} without weakening the base identity.",
+                    required=True,
+                    covered_by_text_master=False,
+                ))
+
     for episode in series.episodes:
         if (None, episode.episode_id, "color_script") not in approved:
-            slots.append(ReferenceSlot(slot_id=f"SLOT_{episode.episode_id}_COLOR", role="color_script", episode_id=episode.episode_id,
-                reason="Track the series-wide color system through this episode", required=True))
+            add(ReferenceSlot(
+                slot_id=f"SLOT_{episode.episode_id}_COLOR",
+                role="color_script",
+                episode_id=episode.episode_id,
+                reason="Track the shared base palette plus this episode's one permitted auxiliary accent.",
+                required=True,
+            ))
     return slots
 
 
-def build_asset_prompt_packs(series: SeriesBible, entities: list[SeriesEntity], slots: list[ReferenceSlot]) -> list[AssetPromptPack]:
-    by_id = {e.entity_id: e for e in entities}
-    packs = []
+def build_asset_prompt_packs(
+    series: SeriesBible,
+    entities: list[SeriesEntity],
+    slots: list[ReferenceSlot],
+) -> list[AssetPromptPack]:
+    """Compile provider-neutral, role-specific reference prompts with hard identity locks."""
+    by_id = {entity.entity_id: entity for entity in entities}
+    by_episode = {episode.episode_id: episode for episode in series.episodes}
+    role_instruction = {
+        "character_sheet": (
+            "OFFICIAL DESIGN LOCK. Full body and highly readable silhouette; neutral presentation; "
+            "identity topology overrides drama. Create a clean master suitable for front/side/rear/3/4/action/"
+            "small-silhouette follow-up references. Recommended framing 3:4."
+        ),
+        "action_keyart": (
+            "ACTION IDENTITY LOCK. Show one controlled, readable action only. Preserve all hard topology and "
+            "locked parts exactly; motion may not create extra limbs, fragments, or silhouette drift. Recommended 3:4."
+        ),
+        "emotion_keyart": (
+            "CINEMATIC STORY KEY ART. Add emotional/narrative atmosphere while preserving the approved entity "
+            "identity exactly. Identity lock overrides scenic drama. Recommended 16:9."
+        ),
+        "environment_keyart": (
+            "ENVIRONMENT MASTER. Lock geography, spatial anchors, materials and recurring silhouette; no random "
+            "location replacement. Recommended 16:9."
+        ),
+        "prop_master": (
+            "PROP MASTER. Isolate the recurring prop clearly enough to verify silhouette, material and state. "
+            "Avoid decorative redesign. Recommended 1:1 or 3:4."
+        ),
+        "color_script": (
+            "EPISODE COLOR SCRIPT. Preserve the shared series base palette and show controlled progression; "
+            "introduce at most one episode-specific auxiliary accent. Recommended 16:9."
+        ),
+        "shape_reference": (
+            "SHAPE GRAMMAR REFERENCE. Prioritize countable locked parts, negative space and topology over mood; "
+            "use a plain or minimal background. Recommended 3:4."
+        ),
+    }
+
+    packs: list[AssetPromptPack] = []
     for slot in slots:
         entity = by_id.get(slot.entity_id or "")
-        continuity = []
+        episode = by_episode.get(slot.episode_id or "")
+        continuity: list[str] = []
+        positive_parts: list[str] = [role_instruction.get(slot.role, slot.role)]
+
         if entity:
-            continuity = entity.shape_grammar.locked_parts + entity.shape_grammar.silhouette_rules
-            positive = "; ".join([entity.text_master] + entity.silhouette_rules + entity.palette_rules + entity.motion_rules)
-            negative = "; ".join(series.forbidden_elements + entity.forbidden_rules + entity.shape_grammar.forbidden_mutations)
+            continuity = list(dict.fromkeys(
+                entity.shape_grammar.locked_parts
+                + entity.shape_grammar.silhouette_rules
+                + entity.shape_grammar.reference_ids
+            ))
+            positive_parts.extend([
+                f"SERIES: {series.title}.",
+                f"ENTITY: {entity.display_name} ({entity.entity_id}).",
+                f"TEXT MASTER: {entity.text_master}",
+                "HARD LOCKED PARTS: " + "; ".join(entity.shape_grammar.locked_parts),
+                "HARD SHAPE RULES: " + "; ".join(entity.shape_grammar.silhouette_rules),
+                "SILHOUETTE RULES: " + "; ".join(entity.silhouette_rules),
+                "PALETTE RULES: " + "; ".join(entity.palette_rules),
+                "MOTION RULES: " + "; ".join(entity.motion_rules),
+            ])
+
+            variant = next(
+                (v for v in entity.variants if slot.slot_id == f"SLOT_{v.variant_id}"),
+                None,
+            )
+            episode_variants = [
+                v for v in entity.variants
+                if v.kind == "episode" and slot.episode_id and v.episode_id == slot.episode_id
+            ]
+            applied = []
+            for item in [*episode_variants, *([variant] if variant and variant not in episode_variants else [])]:
+                applied.append(item.variant_id)
+                if item.appearance_delta:
+                    positive_parts.append("VARIANT APPEARANCE: " + "; ".join(item.appearance_delta))
+                if item.palette_delta:
+                    positive_parts.append("VARIANT PALETTE: " + "; ".join(item.palette_delta))
+                if item.motion_delta:
+                    positive_parts.append("VARIANT MOTION: " + "; ".join(item.motion_delta))
+            if applied:
+                positive_parts.append("APPLIED VARIANTS: " + ", ".join(applied))
+
+            negative = "; ".join(dict.fromkeys(
+                series.forbidden_elements
+                + entity.forbidden_rules
+                + entity.shape_grammar.forbidden_mutations
+            ))
         else:
-            positive = f"{series.title}, {slot.episode_id} color script; " + "; ".join(series.common_visual_rules + sum(series.color_system.values(), []))
+            positive_parts.extend([
+                f"SERIES: {series.title}.",
+                f"EPISODE: {slot.episode_id or 'SERIES'}.",
+                "COMMON VISUAL RULES: " + "; ".join(series.common_visual_rules),
+                "COLOR SYSTEM: " + "; ".join(
+                    f"{key}={', '.join(values)}" for key, values in series.color_system.items()
+                ),
+            ])
             negative = "; ".join(series.forbidden_elements)
             continuity = list(series.color_system)
-        packs.append(AssetPromptPack(pack_id=f"PACK_{slot.slot_id}", slot_id=slot.slot_id, kind=slot.role,
-            prompt=f"{slot.role}. {positive}. Preserve series continuity.", negative_prompt=negative,
-            continuity_keys=list(dict.fromkeys(continuity))))
+
+        if episode:
+            positive_parts.extend([
+                f"EPISODE TITLE: {episode.title}.",
+                f"EPISODE LOGLINE: {episode.logline}",
+                "EPISODE VISUAL OVERRIDES: " + "; ".join(episode.visual_overrides),
+                "EPISODE COLOR ARC: " + ("; ".join(episode.color_arc) if episode.color_arc else "follow shared base palette; one auxiliary accent maximum"),
+            ])
+
+        positive_parts.append(
+            "FINAL CHECK: hard locked parts must remain countable/readable and no forbidden mutation may be introduced."
+        )
+        prompt = "
+".join(part for part in positive_parts if part and not part.endswith(": "))
+        packs.append(AssetPromptPack(
+            pack_id=f"PACK_{slot.slot_id}",
+            slot_id=slot.slot_id,
+            kind=slot.role,
+            prompt=prompt,
+            negative_prompt=negative,
+            continuity_keys=list(dict.fromkeys(continuity)),
+        ))
     return packs
 
 
