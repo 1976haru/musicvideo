@@ -30,3 +30,6 @@ release/
 /.release_staging/
 /release_*/
 /smoke-appdata/
+
+# Local project/session data
+/data/

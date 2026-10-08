@@ -6,7 +6,7 @@ import sys
 from .release_runtime import (
     APP_VERSION, begin_run, configure_logging, end_run, log_uncaught,
     gui_music_test, music_analysis_smoke_test, release_stress_test,
-    render_smoke_test, smoke_test, world_bible_smoke_test,
+    render_smoke_test, series_studio_smoke_test, smoke_test, world_bible_smoke_test,
 )
 
 
@@ -39,6 +39,10 @@ def main() -> int:
         ok, payload = world_bible_smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 7
+    if "--series-studio-smoke-test" in sys.argv:
+        ok, payload = series_studio_smoke_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 8
     previous_unclean = begin_run()
     sys.excepthook = log_uncaught
     try:

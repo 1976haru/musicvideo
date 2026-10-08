@@ -31,6 +31,10 @@ from .director_intelligence import DirectorIntelligenceResult
 from .music_intelligence import EnhancedMusicStructure
 from .editor import EditTimeline, RenderRecord, RenderSettings
 from .release_runtime import backup_session, configure_logging
+from .series_studio import (
+    EpisodeContinuitySnapshot, SeriesAsset, SeriesBible, SeriesEntity,
+    seed_the_fifth_verdict,
+)
 
 
 @dataclass
@@ -62,6 +66,10 @@ class LyricsWorldSession:
     render_records: list[RenderRecord] = field(default_factory=list)
     preview_path: str = ""
     final_path: str = ""
+    series_bible: SeriesBible | None = None
+    series_entities: list[SeriesEntity] = field(default_factory=list)
+    series_assets: list[SeriesAsset] = field(default_factory=list)
+    episode_continuity: list[EpisodeContinuitySnapshot] = field(default_factory=list)
     project_dir: Path | None = None
     session_path: Path | None = None
 
@@ -136,6 +144,16 @@ class LyricsWorldSession:
     def remove_reference(self, reference_id: str) -> ReferenceAsset:
         return self.reference_vault.remove(reference_id)
 
+    def initialize_series(self, replace: bool = False) -> SeriesBible:
+        """Install the bundled THE FIFTH VERDICT seed without overwriting by default."""
+        if self.series_bible is not None and not replace:
+            return self.series_bible
+        self.series_bible, self.series_entities = seed_the_fifth_verdict()
+        if replace:
+            self.series_assets = []
+            self.episode_continuity = []
+        return self.series_bible
+
     @property
     def selected_concept(self) -> WorldConcept | None:
         return next((c for c in self.concepts if c.concept_id == self.selected_concept_id), None)
@@ -160,6 +178,15 @@ class LyricsWorldSession:
             data = take.model_dump(mode="json")
             data["output_path"] = portable_take_path(resolve_take_path(take, self.project_dir), target_dir)
             takes.append(data)
+        series_assets = []
+        for asset in self.series_assets:
+            data = asset.model_dump(mode="json")
+            source = Path(asset.path).expanduser()
+            if not source.is_absolute() and self.project_dir:
+                source = self.project_dir / source
+            data["path"] = portable_path(source.resolve(strict=False), target_dir)
+            series_assets.append(data)
+
         return {
             "schema_version": "1.0",
             "music_path": self.music_path,
@@ -189,6 +216,10 @@ class LyricsWorldSession:
             "render_records": [record.model_dump(mode="json") for record in self.render_records],
             "preview_path": self.preview_path,
             "final_path": self.final_path,
+            "series_bible": self.series_bible.model_dump(mode="json") if self.series_bible else None,
+            "series_entities": [entity.model_dump(mode="json") for entity in self.series_entities],
+            "series_assets": series_assets,
+            "episode_continuity": [item.model_dump(mode="json") for item in self.episode_continuity],
             "director_llm_prompt": build_director_llm_prompt(self.lines, self.analysis) if self.analysis and self.lines else "",
         }
 
@@ -222,6 +253,10 @@ class LyricsWorldSession:
             render_records=[RenderRecord.model_validate(x) for x in data.get("render_records", [])],
             preview_path=data.get("preview_path", ""),
             final_path=data.get("final_path", ""),
+            series_bible=SeriesBible.model_validate(data["series_bible"]) if data.get("series_bible") else None,
+            series_entities=[SeriesEntity.model_validate(x) for x in data.get("series_entities", [])],
+            series_assets=[SeriesAsset.model_validate(x) for x in data.get("series_assets", [])],
+            episode_continuity=[EpisodeContinuitySnapshot.model_validate(x) for x in data.get("episode_continuity", [])],
             project_dir=Path(project_dir).resolve(strict=False) if project_dir else None,
         )
         reconcile_take_counters(session.generation_takes, session.take_id_counters)

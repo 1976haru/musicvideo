@@ -63,6 +63,12 @@ class ManualGenerationPack(BaseModel):
     reference_instructions: list[ReferenceInstruction] = Field(default_factory=list)
     world_rule_summary: list[str] = Field(default_factory=list)
     continuity_summary: list[str] = Field(default_factory=list)
+    series_episode_id: str | None = None
+    series_entity_ids: list[str] = Field(default_factory=list)
+    series_variant_ids: list[str] = Field(default_factory=list)
+    series_lock_summary: list[str] = Field(default_factory=list)
+    series_asset_ids: list[str] = Field(default_factory=list)
+    series_asset_paths: list[str] = Field(default_factory=list)
     first_frame_ref: str | None = None
     last_frame_ref: str | None = None
     duration_sec: float
@@ -184,6 +190,99 @@ def _reference_instruction(session: LyricsWorldSession, shot: ShotSpec, asset: R
     )
 
 
+def _series_lock_bundle(session: LyricsWorldSession, shot: ShotSpec):
+    """Resolve G8 identity locks and approved assets for a Shot without weakening base locks."""
+    bible = getattr(session, "series_bible", None)
+    entities = getattr(session, "series_entities", [])
+    assets = getattr(session, "series_assets", [])
+    if not bible or not shot.series_entity_ids:
+        return [], [], [], [], [], []
+
+    by_id = {entity.entity_id: entity for entity in entities}
+    lock_blocks: list[str] = []
+    negatives: list[str] = []
+    continuity: list[str] = []
+    warnings: list[str] = []
+
+    for entity_id in shot.series_entity_ids:
+        entity = by_id.get(entity_id)
+        if not entity:
+            warnings.append(f"Unknown series entity: {entity_id}")
+            continue
+        if shot.series_episode_id and entity.episode_presence and shot.series_episode_id not in entity.episode_presence:
+            warnings.append(f"{entity_id} is not registered for {shot.series_episode_id}")
+
+        applied_variants = [
+            variant for variant in entity.variants
+            if (
+                (variant.kind == "episode" and shot.series_episode_id and variant.episode_id == shot.series_episode_id)
+                or variant.variant_id in shot.series_variant_ids
+            )
+        ]
+        parts = [
+            f"ENTITY {entity.display_name} ({entity.entity_id})",
+            f"TEXT MASTER: {entity.text_master}",
+            "HARD LOCKED PARTS: " + "; ".join(entity.shape_grammar.locked_parts),
+            "HARD SHAPE RULES: " + "; ".join(entity.shape_grammar.silhouette_rules),
+            "SILHOUETTE: " + "; ".join(entity.silhouette_rules),
+            "PALETTE: " + "; ".join(entity.palette_rules),
+            "MOTION: " + "; ".join(entity.motion_rules),
+        ]
+        for variant in applied_variants:
+            parts.append(f"VARIANT {variant.variant_id} ({variant.kind})")
+            if variant.appearance_delta:
+                parts.append("VARIANT APPEARANCE: " + "; ".join(variant.appearance_delta))
+            if variant.palette_delta:
+                parts.append("VARIANT PALETTE: " + "; ".join(variant.palette_delta))
+            if variant.motion_delta:
+                parts.append("VARIANT MOTION: " + "; ".join(variant.motion_delta))
+        lock_blocks.append(" | ".join(part for part in parts if not part.endswith(": ")))
+        negatives.extend(entity.forbidden_rules)
+        negatives.extend(entity.shape_grammar.forbidden_mutations)
+        continuity.extend(f"{entity.entity_id}: {item}" for item in entity.shape_grammar.locked_parts)
+
+    approved_assets = [
+        asset for asset in assets
+        if asset.review_status == "approved"
+        and asset.entity_id in shot.series_entity_ids
+        and (not asset.episode_id or not shot.series_episode_id or asset.episode_id == shot.series_episode_id)
+    ]
+    asset_ids: list[str] = []
+    asset_paths: list[str] = []
+    for asset in approved_assets:
+        path = Path(asset.path).expanduser()
+        if not path.is_absolute() and session.project_dir:
+            path = session.project_dir / path
+        path = path.resolve(strict=False)
+        asset_ids.append(asset.asset_id)
+        asset_paths.append(str(path))
+        if not path.is_file():
+            warnings.append(f"Missing approved series asset: {asset.asset_id} ({path})")
+
+    selected_variant_ids = {
+        variant.variant_id
+        for entity_id in shot.series_entity_ids
+        for entity in [by_id.get(entity_id)]
+        if entity
+        for variant in entity.variants
+        if (variant.kind == "episode" and shot.series_episode_id and variant.episode_id == shot.series_episode_id)
+           or variant.variant_id in shot.series_variant_ids
+    }
+    unknown_variants = sorted(set(shot.series_variant_ids) - selected_variant_ids)
+    if unknown_variants:
+        warnings.append("Unknown/inapplicable series variants: " + ", ".join(unknown_variants))
+
+    negatives.extend(getattr(bible, "forbidden_elements", []))
+    return (
+        _dedupe(lock_blocks),
+        _dedupe(negatives),
+        _dedupe(continuity),
+        _dedupe(warnings),
+        list(dict.fromkeys(asset_ids)),
+        list(dict.fromkeys(asset_paths)),
+    )
+
+
 def _nearest_duration(duration: float, options: list[float]) -> float | None:
     return min(options, key=lambda option: (abs(option - duration), option)) if options else None
 
@@ -208,12 +307,18 @@ def compile_manual_pack(
     ref_map = {asset.reference_id: asset for asset in session.references}
     ref_instructions = [_reference_instruction(session, shot, ref_map[ref_id]) for ref_id in shot.reference_ids if ref_id in ref_map]
     preset = recommend_camera_preset(profile, shot)
+    (
+        series_locks, series_negatives, series_continuity, series_warnings,
+        series_asset_ids, series_asset_paths,
+    ) = _series_lock_bundle(session, shot)
 
     world_chunks = []
     if bible:
         world_chunks = [bible.premise, bible.emotional_thesis, *bible.visual_language, *bible.palette, *bible.material_language]
     main_parts = _dedupe([
         f"WORLD LOCK: {'; '.join(_dedupe(world_chunks))}" if world_chunks else "",
+        f"SERIES EPISODE: {shot.series_episode_id}" if shot.series_episode_id else "",
+        ("SERIES ENTITY LOCKS:\n" + "\n".join(series_locks)) if series_locks else "",
         f"SHOT PURPOSE: {shot.narrative_function}",
         f"SUBJECT: {shot.subject}",
         f"ACTION: {shot.action}",
@@ -237,7 +342,7 @@ def compile_manual_pack(
         f"ANGLE: {shot.camera.angle}", f"CAMERA MOVEMENT: {shot.camera.movement or 'controlled'}",
         f"MOVEMENT STRENGTH: {shot.camera.movement_strength}", f"MANUAL PRESET: {preset}",
     ])
-    negatives = _dedupe([*(bible.forbidden_elements if bible else []), *shot.negative_constraints])
+    negatives = _dedupe([*(bible.forbidden_elements if bible else []), *series_negatives, *shot.negative_constraints])
 
     warnings = shot_warnings(
         shot, session.story_beats, session.shots, bible.forbidden_elements if bible else [],
@@ -289,7 +394,7 @@ def compile_manual_pack(
             "Higgsfield settings are model-dependent; verify duration, aspect ratio, resolution, "
             "first/last frame, negative prompt, and generation-mode support for the selected model."
         )
-    warnings = _dedupe([*blockers, *warnings])
+    warnings = _dedupe([*blockers, *series_warnings, *warnings])
     readiness = "BLOCKED" if blockers else "READY_WITH_WARNINGS" if warnings else "READY"
 
     duration_hint = generation_duration_hint if generation_duration_hint is not None else _nearest_duration(shot.duration_sec, profile.duration_options)
@@ -312,7 +417,10 @@ def compile_manual_pack(
     motion_prompt = "\n".join(motion_parts)
     camera_prompt = "\n".join(camera_parts)
     negative_prompt = "; ".join(negatives)
-    reference_text = "\n".join(f"- {item.reference_id}: {item.instruction}\n  {item.path}" for item in ref_instructions) or "- No reference files linked"
+    reference_text = "\n".join(f"- {item.reference_id}: {item.instruction}\n  {item.path}" for item in ref_instructions) or "- No legacy reference files linked"
+    series_reference_text = "\n".join(
+        f"- {asset_id}: {path}" for asset_id, path in zip(series_asset_ids, series_asset_paths)
+    ) or "- No approved Series Studio assets linked"
     full_text = "\n\n".join((
         f"MANUAL GENERATION PACK\nShot: {shot.shot_id}\nProfile: {profile.display_name}\nReadiness: {readiness}",
         "[MAIN PROMPT]\n" + main_prompt,
@@ -320,6 +428,7 @@ def compile_manual_pack(
         "[CAMERA PROMPT]\n" + camera_prompt,
         "[NEGATIVE PROMPT]\n" + (negative_prompt or "-"),
         "[REFERENCES]\n" + reference_text,
+        "[SERIES ASSETS]\n" + series_reference_text,
         "[SETTINGS]\n" + "\n".join(checklist),
         "[WARNINGS]\n" + ("\n".join(f"- {warning}" for warning in warnings) or "- None"),
     ))
@@ -330,7 +439,13 @@ def compile_manual_pack(
         main_prompt=main_prompt, motion_prompt=motion_prompt, camera_prompt=camera_prompt,
         negative_prompt=negative_prompt, reference_instructions=ref_instructions,
         world_rule_summary=rule_summary,
-        continuity_summary=_dedupe([*shot.continuity_in, *shot.continuity_out]),
+        continuity_summary=_dedupe([*shot.continuity_in, *shot.continuity_out, *series_continuity]),
+        series_episode_id=shot.series_episode_id,
+        series_entity_ids=list(shot.series_entity_ids),
+        series_variant_ids=list(shot.series_variant_ids),
+        series_lock_summary=series_locks,
+        series_asset_ids=series_asset_ids,
+        series_asset_paths=series_asset_paths,
         first_frame_ref=shot.first_frame_ref, last_frame_ref=shot.last_frame_ref,
         duration_sec=shot.duration_sec, generation_duration_hint=duration_hint,
         aspect_ratio=aspect, resolution_hint=resolution, camera_preset_recommendation=preset,

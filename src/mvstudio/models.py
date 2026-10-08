@@ -259,6 +259,10 @@ class ShotSpec(BaseModel):
     first_frame_ref: str | None = None
     last_frame_ref: str | None = None
     negative_constraints: list[str] = Field(default_factory=list)
+    # Optional G8 series context. Legacy single-MV sessions leave these empty.
+    series_episode_id: str | None = None
+    series_entity_ids: list[str] = Field(default_factory=list)
+    series_variant_ids: list[str] = Field(default_factory=list)
 
     @property
     def duration_sec(self) -> float:

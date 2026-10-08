@@ -711,6 +711,188 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
         shutil.rmtree(directory, ignore_errors=True)
 
 
+def series_studio_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Exercise the real G8 seed, multi-reference planning and Shot→Generate series locks."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    paths = app_paths()
+    directory = paths.temp / f"series-studio-smoke-{uuid.uuid4().hex}"
+    directory.mkdir(parents=True)
+    try:
+        from PySide6.QtWidgets import QApplication
+        from .g8_ui import SeriesStudioDialog
+        from .manual_generation import compile_manual_pack
+        from .models import CameraSpec, ShotSpec, StoryBeat
+        from .session import LyricsWorldSession
+        from .series_studio import (
+            EntityContinuityState, EpisodeContinuitySnapshot, SeriesAsset,
+            build_asset_prompt_packs, build_episode_graph,
+            resolve_entity_variant, run_series_continuity_qc,
+            suggest_reference_slots,
+        )
+
+        expected_titles = [
+            "MUTE BELL",
+            "DOORLESS ROAD",
+            "SILENT WITNESS",
+            "MUTINY OF THE UNWRITTEN",
+            "GWAN: THE UNWRITTEN VERDICT",
+        ]
+        session = LyricsWorldSession(project_dir=directory)
+        session.initialize_series()
+        target = directory / "THE_FIFTH_VERDICT_시리즈.json"
+        session.export(target)
+        reopened = LyricsWorldSession.import_file(target)
+        reopened.project_dir = directory
+        bible = reopened.series_bible
+        entities = reopened.series_entities
+        required = {
+            "YOSUMI", "SUZUGARA", "TOJI", "THE_ARCHIVE", "HOLLOW",
+            "STAMP", "GWAN_SYMBOL", "MARGIN_CITY_LOCATIONS",
+        }
+        locked = {"YOSUMI", "SUZUGARA", "TOJI", "THE_ARCHIVE", "HOLLOW"}
+        yosumi = next(entity for entity in entities if entity.entity_id == "YOSUMI")
+        yosumi_contract = yosumi.shape_grammar.locked_parts == [
+            "three black ink ribbons",
+            "centered rectangular hollow chest",
+            "matte white left hand only",
+        ] and "EXACTLY THREE" in yosumi.text_master and "ONLY the anatomical LEFT hand" in yosumi.text_master
+
+        slots = suggest_reference_slots(bible, entities, reopened.series_assets)
+        packs = build_asset_prompt_packs(bible, entities, slots)
+        yosumi_roles = {
+            slot.role for slot in slots
+            if slot.entity_id == "YOSUMI" and slot.episode_id is None
+        }
+        graph = build_episode_graph(bible)
+        resolved = resolve_entity_variant(yosumi, "EP5")
+
+        keyart = directory / "YOSUMI__character_sheet.png"
+        keyart.write_bytes(b"series-smoke-reference")
+        reopened.series_assets.append(SeriesAsset(
+            asset_id="ASSET_YOSUMI_MASTER",
+            path=str(keyart),
+            role="character_sheet",
+            entity_id="YOSUMI",
+            review_status="approved",
+            source="manual",
+        ))
+        beat = StoryBeat(
+            beat_id="B001", start_sec=0, end_sec=5,
+            dramatic_question="Is the silent bell dangerous?",
+            change="YOSUMI stops before the second strike",
+            visual_event="The white left palm opens toward SUZUGARA",
+        )
+        shot = ShotSpec(
+            shot_id="B001-S01", beat_id="B001", start_sec=0, end_sec=5,
+            narrative_function="protective realization",
+            subject="YOSUMI", action="opens the white left palm instead of striking",
+            environment="MARGIN CITY folded alley", composition="three-quarter full body",
+            camera=CameraSpec(framing="full body", movement="subtle push-in"),
+            lighting="matte teal haze", emotional_note="protective realization",
+            series_episode_id="EP1",
+            series_entity_ids=["YOSUMI"],
+            series_variant_ids=["YOSUMI_PROTECTIVE_REALIZATION"],
+        )
+        reopened.story_beats = [beat]
+        reopened.shots = [shot]
+        generation_pack = compile_manual_pack(
+            reopened, shot, "GENERIC_MANUAL",
+            pack_id="PACK-SERIES-SMOKE", created_at="smoke",
+        )
+        generate_lock_ok = all(token in generation_pack.main_prompt for token in (
+            "EXACTLY THREE", "rectangular", "LEFT hand", "YOSUMI_PROTECTIVE_REALIZATION",
+        ))
+        generate_negative_ok = "fourth ribbon" in generation_pack.negative_prompt
+        generate_asset_ok = (
+            generation_pack.series_asset_ids == ["ASSET_YOSUMI_MASTER"]
+            and str(keyart.resolve()) in generation_pack.series_asset_paths
+        )
+
+        snapshots = [
+            EpisodeContinuitySnapshot(
+                episode_id="EP1",
+                clues_set_up=["CHAIN_STAMP_CAUSALITY"],
+                motifs=["black square STAMP"],
+                entities=[EntityContinuityState(
+                    entity_id="YOSUMI",
+                    shape_tokens=list(yosumi.shape_grammar.locked_parts),
+                    colors=["deep ink navy #162432"],
+                )],
+            ),
+            EpisodeContinuitySnapshot(
+                episode_id="EP5",
+                payoffs=["CHAIN_STAMP_CAUSALITY"],
+                motifs=["black square STAMP"],
+                entities=[EntityContinuityState(
+                    entity_id="YOSUMI",
+                    shape_tokens=list(yosumi.shape_grammar.locked_parts),
+                    colors=["deep ink navy #162432"],
+                )],
+            ),
+        ]
+        qc = run_series_continuity_qc(bible, entities, snapshots)
+
+        app = QApplication.instance() or QApplication([])
+        dialog = SeriesStudioDialog(reopened)
+        dialog.show(); app.processEvents()
+        tab_names = [dialog.tabs.tabText(i) for i in range(dialog.tabs.count())]
+        yosumi_index = dialog.entity_select.findData("YOSUMI")
+        if yosumi_index >= 0:
+            dialog.entity_select.setCurrentIndex(yosumi_index)
+            dialog._load_entity()
+        ui_hard_lock_editor = (
+            hasattr(dialog, "entity_locked_parts")
+            and "three black ink ribbons" in dialog.entity_locked_parts.toPlainText()
+            and hasattr(dialog, "asset_list")
+        )
+
+        payload = {
+            "series_studio": "PASS",
+            "session_round_trip": target.is_file() and bible is not None,
+            "final_episode_titles": bool(bible and bible.episode_titles == expected_titles),
+            "seven_world_rules": bool(bible and len(bible.common_world_rules) == 7),
+            "required_entities": {entity.entity_id for entity in entities} == required,
+            "shape_grammar_locked": all(
+                entity.shape_grammar.lock_strength == 1.0 and entity.shape_grammar.locked_parts
+                for entity in entities if entity.entity_id in locked
+            ),
+            "yosumi_final_contract": yosumi_contract,
+            "text_masters": all(entity.text_master for entity in entities),
+            "variant_lock_preserved": resolved.shape_grammar == yosumi.shape_grammar,
+            "reference_slots": len(slots),
+            "prompt_packs": len(packs),
+            "yosumi_multi_image_plan": {"character_sheet", "action_keyart", "emotion_keyart"}.issubset(yosumi_roles),
+            "asset_factory_roles": sorted({pack.kind for pack in packs}),
+            "episode_graph_nodes": len(graph.nodes),
+            "episode_graph_edges": len(graph.edges),
+            "continuity_qc_executed": isinstance(qc.passed, bool),
+            "shot_generate_series_lock": generate_lock_ok,
+            "shot_generate_series_negative": generate_negative_ok,
+            "shot_generate_approved_asset": generate_asset_ok,
+            "ui_hard_lock_asset_review": ui_hard_lock_editor,
+            "ui_tabs": tab_names,
+            "ui_entities": dialog.entity_select.count(),
+        }
+        dialog.close(); app.processEvents()
+
+        required_true = (
+            "session_round_trip", "final_episode_titles", "seven_world_rules",
+            "required_entities", "shape_grammar_locked", "yosumi_final_contract",
+            "text_masters", "variant_lock_preserved", "yosumi_multi_image_plan",
+            "continuity_qc_executed", "shot_generate_series_lock",
+            "shot_generate_series_negative", "shot_generate_approved_asset",
+            "ui_hard_lock_asset_review",
+        )
+        ok = all(payload[key] for key in required_true)             and payload["reference_slots"] > 0             and payload["prompt_packs"] == payload["reference_slots"]             and payload["episode_graph_nodes"] == 5             and payload["episode_graph_edges"] >= 6             and tab_names == ["Series", "Episode", "Character", "Assets", "Continuity", "Episode Graph"]             and payload["ui_entities"] == 8
+        payload["series_studio"] = "PASS" if ok else "FAIL"
+        return ok, payload
+    except Exception as exc:
+        configure_logging(paths).exception("Series Studio packaged smoke failed")
+        return False, {"series_studio": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def release_stress_test() -> tuple[bool, dict[str, Any]]:
     """Packaged, real-dependency release exercise. No media-analysis mocks."""
     paths = app_paths()
