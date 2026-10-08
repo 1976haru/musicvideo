@@ -46,6 +46,38 @@ QPushButton#primary { background: #3764c7; border: 1px solid #4d78d7; font-weigh
 QPushButton#nav { text-align: left; padding-left: 14px; background: transparent; border: none; }
 QPushButton#nav[active="true"] { background: #242c38; border: 1px solid #364154; }
 QTextEdit { background: #101319; border: 1px solid #313946; border-radius: 10px; padding: 10px; selection-background-color: #3764c7; }
+QListWidget, QListView, QTreeView, QTableView {
+    background: #101319;
+    color: #e8edf5;
+    border: 1px solid #313946;
+    border-radius: 8px;
+    outline: none;
+    selection-background-color: #2f5fbf;
+    selection-color: #ffffff;
+}
+QListWidget::item, QListView::item {
+    background: transparent;
+    color: #dbe3ee;
+    padding: 7px 8px;
+    border-bottom: 1px solid #202733;
+}
+QListWidget::item:selected, QListView::item:selected {
+    background: #2b4f91;
+    color: #ffffff;
+}
+QListWidget::item:disabled, QListView::item:disabled { color: #697586; }
+QSplitter#g3Splitter { background: #12151a; }
+QSplitter#g3Splitter::handle { background: #303744; width: 4px; margin: 4px 2px; }
+QWidget#g3Pane, QWidget#g3DetailHost, QWidget#g3FormHost { background: #12151a; }
+QScrollArea#g3Scroll { background: #12151a; border: none; }
+QScrollArea#g3Scroll > QWidget > QWidget { background: #12151a; }
+QScrollArea#g3Scroll QWidget#qt_scrollarea_viewport { background: #12151a; }
+QScrollBar:vertical { background: #171b22; width: 12px; margin: 0; }
+QScrollBar::handle:vertical { background: #4a5565; min-height: 28px; border-radius: 5px; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar:horizontal { background: #171b22; height: 12px; margin: 0; }
+QScrollBar::handle:horizontal { background: #4a5565; min-width: 28px; border-radius: 5px; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 QSpinBox { min-height: 40px; background: #101319; border: 1px solid #313946; border-radius: 8px; padding: 0 8px; }
 QLineEdit, QComboBox, QDoubleSpinBox { min-height: 42px; background: #101319; border: 1px solid #313946; border-radius: 8px; padding: 0 10px; }
 QLabel#muted { color: #9aa6b5; }
