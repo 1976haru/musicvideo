@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.4 — 2026-10-08
+
+- STORY ROOM / SHOT BOARD에서 Windows 기본 흰색 배경이 노출되던 테마 회귀 수정
+- QListWidget/ListView, G3 splitter, scroll viewport, form host를 명시적 dark surface로 고정
+- 선택 행과 스크롤바도 다크 테마로 통일
+- packaged/root `--g3-dark-ui-smoke-test`가 실제 렌더링의 흰색 픽셀 비율까지 검사
+- G8 Series Studio / Session schema 1.0 / 기존 제작 로직은 변경하지 않음
+
+
 ## 1.0.3 — 2026-10-08
 
 - World Bible 전체 초안 생성기를 선택 세계관 + 가사 앵커 + 감정곡선 + 음악 구조 기반으로 확장
