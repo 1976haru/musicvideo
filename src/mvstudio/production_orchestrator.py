@@ -16,10 +16,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .editor import check_readiness, probe_media
 from .reference_vault import resolve_reference_path
-from .result_takes import GenerationTake, audit_take_state, resolve_take_path
-from .semantic_qc import adjacent_visual_findings
 from .story_engine import (
     cinematic_warnings,
     duplicate_id_warnings,
@@ -31,6 +28,7 @@ from .story_engine import (
 
 if TYPE_CHECKING:
     from .models import ShotSpec
+    from .result_takes import GenerationTake
     from .session import LyricsWorldSession
 
 
@@ -439,6 +437,8 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
     qc_ready_count = 0
     technical_by_take: dict[str, str] = {}
 
+    from .result_takes import audit_take_state, resolve_take_path
+
     take_audit = audit_take_state(
         session.generation_takes,
         session.shots,
@@ -530,6 +530,7 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
     # Adjacent visual QC is read-only; unreadable/missing files are already caught elsewhere.
     if accepted_count >= 2:
         try:
+            from .semantic_qc import adjacent_visual_findings
             for finding in adjacent_visual_findings(session):
                 qc_issues.append(ProductionIssue(
                     code=finding.finding_id,
@@ -547,6 +548,7 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
         edit_issues.append(ProductionIssue(code="NO_EDIT_TIMELINE", severity="blocker", stage_id="edit", message="자동 편집 Timeline이 없습니다.", action="10 EDIT / RENDER에서 자동 편집 만들기"))
     else:
         try:
+            from .editor import check_readiness
             ready = check_readiness(session, session.edit_timeline, session.render_settings)
             for item in ready.issues:
                 edit_issues.append(ProductionIssue(
@@ -930,6 +932,7 @@ def verify_final_render(session: LyricsWorldSession, path: str | Path | None = N
         )
 
     try:
+        from .editor import probe_media
         media = probe_media(target)
     except Exception as exc:
         return FinalRenderVerification(
