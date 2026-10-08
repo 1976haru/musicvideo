@@ -450,7 +450,7 @@ class MainWindow(QMainWindow):
         outer.setContentsMargins(28, 24, 28, 24)
         outer.setSpacing(14)
         outer.addWidget(_label("WORLD BIBLE", "sectionTitle"))
-        outer.addWidget(_label("선택한 세계관을 변하면 안 되는 제작 규칙으로 정리합니다. 가사 근거 Line ID는 계속 보존됩니다.", "muted"))
+        outer.addWidget(_label("선택 세계관 + 가사 앵커 + 감정곡선 + 음악 구조를 합쳐 12개 제작 필드의 전체 초안을 만듭니다. 가사 근거 Line ID는 계속 보존됩니다.", "muted"))
         scroll = QScrollArea()
         scroll.setObjectName("worldBibleScroll")
         scroll.setWidgetResizable(True)
@@ -486,13 +486,13 @@ class MainWindow(QMainWindow):
         scroll.setWidget(host)
         outer.addWidget(scroll, 1)
         actions = QHBoxLayout()
-        promote = QPushButton("선택 세계관에서 초안 만들기")
-        promote.clicked.connect(self._promote_world_bible)
+        self.world_bible_draft_button = QPushButton("World Bible 전체 초안 만들기")
+        self.world_bible_draft_button.clicked.connect(self._promote_world_bible)
         save = QPushButton("World Bible + 세션 저장")
         save.setObjectName("primary")
         save.clicked.connect(self._save_world_bible)
         actions.addStretch(1)
-        actions.addWidget(promote)
+        actions.addWidget(self.world_bible_draft_button)
         actions.addWidget(save)
         outer.addLayout(actions)
         return page
@@ -540,16 +540,40 @@ class MainWindow(QMainWindow):
         return page
 
     def _promote_world_bible(self):
+        if self.session.world_bible is not None:
+            answer = QMessageBox.question(
+                self,
+                "World Bible 전체 초안 다시 만들기",
+                "현재 World Bible에 직접 수정한 내용이 있을 수 있습니다.\n"
+                "선택한 세계관과 현재 가사/음악 분석을 기준으로 12개 제작 필드를 다시 만들까요?\n\n"
+                "계속하면 현재 World Bible 내용이 새 초안으로 교체됩니다.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self.statusBar().showMessage("World Bible 재생성 취소 · 현재 수정 내용 유지", 7000)
+                return False
         try:
             bible = self.session.promote_selected_concept()
         except ValueError as exc:
             QMessageBox.information(self, "World Bible", str(exc))
-            return
+            return False
         for key, editor in self.bible_fields.items():
             value = getattr(bible, key)
             editor.setPlainText("\n".join(value) if isinstance(value, list) else value)
-        self.statusBar().showMessage(f"World Bible 초안 생성 · {bible.source_concept_id}")
+        editable_keys = [
+            "premise", "emotional_thesis", "reality_rules", "time_period",
+            "visual_language", "palette", "material_language", "weather_rules",
+            "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
+        ]
+        filled = sum(bool(getattr(bible, key)) for key in editable_keys)
+        self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
+        self.statusBar().showMessage(
+            f"World Bible 전체 초안 생성 · 제작 필드 {filled}/12 · {bible.source_concept_id}",
+            10000,
+        )
         self._schedule_autosave()
+        return True
 
     def _save_world_bible(self):
         if not self.session.world_bible:
@@ -741,9 +765,11 @@ class MainWindow(QMainWindow):
             for key, editor in self.bible_fields.items():
                 value = getattr(session.world_bible, key)
                 editor.setPlainText("\n".join(value) if isinstance(value, list) else value or "")
+            self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
         else:
             for editor in self.bible_fields.values():
                 editor.clear()
+            self.world_bible_draft_button.setText("World Bible 전체 초안 만들기")
         self._render_references()
         self.story_room_page.refresh()
         self.shot_board_page.refresh()
@@ -878,9 +904,9 @@ class MainWindow(QMainWindow):
         if not c:
             QMessageBox.information(self, "세계관 선택", "먼저 세계관을 선택하세요.")
             return
-        self._promote_world_bible()
-        self._switch(3)
-        self.statusBar().showMessage(f"WORLD LOCK · {c.title} · World Bible 초안 생성")
+        if self._promote_world_bible():
+            self._switch(3)
+            self.statusBar().showMessage(f"WORLD LOCK · {c.title} · World Bible 전체 초안 생성")
 
     def _export(self):
         if not self.session.analysis and not self.session.audio_map and not self.session.world_bible and not self.session.references and not self.session.story_beats and not self.session.shots:
