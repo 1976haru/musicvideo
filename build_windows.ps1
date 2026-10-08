@@ -74,7 +74,7 @@ function Remove-RootRuntime {
 if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 $env:QT_QPA_PLATFORM = "offscreen"
-Invoke-Gate "pytest" { python -m pytest -q }
+Invoke-Gate "pytest" { python tests\run_pytest_release.py }
 Invoke-Gate "compileall" { python -m compileall -q src }
 Invoke-Gate "git diff --check" { git diff --check }
 Invoke-Gate "PyInstaller staging build" { python -m PyInstaller --noconfirm --clean --distpath $dist --workpath $work MV_Director_Studio.spec }
