@@ -26,7 +26,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.0.3"
+APP_VERSION = "1.0.4"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 
@@ -710,6 +710,112 @@ def world_bible_smoke_test() -> tuple[bool, dict[str, Any]]:
     finally:
         shutil.rmtree(directory, ignore_errors=True)
 
+
+
+def g3_dark_ui_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Render Story Room and Shot Board critical surfaces and reject Windows-white regressions."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    paths = app_paths()
+    try:
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QImage
+        from PySide6.QtWidgets import QApplication, QWidget
+        from .models import CameraSpec, ShotSpec, StoryBeat
+        from .ui_app import MainWindow
+
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow()
+        window.resize(1280, 800)
+        beat = StoryBeat(
+            beat_id="B001", start_sec=0.0, end_sec=8.0,
+            dramatic_question="무엇이 달라질까?",
+            change="감정과 선택이 다음 상태로 이동한다.",
+            visual_event="한 가지 행동과 시각 변화를 중심으로 장면을 설계한다.",
+            motif="風", setup_or_payoff="setup",
+            lyric_line_ids=["L001"], music_cue_ids=["MV01"],
+        )
+        shot = ShotSpec(
+            shot_id="B001-S01", beat_id="B001", start_sec=0.0, end_sec=8.0,
+            narrative_function="setup", subject="YOSUMI",
+            action="holds one readable action", environment="MARGIN CITY",
+            composition="clean full-body composition",
+            camera=CameraSpec(framing="full body", movement="subtle push-in"),
+            lighting="matte teal", emotional_note="restrained",
+        )
+        window.session.story_beats = [beat]
+        window.session.shots = [shot]
+        window.story_room_page.refresh()
+        window.shot_board_page.refresh()
+        window.show()
+        app.processEvents()
+
+        def white_ratio(widget) -> float:
+            if widget is None or widget.width() < 2 or widget.height() < 2:
+                return 1.0
+            image = QImage(widget.size(), QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            widget.render(image)
+            white = total = 0
+            step = 6
+            for y in range(2, max(3, image.height() - 2), step):
+                for x in range(2, max(3, image.width() - 2), step):
+                    color = image.pixelColor(x, y)
+                    if color.alpha() == 0:
+                        continue
+                    total += 1
+                    if color.red() > 235 and color.green() > 235 and color.blue() > 235:
+                        white += 1
+            return white / total if total else 1.0
+
+        story = window.story_room_page
+        window._switch(5)
+        app.processEvents()
+        story_widgets = {
+            "evidence": story.evidence,
+            "beat_list": story.beat_list,
+            "story_scroll_viewport": story.findChild(QWidget, "g3Scroll").viewport(),
+            "story_form_host": story.findChild(QWidget, "g3FormHost"),
+        }
+        story_ratios = {name: round(white_ratio(widget), 4) for name, widget in story_widgets.items()}
+
+        shot_page = window.shot_board_page
+        window._switch(6)
+        app.processEvents()
+        shot_widgets = {
+            "shot_list": shot_page.shot_list,
+            "shot_scroll_viewport": shot_page.findChild(QWidget, "g3Scroll").viewport(),
+            "shot_form_host": shot_page.findChild(QWidget, "g3FormHost"),
+        }
+        shot_ratios = {name: round(white_ratio(widget), 4) for name, widget in shot_widgets.items()}
+
+        style = window.styleSheet()
+        selectors_ok = all(token in style for token in (
+            "QListWidget, QListView, QTreeView, QTableView",
+            "QWidget#g3Pane",
+            "QScrollArea#g3Scroll",
+            "QWidget#g3FormHost",
+            "QSplitter#g3Splitter",
+        ))
+        object_names_ok = all(widget is not None for widget in [*story_widgets.values(), *shot_widgets.values()])
+        max_white_ratio = max([*story_ratios.values(), *shot_ratios.values()])
+        # White text can occupy a few sampled pixels; a white Windows background dominates the widget.
+        dark_render_ok = max_white_ratio < 0.30
+        payload = {
+            "g3_dark_ui": "PASS" if selectors_ok and object_names_ok and dark_render_ok else "FAIL",
+            "selectors_ok": selectors_ok,
+            "object_names_ok": object_names_ok,
+            "story_white_ratios": story_ratios,
+            "shot_white_ratios": shot_ratios,
+            "max_white_ratio": max_white_ratio,
+            "threshold": 0.30,
+            "window_size": [window.width(), window.height()],
+        }
+        window.close()
+        app.processEvents()
+        return payload["g3_dark_ui"] == "PASS", payload
+    except Exception as exc:
+        configure_logging(paths).exception("G3 dark UI smoke failed")
+        return False, {"g3_dark_ui": "FAIL", "error": str(exc)}
 
 def series_studio_smoke_test() -> tuple[bool, dict[str, Any]]:
     """Exercise the real G8 seed, multi-reference planning and Shot→Generate series locks."""
