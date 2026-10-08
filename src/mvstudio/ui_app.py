@@ -451,6 +451,11 @@ class MainWindow(QMainWindow):
         outer.setSpacing(14)
         outer.addWidget(_label("WORLD BIBLE", "sectionTitle"))
         outer.addWidget(_label("선택 세계관 + 가사 앵커 + 감정곡선 + 음악 구조를 합쳐 12개 제작 필드의 전체 초안을 만듭니다. 가사 근거 Line ID는 계속 보존됩니다.", "muted"))
+        self.world_bible_completion = _label(
+            "전체 초안 상태: 미생성 · World Bible 전체 초안 만들기를 눌러 시작하세요.",
+            "muted",
+        )
+        outer.addWidget(self.world_bible_completion)
         scroll = QScrollArea()
         scroll.setObjectName("worldBibleScroll")
         scroll.setWidgetResizable(True)
@@ -568,6 +573,9 @@ class MainWindow(QMainWindow):
         ]
         filled = sum(bool(getattr(bible, key)) for key in editable_keys)
         self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
+        self.world_bible_completion.setText(
+            f"전체 초안 상태: {filled}/12 · 각 항목을 확인·수정한 뒤 World Bible + 세션 저장을 누르세요."
+        )
         self.statusBar().showMessage(
             f"World Bible 전체 초안 생성 · 제작 필드 {filled}/12 · {bible.source_concept_id}",
             10000,
@@ -765,10 +773,22 @@ class MainWindow(QMainWindow):
             for key, editor in self.bible_fields.items():
                 value = getattr(session.world_bible, key)
                 editor.setPlainText("\n".join(value) if isinstance(value, list) else value or "")
+            editable_keys = [
+                "premise", "emotional_thesis", "reality_rules", "time_period",
+                "visual_language", "palette", "material_language", "weather_rules",
+                "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
+            ]
+            filled = sum(bool(getattr(session.world_bible, key)) for key in editable_keys)
+            self.world_bible_completion.setText(
+                f"전체 초안 상태: {filled}/12 · 각 항목을 확인·수정한 뒤 World Bible + 세션 저장을 누르세요."
+            )
             self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
         else:
             for editor in self.bible_fields.values():
                 editor.clear()
+            self.world_bible_completion.setText(
+                "전체 초안 상태: 미생성 · World Bible 전체 초안 만들기를 눌러 시작하세요."
+            )
             self.world_bible_draft_button.setText("World Bible 전체 초안 만들기")
         self._render_references()
         self.story_room_page.refresh()
