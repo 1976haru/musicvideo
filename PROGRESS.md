@@ -154,3 +154,12 @@ G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니�
 - Packaged + root smoke/music/render/stress gates
 - Rollback protection and staging cleanup
 - Session schema remains 1.0
+
+
+## 1.0.1 HOTFIX RELEASE GATE
+- SciPy/librosa packaged music analysis fix
+- single root executable: D:\\03 musicvideo\\MV Director Studio.exe
+- staging packaged smoke / music / render / stress
+- root smoke / music / render / stress / GUI Music action
+- rollback protection and temporary build cleanup
+- session schema remains 1.0
