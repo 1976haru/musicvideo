@@ -44,6 +44,9 @@ QPushButton { min-height: 44px; border: 1px solid #384150; border-radius: 9px; p
 QPushButton:hover { background: #2b3440; }
 QPushButton:disabled { color: #647080; background: #171b21; border-color: #262d36; }
 QPushButton#primary { background: #3764c7; border: 1px solid #4d78d7; font-weight: 700; }
+QPushButton#seriesStudioButton { text-align: left; font-weight: 700; background: #202733; border-color: #3a4658; }
+QPushButton#productionControlButton { text-align: left; font-weight: 800; background: #2f5fbf; border-color: #507edb; }
+QPushButton#productionControlButton:hover { background: #376ad0; }
 QPushButton#nav { text-align: left; padding-left: 14px; background: transparent; border: none; }
 QPushButton#nav[active="true"] { background: #242c38; border: 1px solid #364154; }
 QTextEdit { background: #101319; border: 1px solid #313946; border-radius: 10px; padding: 10px; selection-background-color: #3764c7; }
