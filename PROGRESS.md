@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 100% (MV Director Studio 1.0.0 FINAL RELEASE READY)
+## 전체 진행률: 100% (MV Director Studio 1.0.1 LOCAL RELEASE READY)
 
 ### 완료
 
@@ -134,7 +134,7 @@ Reference Vault가 안정화되면 Claude Code 적극 병행.
 - 초보자용 `10 EDIT / RENDER` 화면과 44px 주요 행동 버튼
 - 음악·Take·Reference 원본은 계속 read-only
 
-# MV Director Studio 1.0.0 — G7 FINAL RELEASE
+# MV Director Studio 1.0.1 — LOCAL RELEASE HOTFIX
 
 - Windows ONEDIR build: PASS (`release/dist/MV_Director_Studio`)
 - Packaged UI/runtime smoke: PASS (`--smoke-test`, no developer PYTHONPATH)
@@ -145,3 +145,21 @@ Reference Vault가 안정화되면 Claude Code 적극 병행.
 - Release gate: Packaging / Recovery / Doctor / E2E / CI
 
 G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니다.
+
+
+# 1.0.1 HOTFIX
+
+- Windows packaged music analysis SciPy compatibility packaging fixed
+- Single root executable workflow: `D:\\03 musicvideo\\MV Director Studio.exe`
+- Packaged + root smoke/music/render/stress gates
+- Rollback protection and staging cleanup
+- Session schema remains 1.0
+
+
+## 1.0.1 HOTFIX RELEASE GATE
+- SciPy/librosa packaged music analysis fix
+- single root executable: D:\\03 musicvideo\\MV Director Studio.exe
+- staging packaged smoke / music / render / stress
+- root smoke / music / render / stress / GUI Music action
+- rollback protection and temporary build cleanup
+- session schema remains 1.0

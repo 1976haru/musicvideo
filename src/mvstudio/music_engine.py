@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 import math
+import os
+import tempfile
 
 import numpy as np
 
@@ -22,6 +24,11 @@ class MusicAnalysisError(RuntimeError):
 
 
 def _librosa():
+    # Numba otherwise tries to create caches beside installed librosa modules.
+    # That location can be read-only (packaged app) or extremely slow on Windows.
+    cache_root = Path(os.environ.get("MVSTUDIO_APPDATA", tempfile.gettempdir())) / "cache" / "numba"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    os.environ.setdefault("NUMBA_CACHE_DIR", str(cache_root))
     try:
         import librosa
     except ImportError as exc:

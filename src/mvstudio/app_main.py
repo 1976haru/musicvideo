@@ -5,6 +5,7 @@ import sys
 
 from .release_runtime import (
     APP_VERSION, begin_run, configure_logging, end_run, log_uncaught,
+    gui_music_test, music_analysis_smoke_test, release_stress_test,
     render_smoke_test, smoke_test,
 )
 
@@ -16,10 +17,24 @@ def main() -> int:
         ok, payload = smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 2
+    if "--music-analysis-smoke-test" in sys.argv:
+        ok, payload = music_analysis_smoke_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 4
     if "--render-smoke-test" in sys.argv:
         ok, payload = render_smoke_test()
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0 if ok else 3
+    if "--release-stress-test" in sys.argv:
+        ok, payload = release_stress_test()
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 5
+    if "--gui-music-test" in sys.argv:
+        index = sys.argv.index("--gui-music-test")
+        path = sys.argv[index + 1] if index + 1 < len(sys.argv) else ""
+        ok, payload = gui_music_test(path)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0 if ok else 6
     previous_unclean = begin_run()
     sys.excepthook = log_uncaught
     try:

@@ -15,3 +15,18 @@ projects/**/references_local/
 pytest-cache-files-*/
 .numba_cache/
 release/
+.build_staging/
+.previous_release/
+.failed_release/
+
+# Local deployed runtime - NEVER commit
+/MV Director Studio.exe
+/_internal/
+/tools/ffmpeg/bin/
+/release_manifest.json
+/FFMPEG_LICENSE_AND_SOURCE.txt
+/.previous_release/
+/.build_staging/
+/.release_staging/
+/release_*/
+/smoke-appdata/

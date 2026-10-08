@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import traceback
 import zipfile
 import uuid
@@ -25,7 +26,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 
@@ -413,6 +414,52 @@ def smoke_test() -> tuple[bool, dict[str, Any]]:
     return not required_failures, payload
 
 
+
+def music_analysis_smoke_test() -> tuple[bool, dict[str, Any]]:
+    """Exercise the packaged librosa -> scipy analysis path with a real WAV.
+
+    This specifically guards against PyInstaller missing dynamically imported SciPy
+    Array API compatibility modules.
+    """
+    import math
+    import struct
+    import wave
+
+    paths = app_paths()
+    directory = paths.temp / f"music-smoke-{uuid.uuid4().hex}"
+    directory.mkdir()
+    try:
+        audio = directory / "synthetic-music.wav"
+        sample_rate = 22050
+        duration_sec = 2.0
+        frame_count = int(sample_rate * duration_sec)
+        with wave.open(str(audio), "wb") as stream:
+            stream.setnchannels(1)
+            stream.setsampwidth(2)
+            stream.setframerate(sample_rate)
+            frames = bytearray()
+            for index in range(frame_count):
+                value = int(12000 * math.sin(2 * math.pi * 440 * index / sample_rate))
+                frames.extend(struct.pack("<h", value))
+            stream.writeframes(bytes(frames))
+
+        from .music_engine import analyze_audio
+        audio_map = analyze_audio(audio)
+        ok = audio_map.duration_sec >= 1.9 and audio_map.sample_rate > 0
+        return ok, {
+            "music_analysis": "PASS" if ok else "FAIL",
+            "duration_sec": audio_map.duration_sec,
+            "sample_rate": audio_map.sample_rate,
+            "tempo_bpm": audio_map.tempo_bpm,
+            "transitions": len(audio_map.transitions),
+        }
+    except Exception as exc:
+        configure_logging(paths).exception("packaged music analysis smoke failed")
+        return False, {"music_analysis": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
 def render_smoke_test() -> tuple[bool, dict[str, Any]]:
     tools = discover_ffmpeg()
     if not tools.render_ready:
@@ -462,5 +509,201 @@ def render_smoke_test() -> tuple[bool, dict[str, Any]]:
     except Exception as exc:
         configure_logging(paths).exception("packaged render smoke failed")
         return False, {"render": "FAIL", "error": str(exc)}
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def _write_synthetic_wav(path: Path, duration_sec: float = 2.0, sample_rate: int = 22050) -> None:
+    """Write deterministic PCM without depending on an audio library."""
+    import math
+    import struct
+    import wave
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as stream:
+        stream.setnchannels(1)
+        stream.setsampwidth(2)
+        stream.setframerate(sample_rate)
+        frames = bytearray()
+        for index in range(int(sample_rate * duration_sec)):
+            # A pulse plus two tones gives onset/beat/spectral code real input.
+            pulse = 0.45 if (index % (sample_rate // 2)) < 600 else 0.0
+            value = (0.35 * math.sin(2 * math.pi * 220 * index / sample_rate) +
+                     0.20 * math.sin(2 * math.pi * 660 * index / sample_rate) + pulse)
+            frames.extend(struct.pack("<h", max(-32767, min(32767, int(16000 * value)))))
+        stream.writeframes(bytes(frames))
+
+
+def gui_music_test(audio_path: str | Path) -> tuple[bool, dict[str, Any]]:
+    """Run the same MainWindow action used by the MUSIC button, offscreen."""
+    if str(audio_path):
+        path = Path(audio_path).expanduser().resolve(strict=False)
+    else:
+        path = app_paths().temp / "05 - 寒くないって笑った.wav"
+        _write_synthetic_wav(path, duration_sec=3.0)
+    if not path.is_file():
+        return False, {"gui_music": "FAIL", "error": f"Audio file not found: {path}"}
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    try:
+        from PySide6.QtWidgets import QApplication
+        from .ui_app import MainWindow
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow()
+        window.session.music_path = str(path)
+        window.lyrics.setPlainText("차가운 밤을 걷는다\n다시 빛을 향해 간다")
+        window.music_source.setText(f"Selected music: {path.name}")
+        window._analyze_music()
+        app.processEvents()
+        audio_map = window.session.audio_map
+        payload = {
+            "gui_music": "PASS",
+            "file": path.name,
+            "duration": window.music_duration.text(),
+            "tempo": window.music_tempo.text(),
+            "beat": window.music_beats.text(),
+            "transitions": window.music_transitions.text(),
+            "audio_map": bool(audio_map and window.audio_summary.toPlainText().strip()),
+            "mv_timeline": bool(window.session.mv_timeline and window.timeline_summary.toPlainText().strip()),
+        }
+        window.close()
+        ok = all(payload[key] for key in ("audio_map", "mv_timeline")) and all(
+            payload[key] != "-" for key in ("duration", "tempo", "beat", "transitions")
+        )
+        payload["gui_music"] = "PASS" if ok else "FAIL"
+        return ok, payload
+    except Exception as exc:
+        configure_logging().exception("GUI music path test failed")
+        return False, {"gui_music": "FAIL", "file": path.name, "error": str(exc)}
+
+
+def release_stress_test() -> tuple[bool, dict[str, Any]]:
+    """Packaged, real-dependency release exercise. No media-analysis mocks."""
+    paths = app_paths()
+    directory = paths.temp / f"release-stress-{uuid.uuid4().hex}"
+    unicode_dir = directory / "한글 日本語 space"
+    unicode_dir.mkdir(parents=True)
+    results: dict[str, Any] = {"release_stress": "FAIL"}
+    try:
+        import importlib.util
+        import numpy
+        import scipy
+        import librosa
+        import soundfile
+        from .editor import RenderEngine, RenderCancelled, build_rough_cut, probe_media
+        from .models import AudioMap, CameraSpec, ReferenceRole, ShotSpec
+        from .reference_vault import ReferenceVault
+        from .result_takes import GenerationTake, TakeManager
+        from .session import LyricsWorldSession
+        from .technical_qc import analyze_take
+        from .music_engine import analyze_audio
+
+        music = unicode_dir / "05 - 寒くないって笑った.wav"
+        _write_synthetic_wav(music)
+        music_hash = hashlib.sha256(music.read_bytes()).hexdigest()
+
+        maps = [analyze_audio(music) for _ in range(10)]
+        if not all(item.duration_sec > 0 and item.sample_rate > 0 and
+                   item.onset_times_sec is not None and item.beat_times_sec is not None and
+                   item.transitions is not None and item.sections for item in maps):
+            raise AssertionError("music analysis result is incomplete")
+
+        session_path = unicode_dir / "세션 保存 session.json"
+        session = LyricsWorldSession(music_path=str(music), audio_map=maps[-1], project_dir=unicode_dir)
+        reference = unicode_dir / "참조 日本語 image.png"
+        reference.write_bytes(b"reference-source")
+        ReferenceVault(session.references, unicode_dir).add(reference, ReferenceRole.COMPOSITION)
+        for _ in range(20):
+            session.export(session_path)
+            session = LyricsWorldSession.import_file(session_path)
+        if not session.references or not session.references[0].file_exists(session.project_dir):
+            detail = session.references[0].path if session.references else "<missing metadata>"
+            raise AssertionError(f"reference path did not survive session round-trip: {detail}")
+
+        tools = discover_ffmpeg()
+        if not tools.render_ready:
+            raise AssertionError("FFmpeg render requirements are unavailable")
+        video = unicode_dir / "Take 日本語 01.mp4"
+        subprocess.run([tools.ffmpeg_path, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i",
+                        "color=c=blue:s=320x180:r=24:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(video)],
+                       check=True, shell=False)
+        video_hash = hashlib.sha256(video.read_bytes()).hexdigest()
+        shot = ShotSpec(shot_id="B001-S01", beat_id="B001", start_sec=0, end_sec=2,
+                        narrative_function="stress", subject="shape", action="moves", environment="field",
+                        composition="center", camera=CameraSpec(framing="wide"), lighting="soft",
+                        emotional_note="calm")
+        session.shots = [shot]
+        manager = TakeManager(session.generation_takes, session.shots, [], unicode_dir, session.take_id_counters)
+        take = manager.register(video, shot.shot_id, now="stress")
+        manager.accept(take.take_id)
+        rejected = GenerationTake(**{**take.model_dump(), "take_id": "TAKE-B001-S01-002", "status": "rejected"})
+        candidate = GenerationTake(**{**take.model_dump(), "take_id": "TAKE-B001-S01-003", "status": "candidate"})
+        session.generation_takes.extend([rejected, candidate])
+        session.edit_timeline = build_rough_cut(session)
+        if [clip.take_id for clip in session.edit_timeline.clips] != [take.take_id]:
+            raise AssertionError("rough cut included a non-accepted take")
+        qc, _ = analyze_take(take, shot, unicode_dir)
+        if qc.status == "BLOCKED":
+            raise AssertionError("technical QC blocked valid synthetic video")
+
+        finals = []
+        renderer = RenderEngine(ffmpeg_path=tools.ffmpeg_path, cache_dir=paths.cache / "release-stress")
+        for index in range(3):
+            final = unicode_dir / f"Final 결과 {index + 1}.mp4"
+            renderer.render(session, final)
+            if not final.is_file() or not probe_media(final, tools.ffprobe_path).has_audio:
+                raise AssertionError("final render output is invalid")
+            finals.append(final)
+
+        protected_final = unicode_dir / "Final protected.mp4"
+        protected_final.write_bytes(b"existing-final")
+        cancelled = threading.Event(); cancelled.set()
+        try:
+            renderer.render(session, protected_final, cancel=cancelled)
+        except RenderCancelled:
+            pass
+        if protected_final.read_bytes() != b"existing-final":
+            raise AssertionError("cancel changed an existing final")
+        if hashlib.sha256(music.read_bytes()).hexdigest() != music_hash or hashlib.sha256(video.read_bytes()).hexdigest() != video_hash:
+            raise AssertionError("source media changed")
+
+        owned_cache = paths.cache / "owned-stress.tmp"
+        owned_cache.write_bytes(b"cache")
+        clear_owned_cache(paths)
+        if any(not item.exists() for item in (music, video, reference, session_path, protected_final, *finals)):
+            raise AssertionError("cache cleanup removed user data")
+
+        # Missing assets must produce recoverable findings/reports, never terminate the process.
+        missing = GenerationTake(**{**take.model_dump(), "take_id": "TAKE-MISSING-001",
+                                    "output_path": str(unicode_dir / "missing.mp4")})
+        missing_qc, _ = analyze_take(missing, shot, unicode_dir)
+        if missing_qc.status != "BLOCKED":
+            raise AssertionError("missing take did not produce a recoverable QC result")
+
+        for _ in range(10):
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+            from PySide6.QtWidgets import QApplication
+            from .ui_app import MainWindow
+            app = QApplication.instance() or QApplication([])
+            window = MainWindow(); window.close(); app.processEvents()
+
+        gui_ok, gui_payload = gui_music_test(music)
+        if not gui_ok:
+            raise AssertionError(f"GUI music action failed: {gui_payload}")
+        optional = {name: bool(importlib.util.find_spec(name)) for name in
+                    ("open_clip", "beat_this", "allin1", "opentimelineio")}
+        results.update({
+            "release_stress": "PASS", "session_round_trips": 20, "music_analysis_runs": 10,
+            "ui_create_close_runs": 10, "final_render_runs": 3, "formats": ["WAV"],
+            "qc": qc.status, "sources_immutable": True, "cancel_safety": True,
+            "cache_safety": True, "missing_file_recovery": True,
+            "optional_dependencies": optional, "gui_music": gui_payload,
+            "dependency_versions": {"numpy": numpy.__version__, "scipy": scipy.__version__,
+                                    "librosa": librosa.__version__, "soundfile": soundfile.__version__},
+        })
+        return True, results
+    except Exception as exc:
+        configure_logging(paths).exception("release stress test failed")
+        results["error"] = str(exc)
+        return False, results
     finally:
         shutil.rmtree(directory, ignore_errors=True)
