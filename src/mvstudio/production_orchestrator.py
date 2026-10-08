@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import mimetypes
 import os
 import threading
 import urllib.error
@@ -774,6 +775,54 @@ class ComfyUIBridge:
         except Exception as exc:
             return ComfyUIStatus(state="ERROR", endpoint=self.endpoint, detail=str(exc))
 
+    def upload_image(self, path: str | Path, *, subfolder: str = "mvstudio", overwrite: bool = False) -> str:
+        """Upload one local image to ComfyUI input using the official /upload/image route."""
+        self._validate()
+        source = Path(path).expanduser().resolve(strict=True)
+        if not source.is_file():
+            raise ValueError(f"Reference image not found: {source}")
+        if source.stat().st_size > 50 * 1024 * 1024:
+            raise ValueError("ComfyUI reference upload is limited to 50 MB per image.")
+        if source.suffix.casefold() not in {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}:
+            raise ValueError(f"Unsupported ComfyUI reference image: {source.suffix}")
+
+        boundary = f"----MVStudio{uuid4().hex}"
+        mime = mimetypes.guess_type(source.name)[0] or "application/octet-stream"
+        chunks: list[bytes] = []
+
+        def field(name: str, value: str) -> None:
+            chunks.extend([
+                f"--{boundary}\r\n".encode(),
+                f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
+                value.encode("utf-8"),
+                b"\r\n",
+            ])
+
+        chunks.extend([
+            f"--{boundary}\r\n".encode(),
+            f'Content-Disposition: form-data; name="image"; filename="{source.name}"\r\n'.encode("utf-8"),
+            f"Content-Type: {mime}\r\n\r\n".encode(),
+            source.read_bytes(),
+            b"\r\n",
+        ])
+        field("type", "input")
+        field("subfolder", subfolder)
+        field("overwrite", "true" if overwrite else "false")
+        chunks.append(f"--{boundary}--\r\n".encode())
+        request = urllib.request.Request(
+            self.endpoint + "/upload/image",
+            data=b"".join(chunks),
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=max(self.timeout_sec, 15.0)) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        name = str(result.get("name") or "")
+        returned_subfolder = str(result.get("subfolder") or "")
+        if not name:
+            raise RuntimeError(f"ComfyUI image upload did not return a filename: {result}")
+        return str(Path(returned_subfolder) / name).replace("\\", "/") if returned_subfolder else name
+
     def queue_workflow(self, workflow_api_json: dict[str, Any], *, client_id: str | None = None) -> str:
         payload = {"prompt": workflow_api_json, "client_id": client_id or f"mvstudio-{uuid4().hex}"}
         result = self._request("/prompt", payload)
@@ -805,13 +854,23 @@ PLACEHOLDERS = {
 }
 
 
-def materialize_comfyui_workflow(template: dict[str, Any], pack, *, output_prefix: str | None = None) -> dict[str, Any]:
+def materialize_comfyui_workflow(
+    template: dict[str, Any],
+    pack,
+    *,
+    output_prefix: str | None = None,
+    reference_names: list[str] | None = None,
+) -> dict[str, Any]:
     """Replace explicit placeholders in an exported ComfyUI API-format workflow."""
     replacements = {
         token: str(getattr(pack, attr, ""))
         for token, attr in PLACEHOLDERS.items()
     }
     replacements["{{MV_OUTPUT_PREFIX}}"] = output_prefix or f"mvstudio/{pack.shot_id}/{pack.pack_id}"
+    refs = list(reference_names or [])[:4]
+    replacements["{{MV_FIRST_REFERENCE}}"] = refs[0] if refs else ""
+    for index in range(1, 5):
+        replacements[f"{{{{MV_REFERENCE_{index}}}}}"] = refs[index - 1] if len(refs) >= index else ""
 
     def replace(value: Any) -> Any:
         if isinstance(value, str):
