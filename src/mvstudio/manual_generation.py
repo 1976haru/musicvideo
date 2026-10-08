@@ -250,7 +250,10 @@ def _series_lock_bundle(session: LyricsWorldSession, shot: ShotSpec):
     asset_ids: list[str] = []
     asset_paths: list[str] = []
     for asset in approved_assets:
-        path = Path(asset.path).expanduser().resolve(strict=False)
+        path = Path(asset.path).expanduser()
+        if not path.is_absolute() and session.project_dir:
+            path = session.project_dir / path
+        path = path.resolve(strict=False)
         asset_ids.append(asset.asset_id)
         asset_paths.append(str(path))
         if not path.is_file():
