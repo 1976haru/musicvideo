@@ -37,7 +37,7 @@ if (-not $NoBundleFFmpeg) {
 $commit = (git rev-parse HEAD 2>$null)
 if (-not $commit) { $commit = "unknown" }
 $manifest = [ordered]@{
-    app_version = "1.0.0"; session_schema = "1.0"; git_commit = $commit.Trim()
+    app_version = "1.0.1"; session_schema = "1.0"; git_commit = $commit.Trim()
     build_time_utc = [DateTime]::UtcNow.ToString("o")
     python = (python --version 2>&1 | Out-String).Trim(); platform = [Environment]::OSVersion.VersionString
     packaging = "PyInstaller ONEDIR"; ffmpeg_strategy = $ffmpegStrategy
@@ -48,6 +48,8 @@ $env:PYTHONPATH = $null
 $env:MVSTUDIO_APPDATA = (Join-Path $repo "$OutputRoot\smoke-appdata")
 & (Join-Path $artifact "MV Director Studio.exe") --smoke-test
 if ($LASTEXITCODE -ne 0) { throw "Packaged smoke test failed." }
+& (Join-Path $artifact "MV Director Studio.exe") --music-analysis-smoke-test
+if ($LASTEXITCODE -ne 0) { throw "Packaged music analysis smoke test failed." }
 & (Join-Path $artifact "MV Director Studio.exe") --render-smoke-test
 if ($LASTEXITCODE -ne 0) { throw "Packaged FFmpeg render smoke test failed." }
 Write-Host "RELEASE ARTIFACT: $artifact"
