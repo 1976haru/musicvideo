@@ -7,9 +7,11 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication, QPushButton
 
 from mvstudio.g8_ui import SeriesStudioDialog
+from mvstudio.manual_generation import compile_manual_pack
+from mvstudio.models import CameraSpec, ShotSpec, StoryBeat
 from mvstudio.series_studio import (
     DownloadWatcher, EntityContinuityState, EntityVariant,
-    EpisodeContinuitySnapshot, build_asset_prompt_packs, build_episode_graph,
+    EpisodeContinuitySnapshot, SeriesAsset, build_asset_prompt_packs, build_episode_graph,
     resolve_entity_variant, run_series_continuity_qc, seed_the_fifth_verdict,
     suggest_reference_slots,
 )
@@ -223,5 +225,103 @@ def test_series_studio_ui_exposes_beginner_flow_and_final_seed():
     assert dialog.findChild(QPushButton, "loadSeriesSeed") is not None
     assert "MUTE BELL" in dialog.graph_output.toPlainText()
     assert "GWAN: THE UNWRITTEN VERDICT" in dialog.graph_output.toPlainText()
+    dialog.close()
+    app.processEvents()
+
+
+
+def test_shot_to_generate_injects_series_hard_locks_and_approved_assets(tmp_path):
+    session = LyricsWorldSession(project_dir=tmp_path)
+    session.initialize_series()
+
+    keyart = tmp_path / "YOSUMI_EP1_character_sheet.png"
+    keyart.write_bytes(b"approved-reference")
+    session.series_assets.append(
+        SeriesAsset(
+            asset_id="ASSET_YOSUMI_MASTER",
+            path=str(keyart),
+            role="character_sheet",
+            entity_id="YOSUMI",
+            episode_id=None,
+            source="manual",
+            review_status="approved",
+        )
+    )
+    beat = StoryBeat(
+        beat_id="B001", start_sec=0, end_sec=5,
+        dramatic_question="Is the silent bell dangerous?",
+        change="YOSUMI hesitates before striking",
+        visual_event="YOSUMI faces SUZUGARA",
+    )
+    shot = ShotSpec(
+        shot_id="B001-S01", beat_id="B001", start_sec=0, end_sec=5,
+        narrative_function="protective realization",
+        subject="YOSUMI", action="opens the white left palm instead of striking",
+        environment="Margin City folded alley", composition="three-quarter full body",
+        camera=CameraSpec(framing="full body", movement="subtle push-in"),
+        lighting="matte teal haze", emotional_note="protective realization",
+        series_episode_id="EP1",
+        series_entity_ids=["YOSUMI"],
+        series_variant_ids=["YOSUMI_PROTECTIVE_REALIZATION"],
+    )
+    session.story_beats = [beat]
+    session.shots = [shot]
+
+    pack = compile_manual_pack(
+        session, shot, "GENERIC_MANUAL",
+        pack_id="PACK-TEST", created_at="test",
+    )
+
+    assert pack.series_episode_id == "EP1"
+    assert pack.series_entity_ids == ["YOSUMI"]
+    assert "YOSUMI_PROTECTIVE_REALIZATION" in pack.series_variant_ids
+    assert "EXACTLY THREE" in pack.main_prompt
+    assert "centered rectangular" in pack.main_prompt
+    assert "LEFT hand" in pack.main_prompt
+    assert "fourth ribbon" in pack.negative_prompt
+    assert pack.series_asset_ids == ["ASSET_YOSUMI_MASTER"]
+    assert str(keyart.resolve()) in pack.series_asset_paths
+    assert any("three black ink ribbons" in item for item in pack.continuity_summary)
+
+
+def test_character_registry_ui_edits_real_hard_locks_and_asset_review(tmp_path):
+    app = QApplication.instance() or QApplication([])
+    session = LyricsWorldSession(project_dir=tmp_path)
+    session.initialize_series()
+    dialog = SeriesStudioDialog(session)
+
+    yosumi_index = dialog.entity_select.findData("YOSUMI")
+    dialog.entity_select.setCurrentIndex(yosumi_index)
+    dialog._load_entity()
+    assert "three black ink ribbons" in dialog.entity_locked_parts.toPlainText()
+    assert "fourth ribbon" in dialog.entity_forbidden_mutations.toPlainText()
+
+    dialog.entity_locked_parts.setPlainText(
+        "three black ink ribbons\ncentered rectangular hollow chest\nmatte white left hand only"
+    )
+    dialog._apply_entity()
+    yosumi = _entity(session.series_entities, "YOSUMI")
+    assert yosumi.shape_grammar.locked_parts == [
+        "three black ink ribbons",
+        "centered rectangular hollow chest",
+        "matte white left hand only",
+    ]
+
+    image = tmp_path / "YOSUMI__EP1__character_sheet.png"
+    image.write_bytes(b"asset")
+    asset = SeriesAsset(
+        asset_id="ASSET_UI",
+        path=str(image),
+        role="character_sheet",
+        entity_id="YOSUMI",
+        episode_id="EP1",
+        review_status="candidate",
+    )
+    session.series_assets.append(asset)
+    dialog._refresh_assets("ASSET_UI")
+    dialog._set_asset_status("approved")
+    assert asset.review_status == "approved"
+    assert image.read_bytes() == b"asset"
+
     dialog.close()
     app.processEvents()
