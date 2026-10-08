@@ -23,15 +23,15 @@ jobs:
         run: .\build_windows.ps1 -OutputRoot release
       - name: Packaged smoke
         shell: powershell
-        run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --smoke-test'
+        run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --smoke-test'
       - name: Packaged music analysis smoke
         shell: powershell
-        run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --music-analysis-smoke-test'
+        run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --music-analysis-smoke-test'
       - name: Packaged FFmpeg render smoke
         shell: powershell
-        run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --render-smoke-test'
+        run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --render-smoke-test'
       - uses: actions/upload-artifact@v4
         with:
           name: MV-Director-Studio-1.0.1-Windows
-          path: release/dist/MV_Director_Studio
+          path: .build_staging/dist/MV_Director_Studio
           if-no-files-found: error
