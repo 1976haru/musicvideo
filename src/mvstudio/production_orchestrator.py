@@ -1084,5 +1084,6 @@ def production_state_fingerprint(session: LyricsWorldSession) -> str:
             }
             for take in session.generation_takes
         ],
+        "generation_jobs": [job.model_dump(mode="json") for job in session.generation_jobs],
     }
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")).hexdigest()
