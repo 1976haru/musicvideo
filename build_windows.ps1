@@ -27,6 +27,36 @@ function Assert-AppNotRunning {
     }
     if ($running) { throw "Close MV Director Studio before updating." }
 }
+function Resolve-RealTool([string]$Name) {
+    $candidates = New-Object System.Collections.Generic.List[string]
+    $repoTool = Join-Path $repo ("tools\ffmpeg\bin\" + $Name + ".exe")
+    if (Test-Path -LiteralPath $repoTool) { $candidates.Add($repoTool) }
+
+    $command = Get-Command ($Name + ".exe") -ErrorAction SilentlyContinue
+    if ($command -and $command.Source) { $candidates.Add($command.Source) }
+
+    $chocoRoot = $env:ChocolateyInstall
+    if (-not $chocoRoot) { $chocoRoot = "C:\ProgramData\chocolatey" }
+    $chocoTools = Join-Path $chocoRoot "lib\ffmpeg\tools"
+    if (Test-Path -LiteralPath $chocoTools) {
+        Get-ChildItem -LiteralPath $chocoTools -Recurse -File -Filter ($Name + ".exe") -ErrorAction SilentlyContinue |
+            Sort-Object Length -Descending |
+            ForEach-Object { $candidates.Add($_.FullName) }
+    }
+
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
+        $item = Get-Item -LiteralPath $candidate
+        # Chocolatey shims are tiny wrappers; real FFmpeg/FFprobe binaries are much larger.
+        if ($item.Length -lt 1048576) { continue }
+        try {
+            $process = Start-Process -FilePath $candidate -ArgumentList @("-version") -Wait -PassThru -WindowStyle Hidden
+            if ($process.ExitCode -eq 0) { return $candidate }
+        } catch {}
+    }
+    return $null
+}
+
 function Copy-Runtime([string]$From, [string]$To) {
     foreach ($name in $runtimeNames) {
         $source = Join-Path $From $name
@@ -52,9 +82,9 @@ Invoke-Gate "PyInstaller staging build" { python -m PyInstaller --noconfirm --cl
 New-Item -ItemType Directory -Force -Path (Join-Path $artifact "tools\ffmpeg\bin") | Out-Null
 $ffmpegStrategy = "app-local tools/ffmpeg/bin, then PATH"
 if (-not $NoBundleFFmpeg) {
-    $ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue).Source
-    $ffprobe = (Get-Command ffprobe -ErrorAction SilentlyContinue).Source
-    if (-not $ffmpeg -or -not $ffprobe) { throw "FFmpeg/FFprobe not found." }
+    $ffmpeg = Resolve-RealTool "ffmpeg"
+    $ffprobe = Resolve-RealTool "ffprobe"
+    if (-not $ffmpeg -or -not $ffprobe) { throw "Real FFmpeg/FFprobe binaries not found." }
     Copy-Item -LiteralPath $ffmpeg -Destination (Join-Path $artifact "tools\ffmpeg\bin\ffmpeg.exe") -Force
     Copy-Item -LiteralPath $ffprobe -Destination (Join-Path $artifact "tools\ffmpeg\bin\ffprobe.exe") -Force
     $ffmpegStrategy = "bundled app-local FFmpeg/FFprobe"
