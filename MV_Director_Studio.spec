@@ -8,6 +8,7 @@ def _collect_optional_submodules(name):
         return []
 
 hidden = collect_submodules("mvstudio") + ["cv2", "librosa", "soundfile", "numpy", "scipy"]
+hidden += _collect_optional_submodules("scenedetect")
 # SciPy's Array API compatibility layer is imported dynamically by recent SciPy/librosa
 # builds. PyInstaller can miss these vendored namespaces, so collect both layouts used
 # across supported SciPy versions plus the standalone compatibility package.
