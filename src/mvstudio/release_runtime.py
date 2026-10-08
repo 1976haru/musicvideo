@@ -1132,7 +1132,7 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
                 break
             session.export(session_path)
 
-        queue = GenerationQueue()
+        queue = GenerationQueue(session.generation_jobs)
         queued = build_generation_queue(session, queue, "MANUAL")
         queue_build_ok = len(queued) == shot_count
         for index in range(shot_count, 500):
@@ -1142,6 +1142,10 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
             queue.complete(job.job_id)
         queue_counts = queue.counts()
         queue_stress_ok = queue_counts["DONE"] == 125 and sum(queue_counts.values()) == 500
+        session.export(session_path)
+        queue_reopened_session = LyricsWorldSession.import_file(session_path)
+        queue_reopened = GenerationQueue(queue_reopened_session.generation_jobs)
+        queue_roundtrip_ok = queue_reopened.counts() == queue_counts
 
         pack = session.generation_packs[0]
         template = {
@@ -1203,6 +1207,7 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
             "queue_jobs": 500,
             "queue_counts": queue_counts,
             "queue_stress_ok": queue_stress_ok,
+            "queue_roundtrip_ok": queue_roundtrip_ok,
             "comfy_template_ok": comfy_template_ok,
             "comfy_remote_blocked": comfy_remote_blocked,
             "main_ui_contract": main_ui.passed,
@@ -1217,7 +1222,7 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
         required = (
             "contracts_unique", "contracts_clean", "identity_lock", "pack_contracts",
             "readiness_shots", "initially_current", "stale_detected", "roundtrip_ok",
-            "queue_stress_ok", "comfy_template_ok", "comfy_remote_blocked",
+            "queue_stress_ok", "queue_roundtrip_ok", "comfy_template_ok", "comfy_remote_blocked",
             "main_ui_contract", "production_ui_contract", "ui_contract_ok", "final_verify_ok",
         )
         ok = all(results[key] for key in required)
