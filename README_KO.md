@@ -1,6 +1,6 @@
-# MV Director Studio 1.0.2 — Windows에서 뮤직비디오 만들기
+# MV Director Studio 1.0.3 — Windows에서 뮤직비디오 만들기
 
-> **1.0.2 Hotfix:** World Bible 저장을 실제 Session JSON 저장으로 연결하고, 다크 테마에서 흰 배경으로 보이지 않던 필드 라벨을 수정했습니다. 1.0.1의 packaged music-analysis/release-stress gate도 그대로 유지합니다.
+> **1.0.3 Upgrade:** 선택한 세계관에 가사 앵커·감정곡선·음악 구조를 결합해 World Bible의 12개 제작 필드를 전체 자동 초안으로 생성합니다. 재생성은 사용자 수정 내용을 덮어쓰기 전에 확인합니다.
 
 음악과 가사를 분석하고 World/Story/Shot을 설계한 뒤, 외부 사이트에서 직접 만든 Take를 등록해 QC·자동 편집·최종 MP4까지 만드는 Windows desktop 프로그램입니다. Provider API나 자동 결제는 필요하지 않습니다.
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.3 — 2026-10-08
+
+- World Bible 전체 초안 생성기를 선택 세계관 + 가사 앵커 + 감정곡선 + 음악 구조 기반으로 확장
+- Time period / Palette / Materials / Weather / Lighting / Camera를 포함한 12개 제작 필드를 자동 완성
+- BPM과 음악 변화점을 카메라 문법에 반영하되 모든 비트마다 컷하지 않는 원칙 유지
+- 기존 World Bible 재생성 시 사용자 수정 내용을 덮어쓰기 전에 확인
+- packaged/root World Bible smoke가 12개 제작 필드 완성 여부까지 검사
+- Session schema는 계속 1.0으로 유지
+
+
 ## 1.0.2 — 2026-10-08
 
 - World Bible 저장 버튼이 메모리 갱신으로 끝나지 않고 실제 Session JSON에 즉시 저장되도록 수정
