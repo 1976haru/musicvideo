@@ -114,7 +114,8 @@ def test_session_promotion_passes_lyrics_and_music_evidence():
     bible = session.promote_selected_concept()
     assert all(bool(value) for value in _editable_values(bible))
     assert "夜明け" in bible.time_period
-    assert any("92" not in rule or rule for rule in bible.camera_rules)
+    assert any("dolly" in rule or "medium" in rule for rule in bible.camera_rules)
+    assert any("음악 변화점 1개" in rule for rule in bible.camera_rules)
 
 
 def test_ui_regeneration_requires_confirmation_and_preserves_manual_edits(monkeypatch):
@@ -149,6 +150,7 @@ def test_ui_regeneration_requires_confirmation_and_preserves_manual_edits(monkey
     assert window._promote_world_bible() is True
     assert window.session.world_bible.emotional_thesis != "사용자가 직접 수정한 문장"
     assert window.world_bible_draft_button.text() == "World Bible 전체 초안 다시 만들기"
+    assert "12/12" in window.world_bible_completion.text()
     window.close()
     app.processEvents()
 
