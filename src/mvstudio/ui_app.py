@@ -26,6 +26,7 @@ from .g4b_ui import ResultTakesPage
 from .g5a_ui import TechnicalQCPage
 from .g6_ui import EditorRenderPage
 from .g8_ui import SeriesStudioDialog
+from .g9_ui import ProductionControlDialog
 from .release_ui import ReleaseDoctorDialog
 from .release_runtime import APP_VERSION, log_uncaught, should_show_startup_doctor
 from .reference_vault import resolve_reference_path
@@ -227,10 +228,15 @@ class MainWindow(QMainWindow):
         doctor_button = QPushButton("제작 준비 / 진단")
         doctor_button.clicked.connect(self._show_release_doctor)
         side.addWidget(doctor_button)
-        series_button = QPushButton("SERIES STUDIO")
-        series_button.setObjectName("seriesStudioButton")
-        series_button.clicked.connect(self._show_series_studio)
-        side.addWidget(series_button)
+        self.series_button = QPushButton("SERIES STUDIO")
+        self.series_button.setObjectName("seriesStudioButton")
+        self.series_button.clicked.connect(self._show_series_studio)
+        side.addWidget(self.series_button)
+        self.production_control_button = QPushButton("PRODUCTION CONTROL")
+        self.production_control_button.setObjectName("productionControlButton")
+        self.production_control_button.setProperty("primary", True)
+        self.production_control_button.clicked.connect(self._show_production_control)
+        side.addWidget(self.production_control_button)
 
         self.nav_buttons = []
         steps = [
@@ -329,6 +335,14 @@ class MainWindow(QMainWindow):
     def _show_series_studio(self):
         dialog = SeriesStudioDialog(self.session, self._schedule_autosave, self)
         dialog.exec()
+
+    def _show_production_control(self):
+        self.production_control_dialog = ProductionControlDialog(
+            lambda: self.session,
+            self._schedule_autosave,
+            self,
+        )
+        self.production_control_dialog.exec()
 
     def _music_page(self):
         page = QWidget()
@@ -869,6 +883,8 @@ class MainWindow(QMainWindow):
         self.result_takes_page.refresh()
         self.technical_qc_page.refresh()
         self.editor_render_page.refresh()
+        if hasattr(self, "production_control_dialog") and self.production_control_dialog.isVisible():
+            self.production_control_dialog.refresh()
 
     def _load_music(self):
         path, _ = QFileDialog.getOpenFileName(
