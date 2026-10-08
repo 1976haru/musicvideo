@@ -267,7 +267,7 @@ def compile_shot_continuity_contract(session: LyricsWorldSession, shot: ShotSpec
             continue
         if asset.entity_id and asset.entity_id not in shot.series_entity_ids:
             continue
-        if asset.episode_id and shot.series_episode_id and asset.episode_id != shot.series_episode_id:
+        if asset.episode_id and asset.episode_id != shot.series_episode_id:
             continue
         path = _portable_resolve(asset.path, session.project_dir)
         series_asset_ids.append(asset.asset_id)
