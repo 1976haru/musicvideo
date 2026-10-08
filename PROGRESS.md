@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 100% (MV Director Studio 1.0.3 WORLD BIBLE UPGRADE)
+## 전체 진행률: 100% (MV Director Studio 1.0.4 G3 DARK UI HOTFIX)
 
 ### 완료
 
@@ -181,3 +181,10 @@ G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니�
 - World Bible 재생성 전 overwrite confirmation
 - packaged/root world-bible smoke가 complete 12/12를 검증
 - session schema remains 1.0
+
+
+## 1.0.4 G3 DARK UI HOTFIX
+- Story Room / Shot Board Windows white-surface regression fixed
+- explicit dark QListWidget/ListView, splitter, scroll viewport and form host styling
+- packaged/root rendered G3 dark UI smoke gate
+- Series Studio and Session schema 1.0 unchanged
