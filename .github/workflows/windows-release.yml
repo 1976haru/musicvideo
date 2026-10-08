@@ -39,8 +39,11 @@ jobs:
       - name: Packaged G3 dark UI smoke
         shell: powershell
         run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --g3-dark-ui-smoke-test'
+      - name: Packaged Production Megagate
+        shell: powershell
+        run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --production-megagate-test'
       - uses: actions/upload-artifact@v4
         with:
-          name: MV-Director-Studio-1.0.4-Windows
+          name: MV-Director-Studio-1.1.0-Windows
           path: .build_staging/dist/MV_Director_Studio
           if-no-files-found: error
