@@ -5,7 +5,7 @@ import sys
 
 from .release_runtime import (
     APP_VERSION, begin_run, configure_logging, end_run, log_uncaught,
-    gui_music_test, music_analysis_smoke_test, release_stress_test,
+    g3_dark_ui_smoke_test, gui_music_test, music_analysis_smoke_test, release_stress_test,
     render_smoke_test, series_studio_smoke_test, smoke_test, world_bible_smoke_test,
 )
 

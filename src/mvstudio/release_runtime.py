@@ -725,7 +725,7 @@ def g3_dark_ui_smoke_test() -> tuple[bool, dict[str, Any]]:
 
         app = QApplication.instance() or QApplication([])
         window = MainWindow()
-        window.resize(1280, 800)
+        window.resize(1100, 720)
         beat = StoryBeat(
             beat_id="B001", start_sec=0.0, end_sec=8.0,
             dramatic_question="무엇이 달라질까?",

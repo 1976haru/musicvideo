@@ -820,8 +820,7 @@ def build_asset_prompt_packs(
         positive_parts.append(
             "FINAL CHECK: hard locked parts must remain countable/readable and no forbidden mutation may be introduced."
         )
-        prompt = "
-".join(part for part in positive_parts if part and not part.endswith(": "))
+        prompt = "\n".join(part for part in positive_parts if part and not part.endswith(": "))
         packs.append(AssetPromptPack(
             pack_id=f"PACK_{slot.slot_id}",
             slot_id=slot.slot_id,

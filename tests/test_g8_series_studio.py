@@ -325,3 +325,41 @@ def test_character_registry_ui_edits_real_hard_locks_and_asset_review(tmp_path):
 
     dialog.close()
     app.processEvents()
+
+
+def test_series_asset_path_is_portable_and_resolves_after_session_reopen(tmp_path):
+    project = tmp_path / "portable series project"
+    assets_dir = project / "assets"
+    assets_dir.mkdir(parents=True)
+    image = assets_dir / "YOSUMI EP1 approved.png"
+    image.write_bytes(b"portable-approved-reference")
+
+    session = LyricsWorldSession(project_dir=project)
+    session.initialize_series()
+    session.series_assets.append(SeriesAsset(
+        asset_id="ASSET_PORTABLE",
+        path=str(image),
+        role="character_sheet",
+        entity_id="YOSUMI",
+        episode_id="EP1",
+        review_status="approved",
+    ))
+    target = project / "series_session.json"
+    session.export(target)
+
+    reopened = LyricsWorldSession.import_file(target)
+    assert reopened.series_assets[0].path == "assets/YOSUMI EP1 approved.png"
+
+    shot = ShotSpec(
+        shot_id="PORTABLE-S01", start_sec=0, end_sec=5,
+        narrative_function="portable reference validation",
+        subject="YOSUMI", action="protects the silent bell",
+        environment="Margin City", composition="full body",
+        camera=CameraSpec(framing="full body"), lighting="dark teal",
+        emotional_note="protective realization", series_episode_id="EP1",
+        series_entity_ids=["YOSUMI"],
+        series_variant_ids=["YOSUMI_PROTECTIVE_REALIZATION"],
+    )
+    pack = compile_manual_pack(reopened, shot, pack_id="PACK-PORTABLE", created_at="test")
+    assert pack.series_asset_ids == ["ASSET_PORTABLE"]
+    assert pack.series_asset_paths == [str(image.resolve())]
