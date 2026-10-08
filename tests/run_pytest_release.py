@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 
-RESULT_RE = re.compile(r"^MVSTUDIO_PYTEST_RESULT=(\d+)\s*$")
+RESULT_RE = re.compile(r"MVSTUDIO_PYTEST_RESULT=(\d+)")
 
 
 def main() -> int:
