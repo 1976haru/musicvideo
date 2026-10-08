@@ -17,6 +17,7 @@ from mvstudio.release_runtime import (
     clear_owned_cache, create_diagnostic_bundle, discover_ffmpeg, end_run,
     configure_logging, inspect_project, log_uncaught, run_startup_doctor,
     should_show_startup_doctor, mark_startup_doctor_seen, valid_recovery_sessions,
+    music_analysis_smoke_test,
 )
 from mvstudio.result_takes import GenerationTake
 from mvstudio.session import LyricsWorldSession
@@ -39,8 +40,8 @@ def _shot():
 
 
 def test_release_version_and_visible_title(monkeypatch):
-    assert APP_VERSION == "1.0.0"
-    assert 'version = "1.0.0"' in Path("pyproject.toml").read_text(encoding="utf-8")
+    assert APP_VERSION == "1.0.1"
+    assert 'version = "1.0.1"' in Path("pyproject.toml").read_text(encoding="utf-8")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
     from mvstudio.ui_app import MainWindow
@@ -201,6 +202,14 @@ def test_synthetic_no_api_e2e_final_render_and_reopen(tmp_path):
     reopened = LyricsWorldSession.import_file(saved)
     assert Path(reopened.final_path).is_file() and reopened.render_records[-1].succeeded
     assert all(path.read_bytes() == data for path, data in original.items())
+
+
+def test_music_analysis_smoke_exercises_real_librosa_scipy_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("MVSTUDIO_APPDATA", str(tmp_path / "appdata"))
+    ok, payload = music_analysis_smoke_test()
+    assert ok, payload
+    assert payload["music_analysis"] == "PASS"
+    assert payload["duration_sec"] >= 1.9
 
 
 def test_release_files_ci_manifest_and_no_obvious_secret():
