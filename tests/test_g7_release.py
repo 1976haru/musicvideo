@@ -214,7 +214,7 @@ def test_music_analysis_smoke_exercises_real_librosa_scipy_path(tmp_path, monkey
 
 def test_release_files_ci_manifest_and_no_obvious_secret():
     required = ["build_windows.ps1", "MV_Director_Studio.spec", "README_FIRST.txt", "CHANGELOG.md",
-                "docs/RELEASE_NOTES_1.0.0.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
+                "docs/RELEASE_NOTES_1.0.1.md", "docs/KNOWN_LIMITATIONS.md", ".github/workflows/windows-release.yml"]
     assert all(Path(item).is_file() for item in required)
     workflow = Path(required[-1]).read_text(encoding="utf-8")
     assert "PyInstaller" not in workflow or "package" in workflow
