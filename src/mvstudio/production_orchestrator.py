@@ -429,6 +429,15 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
         issues.append(ProductionIssue(code=warning.code.upper(), severity="warning", stage_id="shots", message=warning.message))
     stages.append(_stage("shots", "07 SHOT BOARD", issues, len(session.shots), len(session.shots)))
 
+    creative = audit_creative_coverage(session)
+    stages.append(_stage(
+        "director",
+        "DIRECTOR COVERAGE",
+        creative.findings,
+        len(session.shots) if session.shots else 0,
+        len(session.shots),
+    ))
+
     # Prompt/take/QC state per shot.
     prompt_issues: list[ProductionIssue] = []
     take_issues: list[ProductionIssue] = []
@@ -590,6 +599,121 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
         next_actions=actions,
     )
 
+
+
+class CreativeCoverageReport(BaseModel):
+    lyric_evidence_coverage: float = 0.0
+    strong_cue_coverage: float = 0.0
+    series_context_coverage: float = 0.0
+    visual_strategy_count: int = 0
+    median_shot_duration: float = 0.0
+    findings: list[ProductionIssue] = Field(default_factory=list)
+
+
+def audit_creative_coverage(session: LyricsWorldSession) -> CreativeCoverageReport:
+    """Director-level coverage checks; warnings only, never automatic creative edits."""
+    findings: list[ProductionIssue] = []
+    shots = sorted(session.shots, key=lambda item: (item.start_sec, item.end_sec, item.shot_id))
+
+    known_lines = {line.line_id for line in session.lines}
+    used_lines = {
+        line_id for shot in shots for line_id in shot.lyric_line_ids
+        if line_id in known_lines
+    }
+    lyric_coverage = len(used_lines) / len(known_lines) if known_lines else 1.0
+    if known_lines and shots and lyric_coverage < 0.55:
+        findings.append(ProductionIssue(
+            code="LOW_LYRIC_EVIDENCE_COVERAGE", severity="warning", stage_id="director",
+            message=f"Shot의 가사 근거 연결률이 {lyric_coverage:.0%}로 낮습니다. 한 줄당 한 Shot을 만들 필요는 없지만, 핵심 가사 근거가 빠졌는지 확인하세요.",
+            action="Story/Shot에서 핵심 Lyric Line ID 연결 확인",
+        ))
+
+    strong_cues = [cue for cue in session.mv_timeline if cue.priority >= 0.75]
+    boundaries = [value for shot in shots for value in (shot.start_sec, shot.end_sec)]
+    covered_cues = [
+        cue for cue in strong_cues
+        if boundaries and min(abs(boundary - cue.time_sec) for boundary in boundaries) <= 0.55
+    ]
+    cue_coverage = len(covered_cues) / len(strong_cues) if strong_cues else 1.0
+    if strong_cues and shots and cue_coverage < 0.40:
+        findings.append(ProductionIssue(
+            code="LOW_MUSIC_DRAMATURGY_COVERAGE", severity="warning", stage_id="director",
+            message=f"강한 음악 변화점의 연출 경계 반영률이 {cue_coverage:.0%}입니다. 모든 변화점에서 컷할 필요는 없지만 주요 전환을 놓쳤는지 확인하세요.",
+            action="MV Timeline의 높은 P 변화점과 Shot/카메라 변화 비교",
+        ))
+
+    if session.series_bible and shots:
+        contextual = sum(bool(shot.series_episode_id and shot.series_entity_ids) for shot in shots)
+        series_coverage = contextual / len(shots)
+        if series_coverage < 0.80:
+            findings.append(ProductionIssue(
+                code="LOW_SERIES_CONTEXT_COVERAGE", severity="warning", stage_id="director",
+                message=f"Series Episode + Entity가 함께 지정된 Shot이 {series_coverage:.0%}입니다.",
+                action="Shot Board에서 EP와 등장 Entity 연결",
+            ))
+    else:
+        series_coverage = 1.0
+
+    strategies = {shot.lyric_visual_strategy for shot in shots}
+    if len(shots) >= 8 and len(strategies) <= 1:
+        findings.append(ProductionIssue(
+            code="LOW_VISUAL_STRATEGY_VARIETY", severity="warning", stage_id="director",
+            message="긴 시퀀스가 하나의 가사 시각화 전략만 반복합니다. literal/metaphor/motif/counterpoint/silence의 의도적 대비를 검토하세요.",
+            action="Shot별 lyric visual strategy를 의도적으로 점검",
+        ))
+
+    # Exact repeated action text is a useful deterministic warning without pretending to understand motion semantically.
+    run: list[Any] = []
+    previous = None
+    for shot in shots:
+        signature = " ".join(shot.action.split()).casefold()
+        if signature == previous:
+            run.append(shot)
+        else:
+            if len(run) >= 4:
+                ids = ", ".join(item.shot_id for item in run)
+                findings.append(ProductionIssue(
+                    code="REPEATED_ACTION_RUN", severity="warning", stage_id="director",
+                    message=f"같은 행동 설명이 4 Shot 이상 반복됩니다: {ids}",
+                    action="행동의 진행/변형/회수 여부 확인",
+                ))
+            run = [shot]
+            previous = signature
+    if len(run) >= 4:
+        ids = ", ".join(item.shot_id for item in run)
+        findings.append(ProductionIssue(
+            code="REPEATED_ACTION_RUN", severity="warning", stage_id="director",
+            message=f"같은 행동 설명이 4 Shot 이상 반복됩니다: {ids}",
+            action="행동의 진행/변형/회수 여부 확인",
+        ))
+
+    durations = sorted(shot.duration_sec for shot in shots)
+    if durations:
+        midpoint = len(durations) // 2
+        median = durations[midpoint] if len(durations) % 2 else (durations[midpoint - 1] + durations[midpoint]) / 2
+    else:
+        median = 0.0
+    if len(shots) >= 8 and median < 0.55:
+        findings.append(ProductionIssue(
+            code="VERY_FAST_SHOT_RHYTHM", severity="warning", stage_id="director",
+            message=f"Shot 중앙 길이가 {median:.2f}s로 매우 짧습니다. 음악의 모든 비트에 반응하는 과도한 컷인지 확인하세요.",
+            action="Shot Board에서 호흡과 컷 이유 확인",
+        ))
+    if len(shots) >= 4 and median > 12.0:
+        findings.append(ProductionIssue(
+            code="VERY_SLOW_SHOT_RHYTHM", severity="warning", stage_id="director",
+            message=f"Shot 중앙 길이가 {median:.2f}s로 깁니다. 장면 내부 변화가 충분한지 확인하세요.",
+            action="Shot 내부 행동/카메라/감정 변화 확인",
+        ))
+
+    return CreativeCoverageReport(
+        lyric_evidence_coverage=round(lyric_coverage, 4),
+        strong_cue_coverage=round(cue_coverage, 4),
+        series_context_coverage=round(series_coverage, 4),
+        visual_strategy_count=len(strategies),
+        median_shot_duration=round(median, 4),
+        findings=findings,
+    )
 
 class GenerationJob(BaseModel):
     job_id: str
