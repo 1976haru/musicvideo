@@ -320,3 +320,18 @@ def test_director_coverage_warns_without_auto_rewriting_creative_choices(tmp_pat
     assert "REPEATED_ACTION_RUN" in codes
     assert "VERY_FAST_SHOT_RHYTHM" in codes
     assert [shot.model_dump(mode="json") for shot in session.shots] == before
+
+
+
+def test_continuity_contract_hash_does_not_depend_on_project_root(tmp_path):
+    session = _base_session(tmp_path / "project_a")
+    (tmp_path / "project_a").mkdir(parents=True, exist_ok=True)
+    shot = session.shots[0]
+    first = compile_shot_continuity_contract(session, shot)
+
+    # Move the logical project root without changing creative IDs/rules. Absolute path
+    # transport details must not invalidate every Prompt Pack.
+    session.project_dir = tmp_path / "project_b"
+    session.project_dir.mkdir(parents=True, exist_ok=True)
+    second = compile_shot_continuity_contract(session, shot)
+    assert first.contract_hash == second.contract_hash
