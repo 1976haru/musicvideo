@@ -1008,6 +1008,8 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
     directory.mkdir(parents=True)
     results: dict[str, Any] = {"production_megagate": "FAIL"}
     try:
+        from PySide6.QtCore import Qt
+        from PySide6.QtGui import QImage
         from PySide6.QtWidgets import QApplication
         from .editor import RenderSettings
         from .g9_ui import ProductionControlDialog
@@ -1165,12 +1167,39 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
         production = ProductionControlDialog(lambda: window.session, lambda: None, window)
         production.resize(1100, 720)
         production_ui = validate_production_dialog_contract(production)
+        production.show()
         for page_index in range(window.pages.count()):
             window._switch(page_index)
             app.processEvents()
         window._refresh_from_session()
         app.processEvents()
-        ui_contract_ok = main_ui.passed and production_ui.passed and window.pages.count() == 10
+
+        def white_ratio(widget) -> float:
+            image = QImage(widget.size(), QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            widget.render(image)
+            white = total = 0
+            for y in range(2, max(3, image.height() - 2), 6):
+                for x in range(2, max(3, image.width() - 2), 6):
+                    color = image.pixelColor(x, y)
+                    if color.alpha() == 0:
+                        continue
+                    total += 1
+                    if color.red() > 235 and color.green() > 235 and color.blue() > 235:
+                        white += 1
+            return white / total if total else 1.0
+
+        production_white_ratios = {
+            "stage_list": round(white_ratio(production.stage_list), 4),
+            "issue_detail": round(white_ratio(production.issue_detail), 4),
+            "queue_list": round(white_ratio(production.queue_list), 4),
+            "final_result": round(white_ratio(production.final_result), 4),
+        }
+        production_dark_ui = max(production_white_ratios.values()) < 0.20
+        ui_contract_ok = (
+            main_ui.passed and production_ui.passed
+            and window.pages.count() == 10 and production_dark_ui
+        )
         production.close(); window.close(); app.processEvents()
 
         # Real FFmpeg media for post-render delivery verification.
@@ -1212,6 +1241,8 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
             "comfy_remote_blocked": comfy_remote_blocked,
             "main_ui_contract": main_ui.passed,
             "production_ui_contract": production_ui.passed,
+            "production_white_ratios": production_white_ratios,
+            "production_dark_ui": production_dark_ui,
             "ui_contract_ok": ui_contract_ok,
             "final_render_status": final_report.status,
             "final_verify_ok": final_verify_ok,
@@ -1223,7 +1254,7 @@ def production_megagate_test() -> tuple[bool, dict[str, Any]]:
             "contracts_unique", "contracts_clean", "identity_lock", "pack_contracts",
             "readiness_shots", "initially_current", "stale_detected", "roundtrip_ok",
             "queue_stress_ok", "queue_roundtrip_ok", "comfy_template_ok", "comfy_remote_blocked",
-            "main_ui_contract", "production_ui_contract", "ui_contract_ok", "final_verify_ok",
+            "main_ui_contract", "production_ui_contract", "production_dark_ui", "ui_contract_ok", "final_verify_ok",
         )
         ok = all(results[key] for key in required)
         results["production_megagate"] = "PASS" if ok else "FAIL"
