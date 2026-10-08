@@ -40,8 +40,8 @@ def _shot():
 
 
 def test_release_version_and_visible_title(monkeypatch):
-    assert APP_VERSION == "1.1.0"
-    assert 'version = "1.1.0"' in Path("pyproject.toml").read_text(encoding="utf-8")
+    assert APP_VERSION == "1.1.1"
+    assert 'version = "1.1.1"' in Path("pyproject.toml").read_text(encoding="utf-8")
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
     from PySide6.QtWidgets import QApplication
     from mvstudio.ui_app import MainWindow
@@ -242,7 +242,7 @@ def test_release_gate_scripts_are_consistent():
     assert "root Production Megagate" in build
     assert "root GUI music action" in build
     assert "MV Director Studio 1.0.0" not in cli
-    assert "1.1.0" in progress
+    assert "1.1.1" in progress
     assert Path("src/mvstudio/production_orchestrator.py").is_file()
     assert Path("src/mvstudio/g9_ui.py").is_file()
     assert Path("src/mvstudio/ui_contract.py").is_file()

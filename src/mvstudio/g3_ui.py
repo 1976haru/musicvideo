@@ -60,6 +60,8 @@ class StoryRoomPage(QWidget):
         self.setObjectName("g3StoryRoom")
         self.session_getter = session_getter
         self.on_change = on_change
+        self._loading = False
+        self.dirty = False
         self._build()
 
     def _build(self):
@@ -124,10 +126,14 @@ class StoryRoomPage(QWidget):
         self.warning_label = QLabel("시간 경고 없음")
         self.warning_label.setWordWrap(True)
         detail_outer.addWidget(self.warning_label)
+        self.edit_status = QLabel("변경 없음")
+        self.edit_status.setObjectName("g3BeatEditStatus")
+        self.edit_status.setWordWrap(True)
+        detail_outer.addWidget(self.edit_status)
         actions = QHBoxLayout()
         self.auto_button = QPushButton("자동 초안 만들기")
         self.add_button = QPushButton("Beat 추가")
-        self.save_button = QPushButton("Beat 변경 저장")
+        self.save_button = QPushButton("Beat 변경 적용")
         self.delete_button = QPushButton("Beat 삭제")
         self.save_button.setObjectName("primary")
         for button in (self.auto_button, self.add_button, self.save_button, self.delete_button):
@@ -142,6 +148,13 @@ class StoryRoomPage(QWidget):
         self.add_button.clicked.connect(self._add_beat)
         self.save_button.clicked.connect(self._save_selected)
         self.delete_button.clicked.connect(self._delete_selected)
+        for widget in (self.start, self.end):
+            widget.valueChanged.connect(self._mark_dirty)
+        for widget in (self.question, self.motif, self.lyric_ids, self.cue_ids, self.emotion, self.reference_ids):
+            widget.textChanged.connect(self._mark_dirty)
+        for widget in (self.change, self.visual, self.lyric_intent, self.world_refs, self.notes):
+            widget.textChanged.connect(self._mark_dirty)
+        self.phase.currentIndexChanged.connect(self._mark_dirty)
         self.refresh()
 
     def _time_row(self):
@@ -218,28 +231,49 @@ class StoryRoomPage(QWidget):
         beat_id = self.beat_list.item(row).data(Qt.UserRole)
         return next((beat for beat in self.session_getter().story_beats if beat.beat_id == beat_id), None)
 
+    def _set_dirty(self, value: bool, message: str | None = None):
+        self.dirty = bool(value)
+        active = self._selected_beat() is not None
+        self.save_button.setEnabled(active and self.dirty)
+        if message is not None:
+            self.edit_status.setText(message)
+        elif self.dirty:
+            self.edit_status.setText("변경됨 · 아직 적용하지 않음")
+        else:
+            self.edit_status.setText("변경 없음")
+
+    def _mark_dirty(self, *_):
+        if not self._loading and self._selected_beat() is not None:
+            self._set_dirty(True)
+
     def _load_selected(self, row: int):
         beat = self._selected_beat()
         active = beat is not None
-        for widget in (self.start, self.end, self.question, self.change, self.visual, self.motif, self.phase, self.lyric_ids, self.cue_ids, self.lyric_intent, self.emotion, self.world_refs, self.reference_ids, self.notes, self.save_button, self.delete_button):
+        for widget in (self.start, self.end, self.question, self.change, self.visual, self.motif, self.phase, self.lyric_ids, self.cue_ids, self.lyric_intent, self.emotion, self.world_refs, self.reference_ids, self.notes, self.delete_button):
             widget.setEnabled(active)
         if not active:
+            self._set_dirty(False)
             return
-        self.start.setValue(beat.start_sec)
-        self.end.setValue(beat.end_sec)
-        self.question.setText(beat.dramatic_question)
-        self.change.setPlainText(beat.change)
-        self.visual.setPlainText(beat.visual_event)
-        self.motif.setText(beat.motif or "")
-        phase_index = self.phase.findData(beat.setup_or_payoff)
-        self.phase.setCurrentIndex(max(0, phase_index))
-        self.lyric_ids.setText(", ".join(beat.lyric_line_ids))
-        self.cue_ids.setText(", ".join(beat.music_cue_ids))
-        self.lyric_intent.setPlainText(beat.lyric_intent)
-        self.emotion.setText(beat.emotional_state)
-        self.world_refs.setPlainText("\n".join(beat.world_rule_refs))
-        self.reference_ids.setText(", ".join(beat.reference_ids))
-        self.notes.setPlainText(beat.notes)
+        self._loading = True
+        try:
+            self.start.setValue(beat.start_sec)
+            self.end.setValue(beat.end_sec)
+            self.question.setText(beat.dramatic_question)
+            self.change.setPlainText(beat.change)
+            self.visual.setPlainText(beat.visual_event)
+            self.motif.setText(beat.motif or "")
+            phase_index = self.phase.findData(beat.setup_or_payoff)
+            self.phase.setCurrentIndex(max(0, phase_index))
+            self.lyric_ids.setText(", ".join(beat.lyric_line_ids))
+            self.cue_ids.setText(", ".join(beat.music_cue_ids))
+            self.lyric_intent.setPlainText(beat.lyric_intent)
+            self.emotion.setText(beat.emotional_state)
+            self.world_refs.setPlainText("\n".join(beat.world_rule_refs))
+            self.reference_ids.setText(", ".join(beat.reference_ids))
+            self.notes.setPlainText(beat.notes)
+        finally:
+            self._loading = False
+        self._set_dirty(False)
 
     def _auto_draft(self):
         session = self.session_getter()
@@ -260,20 +294,56 @@ class StoryRoomPage(QWidget):
         self.on_change()
 
     def _add_beat(self):
-        beats = self.session_getter().story_beats
-        end = self.session_getter().audio_map.duration_sec if self.session_getter().audio_map else self.session_getter().duration_sec or 10
+        session = self.session_getter()
+        beats = session.story_beats
+        duration = session.audio_map.duration_sec if session.audio_map else session.duration_sec
+        duration = float(duration or 10.0)
+        ordered = sorted(beats, key=lambda item: (item.start_sec, item.end_sec, item.beat_id))
+        occupied: list[tuple[float, float]] = []
+        for item in ordered:
+            start = max(0.0, min(duration, item.start_sec))
+            end = max(0.0, min(duration, item.end_sec))
+            if end <= start:
+                continue
+            if occupied and start <= occupied[-1][1] + 0.001:
+                occupied[-1] = (occupied[-1][0], max(occupied[-1][1], end))
+            else:
+                occupied.append((start, end))
+        gaps: list[tuple[float, float]] = []
+        cursor = 0.0
+        for start, end in occupied:
+            if start - cursor >= 0.10:
+                gaps.append((cursor, start))
+            cursor = max(cursor, end)
+        if duration - cursor >= 0.10:
+            gaps.append((cursor, duration))
+        if not gaps:
+            message = "현재 전체 구간이 이미 Story Beat로 채워져 있습니다.\n새 Beat를 추가하려면 기존 Beat를 분할하거나 시간을 조정하세요."
+            self.edit_status.setText(message)
+            return
+        selected = self._selected_beat()
+        preferred = None
+        if selected:
+            preferred = next((gap for gap in gaps if abs(gap[0] - selected.end_sec) <= 0.05), None)
+        gap_start, gap_end = preferred or max(gaps, key=lambda gap: (gap[1] - gap[0], -gap[0]))
+        # A first Beat should be useful to edit, but must never consume the entire song by default.
+        new_end = min(gap_end, gap_start + min(10.0, max(0.10, gap_end - gap_start)))
         beat_id = next_beat_id({beat.beat_id for beat in beats})
-        beat = StoryBeat(beat_id=beat_id, start_sec=0, end_sec=max(0.1, end), dramatic_question="이 구간의 질문은 무엇인가?", change="", visual_event="")
+        beat = StoryBeat(beat_id=beat_id, start_sec=gap_start, end_sec=new_end, dramatic_question="이 구간의 질문은 무엇인가?", change="", visual_event="")
         beats.append(beat)
         self.refresh()
         target_row = next(i for i in range(self.beat_list.count()) if self.beat_list.item(i).data(Qt.UserRole) == beat_id)
         self.beat_list.setCurrentRow(target_row)
+        self._set_dirty(False, f"{beat_id} 추가 완료 · 빈 구간 {gap_start:.2f}–{new_end:.2f}s")
         self.on_change()
 
     def _save_selected(self):
         session = self.session_getter()
         selected = self._selected_beat()
         if selected is None:
+            return
+        if not self.dirty:
+            self._set_dirty(False, "저장할 변경이 없습니다")
             return
         beat = selected
         row = session.story_beats.index(beat)
@@ -286,15 +356,38 @@ class StoryRoomPage(QWidget):
             "emotional_state": self.emotion.text(), "world_rule_refs": self._tokens(self.world_refs.toPlainText()),
             "reference_ids": self._tokens(self.reference_ids.text()), "notes": self.notes.toPlainText(),
         }
+        duration = session.audio_map.duration_sec if session.audio_map else session.duration_sec
+        if changes["start_sec"] >= changes["end_sec"]:
+            message = "시작 시간은 종료 시간보다 작아야 합니다."
+            self.edit_status.setText("변경 적용 실패 · " + message)
+            QMessageBox.warning(self, "Beat 시간을 확인하세요", message)
+            return
+        if changes["start_sec"] < 0 or (duration is not None and changes["end_sec"] > duration + 0.001):
+            message = f"Beat 시간은 음악 범위 0.00–{float(duration or 0):.2f}s 안에 있어야 합니다."
+            self.edit_status.setText("변경 적용 실패 · " + message)
+            QMessageBox.warning(self, "Beat 시간을 확인하세요", message)
+            return
         try:
             session.story_beats[row] = StoryBeat.model_validate({**beat.model_dump(), **changes})
         except Exception as exc:
             QMessageBox.warning(self, "Beat 값을 확인하세요", str(exc))
+            self.edit_status.setText(f"변경 적용 실패 · {exc}")
             return
         beat_id = beat.beat_id
         self.refresh()
         target_row = next((i for i in range(self.beat_list.count()) if self.beat_list.item(i).data(Qt.UserRole) == beat_id), -1)
         self.beat_list.setCurrentRow(target_row)
+        overlap_messages = [
+            warning.message for warning in timeline_warnings(session.story_beats, duration)
+            if warning.code == "overlap" and beat_id in warning.item_ids
+        ]
+        if session.session_path:
+            message = f"✓ {beat_id} 변경 적용 완료 · 세션 자동저장 예약"
+        else:
+            message = f"✓ {beat_id} 변경 적용 완료 · 상단 [세션 저장]으로 파일을 저장하세요"
+        if overlap_messages:
+            message += "\n⚠ 다른 Beat와 겹침: " + " / ".join(overlap_messages)
+        self._set_dirty(False, message)
         self.on_change()
 
     def _delete_selected(self):

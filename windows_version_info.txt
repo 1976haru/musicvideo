@@ -4,12 +4,12 @@ VSVersionInfo(
   kids=[
     StringFileInfo([StringTable('040904B0', [
       StringStruct('CompanyName', 'MV Director Studio'),
-      StringStruct('FileDescription', 'MV Director Studio 1.1.0'),
-      StringStruct('FileVersion', '1.1.0.0'),
+      StringStruct('FileDescription', 'MV Director Studio 1.1.1'),
+      StringStruct('FileVersion', '1.1.1.0'),
       StringStruct('InternalName', 'MV Director Studio'),
       StringStruct('OriginalFilename', 'MV Director Studio.exe'),
       StringStruct('ProductName', 'MV Director Studio'),
-      StringStruct('ProductVersion', '1.1.0.0')
+      StringStruct('ProductVersion', '1.1.1.0')
     ])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]

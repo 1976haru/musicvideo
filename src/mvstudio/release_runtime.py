@@ -26,7 +26,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 

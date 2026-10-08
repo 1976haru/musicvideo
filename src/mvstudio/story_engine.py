@@ -205,6 +205,19 @@ def timeline_warnings(beats: list[StoryBeat], duration_sec: float | None, tolera
         return warnings
     if ordered[0].start_sec > tolerance:
         warnings.append(TimelineWarning("leading_gap", f"Timeline 시작 전 {ordered[0].start_sec:.2f}s 빈 구간", (ordered[0].beat_id,)))
+    if duration > 0:
+        for beat in ordered:
+            overlap_count = sum(
+                other.beat_id != beat.beat_id
+                and min(beat.end_sec, other.end_sec) - max(beat.start_sec, other.start_sec) > tolerance
+                for other in ordered
+            )
+            if beat.start_sec <= tolerance and beat.end_sec >= duration - tolerance and overlap_count >= 2:
+                warnings.append(TimelineWarning(
+                    "full_duration_overlap",
+                    f"{beat.beat_id}가 곡 전체를 덮으며 여러 Beat와 겹칩니다. 수정하거나 삭제하세요.",
+                    (beat.beat_id,),
+                ))
     for previous, current in zip(ordered, ordered[1:]):
         delta = current.start_sec - previous.end_sec
         if delta > tolerance:

@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 100% (MV Director Studio 1.1.0 G9 PRODUCTION ORCHESTRATOR — VALIDATION PENDING)
+## 전체 진행률: 100% (MV Director Studio 1.1.1 STORY ROOM UX HOTFIX — VALIDATION PENDING)
 
 ### 완료
 

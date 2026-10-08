@@ -42,6 +42,7 @@ QFrame#conceptCard { background: #191e26; border: 1px solid #343c49; border-radi
 QFrame#conceptCard[selected="true"] { border: 2px solid #7da6ff; background: #1b2230; }
 QPushButton { min-height: 44px; border: 1px solid #384150; border-radius: 9px; padding: 0 14px; background: #232a34; }
 QPushButton:hover { background: #2b3440; }
+QPushButton:pressed { background: #16243a; border: 2px solid #7da6ff; padding-top: 2px; }
 QPushButton:disabled { color: #647080; background: #171b21; border-color: #262d36; }
 QPushButton#primary { background: #3764c7; border: 1px solid #4d78d7; font-weight: 700; }
 QPushButton#seriesStudioButton { text-align: left; font-weight: 700; background: #202733; border-color: #3a4658; }
