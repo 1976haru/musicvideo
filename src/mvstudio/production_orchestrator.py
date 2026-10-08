@@ -607,8 +607,8 @@ class GenerationJob(BaseModel):
 class GenerationQueue:
     """Thread-safe in-memory queue. It never moves/deletes user media."""
 
-    def __init__(self):
-        self.jobs: list[GenerationJob] = []
+    def __init__(self, jobs: list[GenerationJob] | None = None):
+        self.jobs = jobs if jobs is not None else []
         self._lock = threading.RLock()
 
     def add(self, shot_id: str, pack_id: str, adapter: GenerationAdapter = "MANUAL", *, allow_duplicate: bool = False) -> GenerationJob:
