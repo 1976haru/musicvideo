@@ -24,6 +24,9 @@ jobs:
       - name: Packaged smoke
         shell: powershell
         run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --smoke-test'
+      - name: Packaged music analysis smoke
+        shell: powershell
+        run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --music-analysis-smoke-test'
       - name: Packaged FFmpeg render smoke
         shell: powershell
         run: '& ".\release\dist\MV_Director_Studio\MV Director Studio.exe" --render-smoke-test'
