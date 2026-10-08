@@ -999,6 +999,237 @@ def series_studio_smoke_test() -> tuple[bool, dict[str, Any]]:
         shutil.rmtree(directory, ignore_errors=True)
 
 
+
+def production_megagate_test() -> tuple[bool, dict[str, Any]]:
+    """Packaged/root G9 integration gate: data contracts, UI, queue, roundtrip and real final media."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    paths = app_paths()
+    directory = paths.temp / f"production-megagate-{uuid.uuid4().hex}"
+    directory.mkdir(parents=True)
+    results: dict[str, Any] = {"production_megagate": "FAIL"}
+    try:
+        from PySide6.QtWidgets import QApplication
+        from .editor import RenderSettings
+        from .g9_ui import ProductionControlDialog
+        from .manual_generation import compile_manual_pack
+        from .models import AudioMap, CameraSpec, ShotSpec, StoryBeat
+        from .production_orchestrator import (
+            ComfyUIBridge, GenerationQueue, build_generation_queue,
+            build_production_readiness, compile_shot_continuity_contract,
+            materialize_comfyui_workflow, production_state_fingerprint,
+            verify_final_render,
+        )
+        from .session import LyricsWorldSession
+        from .ui_app import MainWindow
+        from .ui_contract import validate_main_window_contract, validate_production_dialog_contract
+
+        music = directory / "G9 日本語 stress.wav"
+        _write_synthetic_wav(music, duration_sec=2.0, sample_rate=22050)
+        session = LyricsWorldSession(project_dir=directory, music_path=str(music))
+        session.audio_map = AudioMap(
+            source_path=str(music), duration_sec=2.0, sample_rate=22050, tempo_bpm=100.0,
+            beat_times_sec=[0.2, 0.8, 1.4], onset_times_sec=[0.2, 0.8, 1.4],
+        )
+        session.duration_sec = 2.0
+        session.lyrics_text = "夜明けの街で\n選択を残す\n未来はまだ書かれていない"
+        session.source_name = "G9_가사_日本語.txt"
+        session.analyze()
+        session.promote_selected_concept()
+        session.initialize_series()
+
+        beats: list[Any] = []
+        shots: list[Any] = []
+        shot_count = 50
+        beat_count = 5
+        per_beat = shot_count // beat_count
+        for beat_index in range(beat_count):
+            beat_start = beat_index * (2.0 / beat_count)
+            beat_end = (beat_index + 1) * (2.0 / beat_count)
+            beat_id = f"B{beat_index + 1:03d}"
+            beat = StoryBeat(
+                beat_id=beat_id, start_sec=beat_start, end_sec=beat_end,
+                dramatic_question=f"EP{beat_index + 1}에서 선택은 어떻게 변하는가?",
+                change="삭제 대신 선택을 보존하는 방향으로 이동한다.",
+                visual_event="한 가지 명확한 행동으로 다음 상태를 만든다.",
+                motif="black square STAMP",
+                setup_or_payoff="setup" if beat_index == 0 else "development" if beat_index < 4 else "payoff",
+                emotional_state="controlled",
+            )
+            beats.append(beat)
+            step = (beat_end - beat_start) / per_beat
+            for local in range(per_beat):
+                index = beat_index * per_beat + local
+                start = beat_start + local * step
+                end = beat_start + (local + 1) * step
+                shots.append(ShotSpec(
+                    shot_id=f"{beat_id}-S{local + 1:02d}",
+                    beat_id=beat_id,
+                    start_sec=round(start, 6),
+                    end_sec=round(end, 6),
+                    narrative_function="G9 production simulation",
+                    subject="YOSUMI",
+                    action="one controlled protective action",
+                    environment="MARGIN CITY recurring geography",
+                    composition="readable single action",
+                    camera=CameraSpec(
+                        framing="medium", lens="50mm", angle="eye-level",
+                        movement="locked", movement_strength="locked",
+                    ),
+                    lighting="deep ink navy and dark teal matte light",
+                    emotional_note="controlled",
+                    continuity_in=["three black ink ribbons", "rectangular chest hollow visible"],
+                    continuity_out=["identity topology unchanged"],
+                    series_episode_id=f"EP{beat_index + 1}",
+                    series_entity_ids=["YOSUMI"],
+                ))
+        session.story_beats = beats
+        session.shots = shots
+
+        contracts = [compile_shot_continuity_contract(session, shot) for shot in session.shots]
+        contract_unique = len({item.contract_hash for item in contracts}) == shot_count
+        contract_clean = all(not item.blockers and item.contract_hash for item in contracts)
+        identity_lock = all(
+            "three black ink ribbons" in item.prompt_block
+            and "rectangular hollow" in item.prompt_block
+            and "left hand" in item.prompt_block.casefold()
+            for item in contracts
+        )
+
+        session.generation_packs = [
+            compile_manual_pack(
+                session, shot, "GENERIC_MANUAL",
+                pack_id=f"PACK-G9-{index + 1:03d}",
+                created_at=f"2026-10-08T00:00:{index % 60:02d}+00:00",
+            )
+            for index, shot in enumerate(session.shots)
+        ]
+        pack_contracts = all(
+            pack.continuity_contract_hash
+            and pack.continuity_contract_block
+            and pack.readiness != "BLOCKED"
+            for pack in session.generation_packs
+        )
+        readiness = build_production_readiness(session)
+        readiness_shots = len(readiness.shots) == shot_count
+        initially_current = all(not state.stale_pack for state in readiness.shots)
+
+        # Mutating the character bible must invalidate previously compiled packs.
+        yosumi = next(entity for entity in session.series_entities if entity.entity_id == "YOSUMI")
+        yosumi.shape_grammar.forbidden_mutations.append("G9 TEMP STALE CHECK")
+        stale_report = build_production_readiness(session)
+        stale_detected = all(state.stale_pack for state in stale_report.shots)
+        yosumi.shape_grammar.forbidden_mutations.remove("G9 TEMP STALE CHECK")
+
+        # Round-trip repeatedly with portable paths and stable logical fingerprint.
+        session_path = directory / "THE_FIFTH_VERDICT_G9_세션.json"
+        session.export(session_path)
+        logical_fingerprint = production_state_fingerprint(session)
+        roundtrip_ok = True
+        for _ in range(5):
+            session = LyricsWorldSession.import_file(session_path)
+            if production_state_fingerprint(session) != logical_fingerprint:
+                roundtrip_ok = False
+                break
+            session.export(session_path)
+
+        queue = GenerationQueue()
+        queued = build_generation_queue(session, queue, "MANUAL")
+        queue_build_ok = len(queued) == shot_count
+        for index in range(shot_count, 500):
+            queue.add(f"SYN-{index:04d}", f"PACK-SYN-{index:04d}", "MANUAL")
+        for job in queue.jobs[:125]:
+            queue.start(job.job_id)
+            queue.complete(job.job_id)
+        queue_counts = queue.counts()
+        queue_stress_ok = queue_counts["DONE"] == 125 and sum(queue_counts.values()) == 500
+
+        pack = session.generation_packs[0]
+        template = {
+            "1": {"inputs": {"text": "{{MV_MAIN_PROMPT}}"}},
+            "2": {"inputs": {"negative": "{{MV_NEGATIVE_PROMPT}}", "prefix": "{{MV_OUTPUT_PREFIX}}"}},
+            "3": {"inputs": {"shot": "{{MV_SHOT_ID}}", "duration": "{{MV_DURATION}}"}},
+        }
+        materialized = materialize_comfyui_workflow(template, pack)
+        comfy_template_ok = "{{MV_" not in json.dumps(materialized, ensure_ascii=False) and pack.shot_id == materialized["3"]["inputs"]["shot"]
+        comfy_remote_blocked = ComfyUIBridge("http://example.com:8188").status().state == "INVALID_ENDPOINT"
+
+        # UI/code contract at the minimum supported canvas.
+        app = QApplication.instance() or QApplication([])
+        window = MainWindow()
+        window.resize(1100, 720)
+        main_ui = validate_main_window_contract(window)
+        production = ProductionControlDialog(lambda: window.session, lambda: None, window)
+        production.resize(1100, 720)
+        production_ui = validate_production_dialog_contract(production)
+        for page_index in range(window.pages.count()):
+            window._switch(page_index)
+            app.processEvents()
+        window._refresh_from_session()
+        app.processEvents()
+        ui_contract_ok = main_ui.passed and production_ui.passed and window.pages.count() == 10
+        production.close(); window.close(); app.processEvents()
+
+        # Real FFmpeg media for post-render delivery verification.
+        tools = discover_ffmpeg()
+        if not tools.render_ready:
+            raise AssertionError("FFmpeg render requirements are unavailable")
+        final = directory / "G9 Final 결과.mp4"
+        subprocess.run([
+            tools.ffmpeg_path, "-hide_banner", "-loglevel", "error", "-y",
+            "-f", "lavfi", "-i", "testsrc=size=320x180:rate=24:duration=2",
+            "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100:duration=2",
+            "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k", str(final),
+        ], check=True, shell=False)
+        session.final_path = str(final)
+        session.render_settings = RenderSettings(
+            preset_id="g9_smoke", width=320, height=180, fps=24.0, quality=24, framing="cover"
+        )
+        final_report = verify_final_render(session, final)
+        final_verify_ok = final_report.status in {"PASS", "PASS_WITH_WARNINGS"}
+
+        results.update({
+            "production_megagate": "PASS",
+            "shots": shot_count,
+            "contracts_unique": contract_unique,
+            "contracts_clean": contract_clean,
+            "identity_lock": identity_lock,
+            "pack_contracts": pack_contracts,
+            "readiness_shots": readiness_shots,
+            "initially_current": initially_current,
+            "stale_detected": stale_detected,
+            "session_roundtrips": 5,
+            "roundtrip_ok": roundtrip_ok,
+            "queue_jobs": 500,
+            "queue_counts": queue_counts,
+            "queue_stress_ok": queue_stress_ok,
+            "comfy_template_ok": comfy_template_ok,
+            "comfy_remote_blocked": comfy_remote_blocked,
+            "main_ui_contract": main_ui.passed,
+            "production_ui_contract": production_ui.passed,
+            "ui_contract_ok": ui_contract_ok,
+            "final_render_status": final_report.status,
+            "final_verify_ok": final_verify_ok,
+            "final_black_ratio": final_report.black_frame_ratio,
+            "final_freeze_ratio": final_report.freeze_ratio,
+            "final_scene_cuts": final_report.scene_cut_count,
+        })
+        required = (
+            "contracts_unique", "contracts_clean", "identity_lock", "pack_contracts",
+            "readiness_shots", "initially_current", "stale_detected", "roundtrip_ok",
+            "queue_stress_ok", "comfy_template_ok", "comfy_remote_blocked",
+            "main_ui_contract", "production_ui_contract", "ui_contract_ok", "final_verify_ok",
+        )
+        ok = all(results[key] for key in required)
+        results["production_megagate"] = "PASS" if ok else "FAIL"
+        return ok, results
+    except Exception as exc:
+        configure_logging(paths).exception("G9 production megagate failed")
+        results["error"] = str(exc)
+        return False, results
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
 def release_stress_test() -> tuple[bool, dict[str, Any]]:
     """Packaged, real-dependency release exercise. No media-analysis mocks."""
     paths = app_paths()
