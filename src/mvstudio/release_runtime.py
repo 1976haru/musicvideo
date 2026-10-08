@@ -127,29 +127,41 @@ def _candidate_tool_pair(explicit: str | Path | None = None) -> list[tuple[str, 
 def discover_ffmpeg(explicit: str | Path | None = None) -> ToolInfo:
     if explicit is None:
         explicit = load_runtime_config().get("ffmpeg_path")
+    failures: list[str] = []
     for source, ffmpeg, ffprobe in _candidate_tool_pair(explicit):
         if not ffmpeg.is_file() or not ffprobe.is_file():
             continue
         try:
-            version_run = subprocess.run([str(ffmpeg), "-version"], capture_output=True, text=True,
-                                         encoding="utf-8", errors="replace", timeout=10, shell=False)
-            encoders_run = subprocess.run([str(ffmpeg), "-hide_banner", "-encoders"], capture_output=True, text=True,
-                                          encoding="utf-8", errors="replace", timeout=15, shell=False)
-            probe_run = subprocess.run([str(ffprobe), "-version"], capture_output=True, text=True,
-                                       encoding="utf-8", errors="replace", timeout=10, shell=False)
+            version_run = subprocess.run(
+                [str(ffmpeg), "-version"], capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=10, shell=False,
+            )
+            encoders_run = subprocess.run(
+                [str(ffmpeg), "-hide_banner", "-encoders"], capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=15, shell=False,
+            )
+            probe_run = subprocess.run(
+                [str(ffprobe), "-version"], capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=10, shell=False,
+            )
             if version_run.returncode or probe_run.returncode:
-                return ToolInfo("LOAD_FAILED", str(ffmpeg), str(ffprobe), source=source,
-                                detail="FFmpeg 또는 FFprobe를 실행하지 못했습니다.")
+                failures.append(f"{source}: FFmpeg/FFprobe returned a non-zero exit code")
+                continue
             encoder_text = encoders_run.stdout + encoders_run.stderr
             version = (version_run.stdout.splitlines() or [""])[0].strip()
             return ToolInfo(
                 "AVAILABLE", str(ffmpeg), str(ffprobe), source=source, version=version,
-                h264_encoder="libx264" in encoder_text, aac_encoder=bool(re.search(r"\bAAC\b|\baac\b", encoder_text)),
-                detail="" if encoders_run.returncode == 0 else "인코더 목록을 확인하지 못했습니다.",
+                h264_encoder="libx264" in encoder_text,
+                aac_encoder=bool(re.search(r"\bAAC\b|\baac\b", encoder_text)),
+                detail="" if encoders_run.returncode == 0 else "Could not fully inspect encoder list.",
             )
         except (OSError, subprocess.SubprocessError) as exc:
-            return ToolInfo("LOAD_FAILED", str(ffmpeg), str(ffprobe), source=source, detail=str(exc))
-    return ToolInfo("NOT_INSTALLED", detail="영상 내보내기 도구(FFmpeg/FFprobe)를 찾을 수 없습니다.")
+            failures.append(f"{source}: {exc}")
+            continue
+    if failures:
+        return ToolInfo("LOAD_FAILED", detail="; ".join(failures))
+    return ToolInfo("NOT_INSTALLED", detail="FFmpeg/FFprobe not found.")
+
 
 
 @dataclass(frozen=True)
