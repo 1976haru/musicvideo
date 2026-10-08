@@ -1,6 +1,6 @@
 # MV Director Studio 진행률
 
-## 전체 진행률: 100% (MV Director Studio 1.0.1 LOCAL RELEASE READY)
+## 전체 진행률: 100% (MV Director Studio 1.0.2 LOCAL RELEASE READY)
 
 ### 완료
 
@@ -163,3 +163,11 @@ G7을 완료했습니다. G8 범위는 이 릴리스에 포함하지 않습니�
 - root smoke / music / render / stress / GUI Music action
 - rollback protection and temporary build cleanup
 - session schema remains 1.0
+
+
+## 1.0.2 WORLD BIBLE SAVE/UI HOTFIX
+- World Bible save now persists directly to the Session JSON
+- first save prompts for project JSON path; cancel never claims disk save
+- World Bible form uses dark background with visible field labels
+- sidebar release label uses APP_VERSION dynamically
+- single root executable / staging / stress / rollback gates remain unchanged
