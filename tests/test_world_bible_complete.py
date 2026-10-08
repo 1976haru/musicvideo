@@ -151,3 +151,31 @@ def test_ui_regeneration_requires_confirmation_and_preserves_manual_edits(monkey
     assert window.world_bible_draft_button.text() == "World Bible 전체 초안 다시 만들기"
     window.close()
     app.processEvents()
+
+
+def test_partial_world_bible_fill_preserves_existing_user_edits():
+    session = LyricsWorldSession(
+        analysis=_analysis(),
+        concepts=[_concept()],
+        selected_concept_id="WC03",
+        audio_map=_audio(),
+    )
+    session.promote_selected_concept()
+    session.world_bible.emotional_thesis = "사용자가 직접 수정한 문장"
+    session.world_bible.time_period = ""
+    session.world_bible.palette = []
+    session.world_bible.material_language = []
+    session.world_bible.weather_rules = []
+    session.world_bible.lighting_rules = []
+    session.world_bible.camera_rules = []
+
+    bible = session.promote_selected_concept(fill_missing_only=True)
+
+    assert bible.emotional_thesis == "사용자가 직접 수정한 문장"
+    assert bible.time_period
+    assert bible.palette
+    assert bible.material_language
+    assert bible.weather_rules
+    assert bible.lighting_rules
+    assert bible.camera_rules
+    assert all(bool(value) for value in _editable_values(bible))
