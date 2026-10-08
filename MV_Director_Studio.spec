@@ -26,6 +26,9 @@ a = Analysis(
         "torch", "open_clip", "beat_this", "allin1", "pytest", "pandas", "pyarrow",
         "matplotlib", "sklearn", "sqlalchemy", "openpyxl", "lxml",
     ], noarchive=False,
+    # librosa uses Numba cache=True decorators. Keep its Python sources on disk
+    # so Numba has a real source locator in the ONEDIR package.
+    module_collection_mode={"librosa": "py"},
 )
 pyz = PYZ(a.pure)
 exe = EXE(

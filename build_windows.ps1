@@ -1,55 +1,114 @@
-param([string]$OutputRoot = "release", [switch]$SkipTests, [switch]$NoBundleFFmpeg)
+param([switch]$NoBundleFFmpeg, [switch]$ArtifactOnly)
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $repo
-if (-not $SkipTests) {
-    $env:QT_QPA_PLATFORM = "offscreen"
-    python -m pytest -q
-    if ($LASTEXITCODE -ne 0) { throw "Tests failed." }
-}
-python -m compileall -q src
-if ($LASTEXITCODE -ne 0) { throw "compileall failed." }
-$dist = Join-Path $repo "$OutputRoot\dist"
-$work = Join-Path $repo "$OutputRoot\build"
-python -m PyInstaller --noconfirm --clean --distpath $dist --workpath $work MV_Director_Studio.spec
-if ($LASTEXITCODE -ne 0) { throw "PyInstaller build failed." }
+$staging = Join-Path $repo ".build_staging"
+$dist = Join-Path $staging "dist"
+$work = Join-Path $staging "build"
 $artifact = Join-Path $dist "MV_Director_Studio"
+$rootExe = Join-Path $repo "MV Director Studio.exe"
+$backup = Join-Path $repo ".previous_release"
+$runtimeNames = @("MV Director Studio.exe", "_internal", "tools", "release_manifest.json")
+
+function Invoke-Gate([string]$Name, [scriptblock]$Action) {
+    Write-Host "[GATE] $Name"
+    & $Action
+    if ($LASTEXITCODE -ne 0) { throw "$Name failed (exit $LASTEXITCODE)." }
+}
+function Invoke-ExeGate([string]$Name, [string]$ExePath, [string[]]$Arguments) {
+    Write-Host "[GATE] $Name"
+    $process = Start-Process -FilePath $ExePath -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+    if ($process.ExitCode -ne 0) { throw "$Name failed (exit $($process.ExitCode))." }
+}
+function Assert-AppNotRunning {
+    if (-not (Test-Path -LiteralPath $rootExe)) { return }
+    $resolved = [IO.Path]::GetFullPath($rootExe)
+    $running = Get-Process -Name "MV Director Studio" -ErrorAction SilentlyContinue | Where-Object {
+        try { [IO.Path]::GetFullPath($_.Path) -eq $resolved } catch { $false }
+    }
+    if ($running) { throw "MV Director Studio를 종료한 뒤 업데이트해주세요." }
+}
+function Copy-Runtime([string]$From, [string]$To) {
+    foreach ($name in $runtimeNames) {
+        $source = Join-Path $From $name
+        if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $To -Recurse -Force }
+    }
+}
+function Remove-RootRuntime {
+    foreach ($name in $runtimeNames) {
+        $target = Join-Path $repo $name
+        if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+    }
+}
+
+# Nothing in the active root runtime is changed before all packaged gates pass.
+if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $staging | Out-Null
+$env:QT_QPA_PLATFORM = "offscreen"
+Invoke-Gate "pytest" { python -m pytest -q }
+Invoke-Gate "compileall" { python -m compileall -q src }
+Invoke-Gate "git diff --check" { git diff --check }
+Invoke-Gate "PyInstaller staging build" { python -m PyInstaller --noconfirm --clean --distpath $dist --workpath $work MV_Director_Studio.spec }
+
 New-Item -ItemType Directory -Force -Path (Join-Path $artifact "tools\ffmpeg\bin") | Out-Null
-Copy-Item README_FIRST.txt, CHANGELOG.md -Destination $artifact -Force
-Copy-Item docs\RELEASE_NOTES_1.0.1.md, docs\KNOWN_LIMITATIONS.md -Destination $artifact -Force
 $ffmpegStrategy = "app-local tools/ffmpeg/bin, then PATH"
 if (-not $NoBundleFFmpeg) {
     $ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue).Source
     $ffprobe = (Get-Command ffprobe -ErrorAction SilentlyContinue).Source
-    if ($ffmpeg -and $ffprobe) {
-        Copy-Item $ffmpeg, $ffprobe -Destination (Join-Path $artifact "tools\ffmpeg\bin") -Force
-        @(
-            "FFmpeg source: https://ffmpeg.org/",
-            "Windows build provider detected at release build time: https://www.gyan.dev/ffmpeg/builds/",
-            "This distribution must comply with the license of the copied FFmpeg build (LGPL/GPL depending on configuration).",
-            "Run tools/ffmpeg/bin/ffmpeg.exe -L to view the complete license notice.",
-            "The MV Director Studio source repository does not store the FFmpeg binaries."
-        ) |
-            Set-Content -Encoding UTF8 (Join-Path $artifact "FFMPEG_LICENSE_AND_SOURCE.txt")
-        $ffmpegStrategy = "bundled app-local FFmpeg/FFprobe; source/license documented"
-    } else { throw "FFmpeg/FFprobe not found. Use -NoBundleFFmpeg only for a diagnostic build." }
+    if (-not $ffmpeg -or -not $ffprobe) { throw "FFmpeg/FFprobe not found." }
+    Copy-Item -LiteralPath $ffmpeg -Destination (Join-Path $artifact "tools\ffmpeg\bin\ffmpeg.exe") -Force
+    Copy-Item -LiteralPath $ffprobe -Destination (Join-Path $artifact "tools\ffmpeg\bin\ffprobe.exe") -Force
+    $ffmpegStrategy = "bundled app-local FFmpeg/FFprobe"
 }
 $commit = (git rev-parse HEAD 2>$null)
 if (-not $commit) { $commit = "unknown" }
-$manifest = [ordered]@{
+[ordered]@{
     app_version = "1.0.1"; session_schema = "1.0"; git_commit = $commit.Trim()
     build_time_utc = [DateTime]::UtcNow.ToString("o")
     python = (python --version 2>&1 | Out-String).Trim(); platform = [Environment]::OSVersion.VersionString
-    packaging = "PyInstaller ONEDIR"; ffmpeg_strategy = $ffmpegStrategy
-    optional_components = @("OpenCLIP:not bundled", "Beat This:not bundled", "Functional Structure:not bundled", "OpenTimelineIO:optional")
-}
-$manifest | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $artifact "release_manifest.json")
+    packaging = "PyInstaller ONEDIR"; ffmpeg_strategy = $ffmpegStrategy; entrypoint = "MV Director Studio.exe"
+} | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 (Join-Path $artifact "release_manifest.json")
+
 $env:PYTHONPATH = $null
-$env:MVSTUDIO_APPDATA = (Join-Path $repo "$OutputRoot\smoke-appdata")
-& (Join-Path $artifact "MV Director Studio.exe") --smoke-test
-if ($LASTEXITCODE -ne 0) { throw "Packaged smoke test failed." }
-& (Join-Path $artifact "MV Director Studio.exe") --music-analysis-smoke-test
-if ($LASTEXITCODE -ne 0) { throw "Packaged music analysis smoke test failed." }
-& (Join-Path $artifact "MV Director Studio.exe") --render-smoke-test
-if ($LASTEXITCODE -ne 0) { throw "Packaged FFmpeg render smoke test failed." }
-Write-Host "RELEASE ARTIFACT: $artifact"
+$env:MVSTUDIO_APPDATA = Join-Path $staging "packaged-appdata"
+$stagedExe = Join-Path $artifact "MV Director Studio.exe"
+Invoke-ExeGate "packaged smoke" $stagedExe @("--smoke-test")
+Invoke-ExeGate "packaged music analysis" $stagedExe @("--music-analysis-smoke-test")
+Invoke-ExeGate "packaged render" $stagedExe @("--render-smoke-test")
+Invoke-ExeGate "release stress" $stagedExe @("--release-stress-test")
+if ($ArtifactOnly) { Write-Host "ARTIFACT READY (root deploy skipped): $artifact"; exit 0 }
+
+Assert-AppNotRunning
+$deployed = $false
+try {
+    if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $backup | Out-Null
+    Copy-Runtime $repo $backup
+    Remove-RootRuntime
+    Copy-Runtime $artifact $repo
+    $deployed = $true
+
+    $env:MVSTUDIO_APPDATA = Join-Path $staging "root-appdata"
+    Invoke-ExeGate "root smoke" $rootExe @("--smoke-test")
+    Invoke-ExeGate "root music analysis" $rootExe @("--music-analysis-smoke-test")
+    Invoke-ExeGate "root render" $rootExe @("--render-smoke-test")
+    Invoke-ExeGate "root release stress" $rootExe @("--release-stress-test")
+    Invoke-ExeGate "root GUI music action" $rootExe @("--gui-music-test")
+
+    foreach ($path in @((Join-Path $repo "dist"), (Join-Path $repo "build"), (Join-Path $repo "release"))) {
+        if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force }
+    }
+    Get-ChildItem -LiteralPath $repo -Directory -Filter "release_*" -ErrorAction SilentlyContinue | ForEach-Object {
+        if ($_.FullName.StartsWith($repo + [IO.Path]::DirectorySeparatorChar)) { Remove-Item -LiteralPath $_.FullName -Recurse -Force }
+    }
+    Remove-Item -LiteralPath $staging -Recurse -Force
+    $failedRelease = Join-Path $repo ".failed_release"
+    if (Test-Path -LiteralPath $failedRelease) { Remove-Item -LiteralPath $failedRelease -Recurse -Force }
+    Write-Host "LOCAL RELEASE READY: $rootExe"
+} catch {
+    if ($deployed) {
+        Write-Warning "Root verification/deploy failed; restoring the previous runtime."
+        Remove-RootRuntime
+        Copy-Runtime $backup $repo
+    }
+    throw
+}

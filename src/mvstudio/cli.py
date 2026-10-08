@@ -17,7 +17,7 @@ from .lyrics_engine import (
 )
 from .music_engine import analyze_audio, build_mv_timeline, format_timeline_text
 
-app = typer.Typer(help="MV Director Studio 1.0.0 — Music + Lyrics Director Timeline")
+app = typer.Typer(help="MV Director Studio 1.0.1 — Music + Lyrics Director Timeline")
 
 
 def load_project(path: Path) -> MusicVideoProject:
