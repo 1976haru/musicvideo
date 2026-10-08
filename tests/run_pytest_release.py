@@ -25,7 +25,7 @@ def main() -> int:
     assert process.stdout is not None
     for line in process.stdout:
         print(line, end="", flush=True)
-        match = RESULT_RE.match(line.strip())
+        match = RESULT_RE.search(line)
         if match:
             reported_status = int(match.group(1))
     native_status = process.wait()
