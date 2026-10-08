@@ -30,6 +30,9 @@ jobs:
       - name: Packaged FFmpeg render smoke
         shell: powershell
         run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --render-smoke-test'
+      - name: Packaged release stress
+        shell: powershell
+        run: '& ".\.build_staging\dist\MV_Director_Studio\MV Director Studio.exe" --release-stress-test'
       - uses: actions/upload-artifact@v4
         with:
           name: MV-Director-Studio-1.0.1-Windows
