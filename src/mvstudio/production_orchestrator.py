@@ -258,13 +258,13 @@ def compile_shot_continuity_contract(session: LyricsWorldSession, shot: ShotSpec
     for reference_id in shot.reference_ids:
         asset = ref_map.get(reference_id)
         if not asset:
-            blockers.append(f"Unknown Reference ID: {reference_id}")
+            warnings.append(f"Unknown Reference ID: {reference_id}")
             continue
         path = resolve_reference_path(asset, session.project_dir)
         reference_ids.append(reference_id)
         reference_paths.append(str(path))
         if not path.is_file():
-            blockers.append(f"Missing reference file: {reference_id}")
+            warnings.append(f"Missing reference file: {reference_id}")
 
     series_asset_ids: list[str] = []
     series_asset_paths: list[str] = []
@@ -1086,7 +1086,7 @@ def extract_comfyui_output_files(history_payload: dict[str, Any], prompt_id: str
                 if isinstance(item, dict) and item.get("filename"):
                     subfolder = item.get("subfolder") or ""
                     filename = str(Path(subfolder) / item["filename"]) if subfolder else str(item["filename"])
-                    result.append(filename)
+                    result.append(filename.replace("\\", "/"))
     return list(dict.fromkeys(result))
 
 
