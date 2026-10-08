@@ -341,6 +341,12 @@ class ShotBoardPage(QWidget):
             self.movement_strength.addItem(value, value)
         self.lighting, self.emotion, self.motif = _text(), _text(), _line()
         self.world_refs = _text()
+        self.series_episode = QComboBox()
+        self.series_episode.setMinimumHeight(42)
+        self.series_entities = QListWidget()
+        self.series_entities.setMaximumHeight(150)
+        self.series_variants = QListWidget()
+        self.series_variants.setMaximumHeight(150)
         self.continuity_in, self.continuity_out = _text(), _text()
         self.generation_mode = QComboBox()
         for value in ("t2v", "i2v", "first_last", "extend", "v2v"):
@@ -354,7 +360,11 @@ class ShotBoardPage(QWidget):
             ("주체", self.subject), ("행동", self.action), ("환경", self.environment), ("구도", self.composition),
             ("Framing", self.framing), ("Lens", self.lens), ("Angle", self.angle), ("Camera movement", self.movement),
             ("Movement strength", self.movement_strength), ("Lighting", self.lighting), ("감정 목적", self.emotion),
-            ("Motif", self.motif), ("Continuity in", self.continuity_in), ("Continuity out", self.continuity_out),
+            ("Motif", self.motif),
+            ("Series Episode", self.series_episode),
+            ("Series Entities", self.series_entities),
+            ("Series Variants", self.series_variants),
+            ("Continuity in", self.continuity_in), ("Continuity out", self.continuity_out),
             ("World rule refs", self.world_refs),
             ("Reference ID 선택", self.references), ("Generation mode", self.generation_mode), ("금지 요소", self.negative),
         ]:
@@ -385,6 +395,8 @@ class ShotBoardPage(QWidget):
         self.duplicate_button.clicked.connect(self._duplicate_shot)
         self.delete_button.clicked.connect(self._delete_shot)
         self.save_button.clicked.connect(self._save_selected)
+        self.series_episode.currentIndexChanged.connect(self._on_series_episode_changed)
+        self.series_entities.itemChanged.connect(lambda *_: self._refresh_series_variants())
         self.refresh()
 
     def _time_row(self):
@@ -404,11 +416,23 @@ class ShotBoardPage(QWidget):
         self._building = True
         session = self.session_getter()
         old = self.beat_combo.currentData()
+        old_episode = self.series_episode.currentData()
         self.beat_combo.clear()
         for beat in session.story_beats:
             self.beat_combo.addItem(f"{beat.beat_id} · {beat.start_sec:.2f}–{beat.end_sec:.2f}s · {beat.motif or 'motif 없음'}", beat.beat_id)
         index = self.beat_combo.findData(old)
         self.beat_combo.setCurrentIndex(index if index >= 0 else (0 if self.beat_combo.count() else -1))
+
+        self.series_episode.blockSignals(True)
+        self.series_episode.clear()
+        self.series_episode.addItem("단편 / Series 미지정", None)
+        if session.series_bible:
+            for episode in sorted(session.series_bible.episodes, key=lambda item: item.order):
+                self.series_episode.addItem(f"{episode.episode_id} · {episode.title}", episode.episode_id)
+        episode_index = self.series_episode.findData(old_episode)
+        self.series_episode.setCurrentIndex(episode_index if episode_index >= 0 else 0)
+        self.series_episode.blockSignals(False)
+        self.series_episode.setEnabled(bool(session.series_bible))
         self._building = False
         self.refresh_shots()
 
@@ -436,6 +460,67 @@ class ShotBoardPage(QWidget):
         self.shot_list.blockSignals(False)
         self._refresh_reference_choices()
         self._load_selected(self.shot_list.currentRow())
+
+    def _selected_series_entity_ids(self) -> list[str]:
+        return [
+            self.series_entities.item(i).data(Qt.UserRole)
+            for i in range(self.series_entities.count())
+            if self.series_entities.item(i).checkState() == Qt.Checked
+        ]
+
+    def _selected_series_variant_ids(self) -> list[str]:
+        return [
+            self.series_variants.item(i).data(Qt.UserRole)
+            for i in range(self.series_variants.count())
+            if self.series_variants.item(i).checkState() == Qt.Checked
+        ]
+
+    def _refresh_series_entities(self, selected: list[str] | None = None):
+        selected = selected or []
+        session = self.session_getter()
+        episode_id = self.series_episode.currentData()
+        self.series_entities.blockSignals(True)
+        self.series_entities.clear()
+        for entity in session.series_entities:
+            eligible = not episode_id or not entity.episode_presence or episode_id in entity.episode_presence
+            item = QListWidgetItem(f"{entity.display_name} [{entity.entity_type}]")
+            item.setData(Qt.UserRole, entity.entity_id)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            if not eligible and entity.entity_id not in selected:
+                item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
+                item.setText(item.text() + " · 이 EP 미등장")
+            item.setCheckState(Qt.Checked if entity.entity_id in selected else Qt.Unchecked)
+            self.series_entities.addItem(item)
+        self.series_entities.blockSignals(False)
+
+    def _refresh_series_variants(self, selected: list[str] | None = None):
+        selected = selected if selected is not None else self._selected_series_variant_ids()
+        session = self.session_getter()
+        episode_id = self.series_episode.currentData()
+        entity_ids = set(self._selected_series_entity_ids())
+        self.series_variants.blockSignals(True)
+        self.series_variants.clear()
+        for entity in session.series_entities:
+            if entity.entity_id not in entity_ids:
+                continue
+            for variant in entity.variants:
+                if variant.episode_id and episode_id and variant.episode_id != episode_id:
+                    continue
+                label = f"{entity.display_name} · {variant.variant_id} · {variant.kind}"
+                item = QListWidgetItem(label)
+                item.setData(Qt.UserRole, variant.variant_id)
+                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Checked if variant.variant_id in selected else Qt.Unchecked)
+                self.series_variants.addItem(item)
+        self.series_variants.blockSignals(False)
+
+    def _on_series_episode_changed(self, *_):
+        if self._building:
+            return
+        selected_entities = self._selected_series_entity_ids()
+        selected_variants = self._selected_series_variant_ids()
+        self._refresh_series_entities(selected_entities)
+        self._refresh_series_variants(selected_variants)
 
     def _refresh_reference_choices(self, selected: list[str] | None = None):
         session = self.session_getter()
@@ -469,8 +554,9 @@ class ShotBoardPage(QWidget):
     def _load_selected(self, row: int):
         shot = self._selected_shot()
         active = shot is not None
-        for widget in (self.start, self.end, self.narrative, self.line_ids, self.cue_ids, self.intent, self.strategy, self.subject, self.action, self.environment, self.composition, self.framing, self.lens, self.angle, self.movement, self.movement_strength, self.lighting, self.emotion, self.motif, self.continuity_in, self.continuity_out, self.world_refs, self.references, self.generation_mode, self.negative, self.save_button, self.delete_button, self.split_button, self.duplicate_button):
+        for widget in (self.start, self.end, self.narrative, self.line_ids, self.cue_ids, self.intent, self.strategy, self.subject, self.action, self.environment, self.composition, self.framing, self.lens, self.angle, self.movement, self.movement_strength, self.lighting, self.emotion, self.motif, self.series_entities, self.series_variants, self.continuity_in, self.continuity_out, self.world_refs, self.references, self.generation_mode, self.negative, self.save_button, self.delete_button, self.split_button, self.duplicate_button):
             widget.setEnabled(active)
+        self.series_episode.setEnabled(bool(self.session_getter().series_bible))
         self.add_button.setEnabled(self._active_beat() is not None)
         if not active:
             self.warning_label.setText("Beat를 선택하고 Shot을 추가하세요.")
@@ -494,6 +580,12 @@ class ShotBoardPage(QWidget):
         self.lighting.setPlainText(shot.lighting)
         self.emotion.setPlainText(shot.emotional_note)
         self.motif.setText(shot.motif or "")
+        episode_index = self.series_episode.findData(shot.series_episode_id)
+        self.series_episode.blockSignals(True)
+        self.series_episode.setCurrentIndex(episode_index if episode_index >= 0 else 0)
+        self.series_episode.blockSignals(False)
+        self._refresh_series_entities(shot.series_entity_ids)
+        self._refresh_series_variants(shot.series_variant_ids)
         self.continuity_in.setPlainText("\n".join(shot.continuity_in))
         self.continuity_out.setPlainText("\n".join(shot.continuity_out))
         self.world_refs.setPlainText("\n".join(shot.world_rule_refs))
@@ -529,6 +621,8 @@ class ShotBoardPage(QWidget):
         shot_id = next_shot_id(beat.beat_id, {item.shot_id for item in session.shots})
         ordinal = int(shot_id.rsplit("S", 1)[1])
         shot = draft_shot(beat, ordinal)
+        if self.series_episode.currentData():
+            shot = shot.model_copy(update={"series_episode_id": self.series_episode.currentData()})
         session.shots.append(shot)
         self.refresh_shots()
         target = next(i for i in range(self.shot_list.count()) if self.shot_list.item(i).data(Qt.UserRole) == shot_id)
@@ -601,6 +695,9 @@ class ShotBoardPage(QWidget):
             "world_rule_refs": StoryRoomPage._tokens(self.world_refs.toPlainText()),
             "reference_ids": references, "generation_mode": self.generation_mode.currentData(),
             "negative_constraints": StoryRoomPage._tokens(self.negative.toPlainText()),
+            "series_episode_id": self.series_episode.currentData(),
+            "series_entity_ids": self._selected_series_entity_ids(),
+            "series_variant_ids": self._selected_series_variant_ids(),
         }
         try:
             updated = ShotSpec.model_validate({**shot.model_dump(), **changes})
