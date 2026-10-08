@@ -544,8 +544,50 @@ class MainWindow(QMainWindow):
         outer.addWidget(scroll, 1)
         return page
 
+    def _world_bible_editable_keys(self):
+        return [
+            "premise", "emotional_thesis", "reality_rules", "time_period",
+            "visual_language", "palette", "material_language", "weather_rules",
+            "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
+        ]
+
+    def _world_bible_missing_keys(self):
+        bible = self.session.world_bible
+        if bible is None:
+            return list(self._world_bible_editable_keys())
+        return [key for key in self._world_bible_editable_keys() if not getattr(bible, key)]
+
+    def _update_world_bible_generation_ui(self):
+        bible = self.session.world_bible
+        if bible is None:
+            self.world_bible_completion.setText(
+                "전체 초안 상태: 미생성 · World Bible 전체 초안 만들기를 눌러 시작하세요."
+            )
+            self.world_bible_draft_button.setText("World Bible 전체 초안 만들기")
+            return
+        missing = self._world_bible_missing_keys()
+        filled = 12 - len(missing)
+        self.world_bible_completion.setText(
+            f"전체 초안 상태: {filled}/12 · 각 항목을 확인·수정한 뒤 World Bible + 세션 저장을 누르세요."
+        )
+        same_concept = bible.source_concept_id == self.session.selected_concept_id
+        if missing and same_concept:
+            self.world_bible_draft_button.setText(f"빈 항목 자동 보강 ({len(missing)}개)")
+        else:
+            self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
+
     def _promote_world_bible(self):
-        if self.session.world_bible is not None:
+        existing = self.session.world_bible
+        selected = self.session.selected_concept
+        missing = self._world_bible_missing_keys()
+        fill_missing_only = bool(
+            existing
+            and selected
+            and existing.source_concept_id == selected.concept_id
+            and missing
+        )
+
+        if existing is not None and not fill_missing_only:
             answer = QMessageBox.question(
                 self,
                 "World Bible 전체 초안 다시 만들기",
@@ -558,28 +600,30 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.StandardButton.Yes:
                 self.statusBar().showMessage("World Bible 재생성 취소 · 현재 수정 내용 유지", 7000)
                 return False
+
+        before_missing = len(missing)
         try:
-            bible = self.session.promote_selected_concept()
+            bible = self.session.promote_selected_concept(fill_missing_only=fill_missing_only)
         except ValueError as exc:
             QMessageBox.information(self, "World Bible", str(exc))
             return False
+
         for key, editor in self.bible_fields.items():
             value = getattr(bible, key)
             editor.setPlainText("\n".join(value) if isinstance(value, list) else value)
-        editable_keys = [
-            "premise", "emotional_thesis", "reality_rules", "time_period",
-            "visual_language", "palette", "material_language", "weather_rules",
-            "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
-        ]
-        filled = sum(bool(getattr(bible, key)) for key in editable_keys)
-        self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
-        self.world_bible_completion.setText(
-            f"전체 초안 상태: {filled}/12 · 각 항목을 확인·수정한 뒤 World Bible + 세션 저장을 누르세요."
-        )
-        self.statusBar().showMessage(
-            f"World Bible 전체 초안 생성 · 제작 필드 {filled}/12 · {bible.source_concept_id}",
-            10000,
-        )
+
+        self._update_world_bible_generation_ui()
+        filled = 12 - len(self._world_bible_missing_keys())
+        if fill_missing_only:
+            self.statusBar().showMessage(
+                f"World Bible 빈 항목 자동 보강 완료 · {before_missing}개 보강 · 제작 필드 {filled}/12",
+                10000,
+            )
+        else:
+            self.statusBar().showMessage(
+                f"World Bible 전체 초안 생성 · 제작 필드 {filled}/12 · {bible.source_concept_id}",
+                10000,
+            )
         self._schedule_autosave()
         return True
 
@@ -773,23 +817,10 @@ class MainWindow(QMainWindow):
             for key, editor in self.bible_fields.items():
                 value = getattr(session.world_bible, key)
                 editor.setPlainText("\n".join(value) if isinstance(value, list) else value or "")
-            editable_keys = [
-                "premise", "emotional_thesis", "reality_rules", "time_period",
-                "visual_language", "palette", "material_language", "weather_rules",
-                "lighting_rules", "camera_rules", "recurring_motifs", "forbidden_elements",
-            ]
-            filled = sum(bool(getattr(session.world_bible, key)) for key in editable_keys)
-            self.world_bible_completion.setText(
-                f"전체 초안 상태: {filled}/12 · 각 항목을 확인·수정한 뒤 World Bible + 세션 저장을 누르세요."
-            )
-            self.world_bible_draft_button.setText("World Bible 전체 초안 다시 만들기")
         else:
             for editor in self.bible_fields.values():
                 editor.clear()
-            self.world_bible_completion.setText(
-                "전체 초안 상태: 미생성 · World Bible 전체 초안 만들기를 눌러 시작하세요."
-            )
-            self.world_bible_draft_button.setText("World Bible 전체 초안 만들기")
+        self._update_world_bible_generation_ui()
         self._render_references()
         self.story_room_page.refresh()
         self.shot_board_page.refresh()
