@@ -21,6 +21,7 @@ from .reference_vault import resolve_reference_path
 from .story_engine import (
     cinematic_warnings,
     duplicate_id_warnings,
+    effective_duration,
     literalization_warnings,
     motif_progression_warnings,
     shot_timeline_warnings,
@@ -414,7 +415,7 @@ def build_production_readiness(session: LyricsWorldSession) -> ProductionReadine
         issues.append(ProductionIssue(code="NO_STORY_BEATS", severity="blocker", stage_id="story", message="Story Beat가 없습니다.", action="06 STORY ROOM에서 Story Beat 생성/작성"))
     for warning in duplicate_id_warnings(session.story_beats, session.shots):
         issues.append(ProductionIssue(code=warning.code.upper(), severity="blocker", stage_id="story", message=warning.message))
-    for warning in timeline_warnings(session.story_beats, session.duration_sec):
+    for warning in timeline_warnings(session.story_beats, effective_duration(session)):
         severity = "blocker" if warning.code in {"overlap"} else "warning"
         issues.append(ProductionIssue(code=warning.code.upper(), severity=severity, stage_id="story", message=warning.message))
     for warning in motif_progression_warnings(session.story_beats):

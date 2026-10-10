@@ -45,6 +45,9 @@ QPushButton:hover { background: #2b3440; }
 QPushButton:pressed { background: #16243a; border: 2px solid #7da6ff; padding-top: 2px; }
 QPushButton:disabled { color: #647080; background: #171b21; border-color: #262d36; }
 QPushButton#primary { background: #3764c7; border: 1px solid #4d78d7; font-weight: 700; }
+QPushButton#primary:hover { background: #4776dc; border: 1px solid #7da6ff; }
+QPushButton#primary:pressed { background: #1c3a7a; border: 2px solid #b8cdff; padding-top: 3px; color: #dfe8ff; }
+QPushButton#primary:disabled { background: #1a1f27; border: 1px dashed #343c49; color: #5d6876; font-weight: 400; }
 QPushButton#seriesStudioButton { text-align: left; font-weight: 700; background: #202733; border-color: #3a4658; }
 QPushButton#productionControlButton { text-align: left; font-weight: 800; background: #2f5fbf; border-color: #507edb; }
 QPushButton#productionControlButton:hover { background: #376ad0; }
@@ -321,7 +324,20 @@ class MainWindow(QMainWindow):
         self.release_doctor.setModal(False)
         self.release_doctor.show()
 
+    def _confirm_session_replace(self) -> bool:
+        """Resolve unapplied Story Room edits before the current session is replaced."""
+        if not self.story_room_page.resolve_pending_changes():
+            self.statusBar().showMessage("세션 교체 취소 · Story Room 편집을 유지합니다", 8000)
+            return False
+        if self.autosave_timer.isActive():
+            # An applied Beat must reach the current session file before it is swapped out.
+            self.autosave_timer.stop()
+            self._autosave()
+        return True
+
     def _open_recovery_session(self, path: str):
+        if not self._confirm_session_replace():
+            return
         try:
             loaded = LyricsWorldSession.import_file(path)
         except (OSError, ValueError) as exc:
@@ -810,6 +826,8 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"자동 저장 완료 · {saved}", 5000)
 
     def _open_session(self):
+        if not self._confirm_session_replace():
+            return
         path, _ = QFileDialog.getOpenFileName(self, "세션 JSON 열기", "", "MV Director Session (*.json);;JSON (*.json)")
         if not path:
             return

@@ -16,6 +16,21 @@ class TimelineWarning:
     item_ids: tuple[str, ...] = ()
 
 
+def effective_duration(session) -> float | None:
+    """Song length used for Story timing: analysed audio first, then the session value.
+
+    A zero/negative/missing duration is treated as unknown (None), never as a 0-second song.
+    """
+    audio_map = getattr(session, "audio_map", None)
+    audio_duration = getattr(audio_map, "duration_sec", None) if audio_map is not None else None
+    if audio_duration is not None and audio_duration > 0:
+        return float(audio_duration)
+    session_duration = getattr(session, "duration_sec", None)
+    if session_duration is not None and session_duration > 0:
+        return float(session_duration)
+    return None
+
+
 def _next_numeric_id(prefix: str, existing_ids: set[str], width: int) -> str:
     number = 1
     while f"{prefix}{number:0{width}d}" in existing_ids:

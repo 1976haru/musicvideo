@@ -1,4 +1,4 @@
-# MV Director Studio 1.1.0
+# MV Director Studio 1.1.1
 
 Windows에서 음악과 가사를 분석하고, 세계관·시리즈·캐릭터·Story Beat·Shot을 설계한 뒤 생성 결과를 QC하고 최종 MP4까지 만드는 로컬 뮤직비디오 제작 스튜디오입니다.
 
@@ -23,6 +23,10 @@ Windows에서 음악과 가사를 분석하고, 세계관·시리즈·캐릭터�
 11. **10 EDIT / RENDER** — Rough Cut, Preview, Final MP4, Edit Plan/OTIO
 
 5부작 프로젝트는 별도 **SERIES STUDIO**에서 Series Bible, Episode, Entity/Shape Grammar, Asset, Continuity, Episode Graph를 관리합니다.
+
+## 1.1.1 Story Room 편집 안정화
+
+Beat 시간은 0.001초 단위로 편집되며, 텍스트만 수정하면 기존 시간은 그대로 보존됩니다. 적용하지 않은 Beat 변경이 있으면 다른 Beat 선택·추가·자동 초안·삭제·세션 열기 전에 **변경 적용 / 버리기 / 취소**를 묻습니다. 자세한 내용은 `docs/RELEASE_NOTES_1.1.1.md`를 참고하세요.
 
 ## 1.1.0 Production Control
 
