@@ -1,4 +1,4 @@
-MV Director Studio 1.1.0 — 처음 시작
+MV Director Studio 1.1.1 — 처음 시작
 
 1. D:\03 musicvideo\MV Director Studio.exe를 실행합니다.
 2. 첫 실행 진단에서 필수 도구 상태를 확인합니다.

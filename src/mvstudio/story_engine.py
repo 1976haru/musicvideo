@@ -16,6 +16,21 @@ class TimelineWarning:
     item_ids: tuple[str, ...] = ()
 
 
+def effective_duration(session) -> float | None:
+    """Song length used for Story timing: analysed audio first, then the session value.
+
+    A zero/negative/missing duration is treated as unknown (None), never as a 0-second song.
+    """
+    audio_map = getattr(session, "audio_map", None)
+    audio_duration = getattr(audio_map, "duration_sec", None) if audio_map is not None else None
+    if audio_duration is not None and audio_duration > 0:
+        return float(audio_duration)
+    session_duration = getattr(session, "duration_sec", None)
+    if session_duration is not None and session_duration > 0:
+        return float(session_duration)
+    return None
+
+
 def _next_numeric_id(prefix: str, existing_ids: set[str], width: int) -> str:
     number = 1
     while f"{prefix}{number:0{width}d}" in existing_ids:
@@ -205,6 +220,19 @@ def timeline_warnings(beats: list[StoryBeat], duration_sec: float | None, tolera
         return warnings
     if ordered[0].start_sec > tolerance:
         warnings.append(TimelineWarning("leading_gap", f"Timeline 시작 전 {ordered[0].start_sec:.2f}s 빈 구간", (ordered[0].beat_id,)))
+    if duration > 0:
+        for beat in ordered:
+            overlap_count = sum(
+                other.beat_id != beat.beat_id
+                and min(beat.end_sec, other.end_sec) - max(beat.start_sec, other.start_sec) > tolerance
+                for other in ordered
+            )
+            if beat.start_sec <= tolerance and beat.end_sec >= duration - tolerance and overlap_count >= 2:
+                warnings.append(TimelineWarning(
+                    "full_duration_overlap",
+                    f"{beat.beat_id}가 곡 전체를 덮으며 여러 Beat와 겹칩니다. 수정하거나 삭제하세요.",
+                    (beat.beat_id,),
+                ))
     for previous, current in zip(ordered, ordered[1:]):
         delta = current.start_sec - previous.end_sec
         if delta > tolerance:

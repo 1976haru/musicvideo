@@ -9,6 +9,12 @@ import sys
 RESULT_RE = re.compile(r"MVSTUDIO_PYTEST_RESULT=(\d+)")
 
 
+def _console_safe(value: str) -> str:
+    """Keep the release gate alive when Windows uses a legacy console codec."""
+    encoding = sys.stdout.encoding or "utf-8"
+    return value.encode(encoding, errors="replace").decode(encoding, errors="replace")
+
+
 def main() -> int:
     env = os.environ.copy()
     env["MVSTUDIO_RELEASE_PYTEST_CHILD"] = "1"
@@ -24,7 +30,7 @@ def main() -> int:
     reported_status: int | None = None
     assert process.stdout is not None
     for line in process.stdout:
-        print(line, end="", flush=True)
+        print(_console_safe(line), end="", flush=True)
         match = RESULT_RE.search(line)
         if match:
             reported_status = int(match.group(1))

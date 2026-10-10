@@ -26,7 +26,7 @@ from .optional_backends import (
 
 
 APP_NAME = "MV Director Studio"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 SESSION_SCHEMA = "1.0"
 BACKUP_LIMIT = 5
 
@@ -789,6 +789,30 @@ def g3_dark_ui_smoke_test() -> tuple[bool, dict[str, Any]]:
             "story_form_host": story.findChild(QWidget, "g3FormHost"),
         }
         story_ratios = {name: round(white_ratio(widget), 4) for name, widget in story_widgets.items()}
+        # 1.1.1: the four Story Room actions must not be clipped at 1100×720, and the
+        # primary Save button must look clearly different when disabled vs enabled.
+        story_buttons = [story.auto_button, story.add_button, story.save_button, story.delete_button]
+        story_buttons_fit = all(
+            button.isVisible() and button.height() >= 44 and button.sizeHint().width() <= button.width()
+            for button in story_buttons
+        )
+
+        def button_color(button):
+            image = QImage(button.size(), QImage.Format_ARGB32)
+            image.fill(Qt.transparent)
+            button.render(image)
+            return image.pixelColor(6, image.height() // 2)
+
+        save_disabled = button_color(story.save_button)
+        save_disabled_state = not story.save_button.isEnabled()
+        story.question.setText(story.question.text() + " ")
+        app.processEvents()
+        save_enabled = button_color(story.save_button)
+        save_enabled_state = story.save_button.isEnabled()
+        story.question.setText(story.question.text()[:-1])
+        app.processEvents()
+        save_state_delta = sum(abs(a - b) for a, b in zip(save_disabled.getRgb()[:3], save_enabled.getRgb()[:3]))
+        save_states_ok = save_disabled_state and save_enabled_state and not story.dirty and save_state_delta > 60
 
         shot_page = window.shot_board_page
         window._switch(6)
@@ -807,14 +831,20 @@ def g3_dark_ui_smoke_test() -> tuple[bool, dict[str, Any]]:
             "QScrollArea#g3Scroll",
             "QWidget#g3FormHost",
             "QSplitter#g3Splitter",
+            "QPushButton#primary:disabled",
+            "QPushButton#primary:pressed",
         ))
         object_names_ok = all(widget is not None for widget in [*story_widgets.values(), *shot_widgets.values()])
         max_white_ratio = max([*story_ratios.values(), *shot_ratios.values()])
         # White text can occupy a few sampled pixels; a white Windows background dominates the widget.
         dark_render_ok = max_white_ratio < 0.30
         payload = {
-            "g3_dark_ui": "PASS" if selectors_ok and object_names_ok and dark_render_ok else "FAIL",
+            "g3_dark_ui": "PASS" if selectors_ok and object_names_ok and dark_render_ok and story_buttons_fit and save_states_ok else "FAIL",
             "selectors_ok": selectors_ok,
+            "story_buttons_fit": story_buttons_fit,
+            "story_button_widths": {name: [button.sizeHint().width(), button.width()] for name, button in zip(("auto", "add", "save", "delete"), story_buttons)},
+            "save_states_ok": save_states_ok,
+            "save_state_delta": save_state_delta,
             "object_names_ok": object_names_ok,
             "story_white_ratios": story_ratios,
             "shot_white_ratios": shot_ratios,

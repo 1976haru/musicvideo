@@ -1,4 +1,4 @@
-# Known Limitations — 1.1.0
+# Known Limitations — 1.1.1
 
 - 생성 모델 자체의 미학적 품질은 사용하는 외부 웹 도구 또는 로컬 ComfyUI workflow/model에 영향을 받습니다.
 - ComfyUI 연결은 선택 기능이며 자동 설치, checkpoint 다운로드, workflow 자동 제작을 수행하지 않습니다.

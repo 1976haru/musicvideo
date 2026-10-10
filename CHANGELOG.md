@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.1 — 2026-10-09
+
+- STORY ROOM Beat 시간 입력을 소수 3자리(0.001s)로 변경: 곡 끝 192.046s Beat가 192.05s로 반올림되어 저장 실패하던 문제 수정
+- 텍스트/메모/모티프만 수정하면 기존 start/end timestamp를 정확히 보존 (실제로 바꾼 시간 필드만 반영)
+- Story Room과 PRODUCTION CONTROL이 같은 effective duration(분석 음악 길이 → 세션 길이, 0은 미정) 사용
+- 적용하지 않은 Beat 편집이 Beat 선택/추가/자동 초안/삭제/세션 열기 때 사라지지 않도록 변경 적용·버리기·취소 확인
+- 로드 시점 snapshot 비교로 dirty 계산 (원래 값으로 되돌리면 변경 없음)
+- Beat 변경 적용 버튼 disabled/hover/pressed 상태 구분, 1100×720에서 4개 버튼 2×2 배치
+- G3 dark UI gate에 Story Room 버튼 잘림/저장 버튼 상태 검사 추가
+- Session schema 1.0 유지
+
 ## 1.1.0 — 2026-10-08
 
 - G9 Production Orchestrator 및 초보자용 PRODUCTION CONTROL 추가
